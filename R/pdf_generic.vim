@@ -1,9 +1,9 @@
+vim9script
 
-function ROpenPDF2(fullpath)
-    call system(g:R_pdfviewer . " '" . a:fullpath . "' 2>/dev/null >/dev/null &")
-endfunction
+def g:ROpenPDF2(fullpath: string)
+    system(g:R_pdfviewer .. " '" .. fullpath .. "' 2>/dev/null >/dev/null &")
+enddef
 
-function SyncTeX_forward2(tpath, ppath, texln, tryagain)
-    call RWarningMsg("Vim-R has no support for SyncTeX with '" . g:R_pdfviewer . "'")
-    return
-endfunction
+def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: number)
+    RWarningMsg("Vim-R has no support for SyncTeX with '" .. g:R_pdfviewer .. "'")
+enddef

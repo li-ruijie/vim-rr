@@ -1,5 +1,7 @@
+vim9script
+
 augroup rft
-    au!
+    autocmd!
     autocmd BufRead *.Rhistory set ft=r
     if !exists('#rquarto')
         autocmd BufNewFile,BufRead *.qmd set ft=quarto
