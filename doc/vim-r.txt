@@ -1,4 +1,4 @@
-*Vim-R.txt*                                                  *Vim-R*
+*vim-r.txt*                                                  *Vim-R*
                                   Vim-R
                           Plugin to work with R
 
@@ -8,18 +8,18 @@ Authors: Jakson A. Aquino   <jalvesaq@gmail.com>
 Version: 0.9.21
 For Vim >= 8.2.84
 
- 1. Overview                                    |Vim-R-overview|
- 2. Main features                               |Vim-R-features|
- 3. Installation                                |Vim-R-installation|
- 4. Use                                         |Vim-R-use|
- 5. Known bugs and workarounds                  |Vim-R-known-bugs|
- 6. Options                                     |Vim-R-options|
- 7. Custom key bindings                         |Vim-R-key-bindings|
- 8. News                                        |Vim-R-news|
+ 1. Overview                                    |vim-r-overview|
+ 2. Main features                               |vim-r-features|
+ 3. Installation                                |vim-r-installation|
+ 4. Use                                         |vim-r-use|
+ 5. Known bugs and workarounds                  |vim-r-known-bugs|
+ 6. Options                                     |vim-r-options|
+ 7. Custom key bindings                         |vim-r-key-bindings|
+ 8. News                                        |vim-r-news|
 
 
 ==============================================================================
-1. Overview                                                  *Vim-R-overview*
+1. Overview                                                  *vim-r-overview*
 
 This plugin improves the support for editing R code in Vim. It is available
 at:
@@ -35,7 +35,7 @@ Pull requests fixing bugs are welcome.
 
 
 ==============================================================================
-2. Main features                                             *Vim-R-features*
+2. Main features                                             *vim-r-features*
 
   * Additional syntax highlighting for R code, including:
       - Functions of loaded packages.
@@ -70,7 +70,7 @@ Pull requests fixing bugs are welcome.
 
 
 ==============================================================================
-3. Installation                                          *Vim-R-installation*
+3. Installation                                          *vim-r-installation*
 
 The installation process is described in four sections:
 
@@ -124,11 +124,10 @@ Additional dependencies for editing Rnoweb documents:
    PDF viewer with SyncTeX support and capable of automatically reloading
    documents. This is required only if you edit Rnoweb files.
       On Linux and other Unix systems: Zathura (recommended), Evince or Okular.
-      On OS X: Skim.
       On Windows: SumatraPDF.
 
 
-Suggestions for Unix (Linux, OS X, Cygwin, etc.):
+Suggestions for Unix (Linux, Cygwin, etc.):
 
    Tmux >= 3.0:  http://tmux.sourceforge.net
                  Tmux is required only if you want to run R in an external
@@ -246,7 +245,7 @@ ones found in your systems' `PATH` (see |R_path| and |Rtools-path|).
 
 The plugin should work without the need of any configuration right after
 installed, but if you do not like how the plugin works, you could look at the
-section |Vim-R-options| to see if there is an option that could make you
+section |vim-r-options| to see if there is an option that could make you
 happier.
 
 You can also install additional plugins to get more useful functionality to
@@ -256,7 +255,7 @@ edit R code. Please, access Vim-R's wiki:
 
 
 ==============================================================================
-4. Use                                                            *Vim-R-use*
+4. Use                                                            *vim-r-use*
 
 By default, Vim-R will run R in a built-in terminal emulator, but you can
 change this behavior (see |R_external_term|).
@@ -402,7 +401,7 @@ Help (plugin)
 Help (R)                                            :Rhelp
 -----------------------------------------------------------
 
-Please see |Vim-R-key-bindings| to learn how to customize the key bindings
+Please see |vim-r-key-bindings| to learn how to customize the key bindings
 without editing the plugin directly.
 
 The plugin commands that send code to R Console are the most commonly used. If
@@ -518,7 +517,7 @@ values separated by tab characters and display this file. The command
 <LocalLeader>vh will show the `head()` of the data.frame or matrix in a
 horizontal split that opens above the current window. This behavior can be
 customized, and you can configure Vim-R to call an external application to
-display the data.frame or matrix (see |Vim-R-df-view|). All files involved in
+display the data.frame or matrix (see |vim-r-df-view|). All files involved in
 these operations are created in Vim-R's temporary directory and deleted when
 R quits.
 
@@ -586,11 +585,10 @@ viewer:
    Zathura: <C-LeftMouse>
    Evince:  <C-LeftMouse>
    Okular:  <S-LeftMouse>
-   Skim:    <S-Cmd-Click>
    Sumatra: <Double-click>
 
 In any case, the pdf viewer must be started by the Vim-R plugin. See
-|Vim-R-SyncTeX| for details.
+|vim-r-synctex| for details.
 
 
 ------------------------------------------------------------------------------
@@ -803,7 +801,7 @@ put in your `vimrc`:
 <
 
 ==============================================================================
-5. Known bugs and workarounds                              *Vim-R-known-bugs*
+5. Known bugs and workarounds                              *vim-r-known-bugs*
 
 Known bugs that will not be fixed are listed in this section. Some of them can
 not be fixed because they depend on missing features in either R or Vim;
@@ -877,21 +875,8 @@ The compilation of `vimcom` during R startup will fail on Windows if your
    print("Hello bug!")
 <
 
-------------------------------------------------------------------------------
-5.7 You can't put `syntax enable` in your `init.vim` (OS X only)
-
-It seems that if you put the command `syntax enable` in your `init.vim` on OS
-X, file type plugins are immediately sourced. Consequently, some Vim-R
-variables (`R_disable_cmds`, and `R_user_maps_only`) will
-be used at their default values even if their values have been set in
-the `init.vim`. The workaround is do not include the superfluous command
-`syntax enable` in the `init.vim`. For details, please, access:
-
-   https://github.com/jalvesaq/Vim-R/issues/668
-
-
 ==============================================================================
-6. Options                                                    *Vim-R-options*
+6. Options                                                    *vim-r-options*
 
 |R_auto_start|          Start R automatically
 |R_quit_on_close|       Quit R when Vim exits
@@ -929,7 +914,6 @@ the `init.vim`. The workaround is do not include the superfluous command
 |R_rconsole_height|     Number of lines of R Console
 |R_rconsole_width|      Number of columns of R Console
 |R_min_editor_width|    Minimum number of columns of editor after R start
-|R_applescript|         Use osascript in Mac OS X to run R.app
 |RStudio_cmd|           Run RStudio instead of R.
 |R_listmethods|         Do `vim.list.args()` instead of `args()`
 |R_specialplot|         Do `vim.plot()` instead of `plot()`
@@ -973,8 +957,8 @@ the `init.vim`. The workaround is do not include the superfluous command
 |R_quarto_intel|        Where the Quarto completion data is
 |R_bib_compl|           List of file types for bib completion
 |R_remote_compldir|     Mount point of remote cache directory
-|Vim-R-df-view|        Options for visualizing a data.frame or matrix
-|Vim-R-SyncTeX|        Options for SyncTeX
+|vim-r-df-view|        Options for visualizing a data.frame or matrix
+|vim-r-synctex|        Options for SyncTeX
 
 
 ------------------------------------------------------------------------------
@@ -1126,9 +1110,6 @@ to send commands from Vim to R.
 6.3. Terminal emulator (Linux/Unix only)
                                                              *R_external_term*
                                                              *R_silent_term*
-
-Note: The options of this section are ignored on Mac OS X, where the command
-`open` is called to run the default application used to run shell scripts.
 
 R will run in Vim's built-in terminal emulator, unless you set the value of
 `R_external_term`, which can be a numeric value (either `0` or `1`), the name
@@ -1442,8 +1423,8 @@ be used to run some scripts in the background, such as:
 If it is necessary to call a different application to run the above commands
 in your system, you should set the value of `R_cmd` in your |vimrc|.
 
-By default the value of `R_app` is `"R"` on Unix systems (such as Linux and
-Mac OS X). On Windows, it is `Rterm.exe` if R is going to run in a Vim buffer
+By default the value of `R_app` is `"R"` on Unix systems (such as Linux). On
+Windows, it is `Rterm.exe` if R is going to run in a Vim buffer
 and `"Rgui.exe"` otherwise. Vim-R cannot send messages to `Rterm.exe` in an
 external `cmd` window. If your R binary has a different name (for example, if
 it is called by a custom script), you should set the value of `R_app` in your
@@ -1616,16 +1597,9 @@ window.
 
 
 ------------------------------------------------------------------------------
-6.14. Integration with R.app (OS X only) and RStudio
-                                                               *R_applescript*
+6.14. Integration with RStudio
                                                                *RStudio_cmd*
 
-If you are on Mac OS X and want to use the R.app graphical application, put in
-your |vimrc|:
->vim
-   let R_external_term = 1
-   let R_applescript = 1
-<
 If you want to run RStudio instead of R set in your |vimrc| the value of
 `RStudio_cmd` to the complete path of the RStudio_cmd binary. Example:
 >vim
@@ -1861,12 +1835,11 @@ the X server) you may want to put in your |vimrc|:
        let R_openpdf = 0
    endif
 <
-The default value of `R_openpdf` is 1 on Mac OS X and 2 on Windows. On Linux,
-it is 2 on the X Server and on Sway Window Manager and 1 on other Wayland
-compositors.
+The default value of `R_openpdf` is 2 on Windows. On Linux, it is 2 on the X
+Server and on Sway Window Manager and 1 on other Wayland compositors.
 
-On Windows, Vim-R will call Sumatra to open the PDF, and, on Mac OS X, it
-will call Skim. On Linux, you can change the value of `R_pdfviewer` in your
+On Windows, Vim-R will call Sumatra to open the PDF. On Linux, you can change
+the value of `R_pdfviewer` in your
 |vimrc| to define what PDF viewer will be called. Valid values are "zathura"
 (default, and the one best integrated with Vim-R), "evince" and "okular".
 
@@ -1888,7 +1861,7 @@ The meanings of different values of `R_openhtml` are:
 
 The browser application called by Vim-R is whatever is returned by the R
 command `getOption("browser")`, unless it is NULL. In this case, Vim-R will
-call `open` on both Windows and Mac OS X, and `xdg-open` on Linux.
+call `open` on Windows, and `xdg-open` on Linux.
 
 Most browser will open a new tab each time they are called instead of
 refreshing a document that is already open. So, if you rather prefer that
@@ -2126,25 +2099,6 @@ Then, make the script executable, and put in your |vimrc|:
    let R_external_term = 1
    let R_after_start = ['!after_R_start']
 <
-Similarly, on Mac OS X, the script below (developed by songcai) will bring the
-focus to Vim terminal window:
->
-   #!/usr/bin/env osascript
-
-   --Raise the Terminal window containing name ".R".
-   tell application "Terminal"
-     set index of window 1 where name contains ".R" to 1
-     delay 0.05
-     activate window 1
-   end tell
-
-   --Click the title bar of the raised window to bring focus to it.
-   tell application "System Events"
-     tell process "Terminal"
-       click menu item (name of window 1) of menu of menu bar item "Window" of menu bar 1
-     end tell
-   end tell
-<
 If you want that Vim-R executes Vim commands right after the Object Browser
 is open, set the value of `R_after_ob_open` as a list of commands. Example:
 >vim
@@ -2179,7 +2133,7 @@ debug. You can hold the highlighted line in the middle of the window with
                                                             *R_filetypes*
 
 The Vim-R sets many default key bindings.  The user can set custom
-key bindings (|Vim-R-key-bindings|).  If you wish Vim-R to only
+key bindings (|vim-r-key-bindings|).  If you wish Vim-R to only
 use those key-bindings specified by the user, put in your |vimrc|:
 >vim
     let R_user_maps_only = 1
@@ -2332,7 +2286,7 @@ See https://github.com/jalvesaq/Vim-R/wiki/Remote-access
 
 ------------------------------------------------------------------------------
 6.38. View a data.frame or matrix
-                                                              *Vim-R-df-view*
+                                                              *vim-r-df-view*
                                                               *R_csv_app*
                                                               *R_csv_delim*
 
@@ -2386,15 +2340,14 @@ name of the object under the cursor.
 
 
 ------------------------------------------------------------------------------
-6.39. SyncTeX support                                         *Vim-R-SyncTeX*
+6.39. SyncTeX support                                         *vim-r-synctex*
 
 SyncTeX is a communication system used by some PDF viewers and by some text
 editors which allow users to jump from a specific line in the text editor to
 the corresponding line in the PDF viewer and vice-versa. Vim-R has support
-for SyncTeX in five applications:
+for SyncTeX in four applications:
 
    Linux:   Zathura, Evince and Okular
-   OS X:    Skim
    Windows: SumatraPDF
 
 To completely disable SyncTeX support, put in your |vimrc|:
@@ -2439,7 +2392,7 @@ Example:
 <
 
 ==============================================================================
-7. Custom key bindings                                   *Vim-R-key-bindings*
+7. Custom key bindings                                   *vim-r-key-bindings*
 
 When creating custom key bindings for Vim-R, it is necessary to create three
 maps for most functions because the way the function is called is different in
@@ -2620,7 +2573,7 @@ See also: |R_source|.
 
 
 ==============================================================================
-8. News                                                          *Vim-R-news*
+8. News                                                          *vim-r-news*
 
  * Rename Nvim-R as Vim-R, nvimcom as vimcom, and cmp-nvim-r as cmp-vim-r.
 
@@ -2713,7 +2666,7 @@ See also: |R_source|.
  * New options: R_OutDec, R_csv_delim, R_rmdchunk, R_parenblock,
    R_bracketed_paste, R_complete.
  * New command: `:RSend`.
- * Require Neovim >= 0.2.0 (Linux, OS X) or >= 0.2.1 (Windows).
+ * Require Neovim >= 0.2.0 (Linux) or >= 0.2.1 (Windows).
 
 0.9.10 (2017-09-08)
 

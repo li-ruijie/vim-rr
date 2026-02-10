@@ -235,11 +235,6 @@ function ReallyStartR(whatr)
         return
     endif
 
-    if g:R_applescript
-        call StartR_OSX()
-        return
-    endif
-
     if has("win32")
         call StartR_Windows()
         return
@@ -365,9 +360,6 @@ function SetVimcomInfo(vimcomversion, rpid, wid, r_info)
             " ArrangeWindows
             call JobStdin(g:rplugin.jobs["Server"], "85" . g:rplugin.compldir . "\n")
         endif
-    elseif g:R_applescript
-        call foreground()
-        sleep 200m
     else
         call delete(g:rplugin.tmpdir . "/initterm_" . $VIMR_ID . ".sh")
         call delete(g:rplugin.tmpdir . "/openR")
@@ -2043,7 +2035,7 @@ function RLoadHTML(fullpath, browser)
     endif
 
     if a:browser == ''
-        if has('win32') || g:rplugin.is_darwin
+        if has('win32')
             let cmd = ['open', a:fullpath]
         else
             let cmd = ['xdg-open', a:fullpath]

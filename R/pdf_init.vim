@@ -14,8 +14,6 @@ function RSetPDFViewer()
         exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_okular.vim"
     elseif has("win32") && g:rplugin.pdfviewer == "sumatra"
         exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_sumatra.vim"
-    elseif g:rplugin.is_darwin && g:rplugin.pdfviewer == "skim"
-        exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_skim.vim"
     elseif g:rplugin.pdfviewer == "qpdfview"
         exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_qpdfview.vim"
     else
@@ -29,7 +27,7 @@ function RSetPDFViewer()
         endif
     endif
 
-    if !has("win32") && !g:rplugin.is_darwin && $WAYLAND_DISPLAY == ""
+    if !has("win32") && $WAYLAND_DISPLAY == ""
         if executable("wmctrl")
             let g:rplugin.has_wmctrl = 1
         else
@@ -100,28 +98,16 @@ endfunction
 
 if $XDG_CURRENT_DESKTOP == "sway"
     let g:R_openpdf = get(g:, "R_openpdf", 2)
-elseif g:rplugin.is_darwin || $WAYLAND_DISPLAY != ""
+elseif $WAYLAND_DISPLAY != ""
     let g:R_openpdf = get(g:, "R_openpdf", 1)
 else
     let g:R_openpdf = get(g:, "R_openpdf", 2)
 endif
 
-if g:rplugin.is_darwin
-    let g:R_pdfviewer = "skim"
+if has("win32")
+    let g:R_pdfviewer = "sumatra"
 else
-    if has("win32")
-        let g:R_pdfviewer = "sumatra"
-    else
-        let g:R_pdfviewer = get(g:, "R_pdfviewer", "zathura")
-    endif
-endif
-
-if g:rplugin.is_darwin
-    if !exists("g:macvim_skim_app_path")
-        let g:macvim_skim_app_path = '/Applications/Skim.app'
-    endif
-else
-    let g:R_applescript = 0
+    let g:R_pdfviewer = get(g:, "R_pdfviewer", "zathura")
 endif
 
 if &filetype == 'rnoweb'

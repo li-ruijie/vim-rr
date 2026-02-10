@@ -145,7 +145,7 @@ function GetBibAttachment()
                     let fpath = fls[1]
                 endif
                 if filereadable(fpath)
-                    if has('win32') || g:rplugin.is_darwin
+                    if has('win32')
                         call system('open "' . fpath . '"')
                     else
                         call system('xdg-open "' . fpath . '"')

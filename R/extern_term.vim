@@ -57,14 +57,7 @@ function StartR_ExternalTerm(rcmd)
 
     call system("tmux -L VimR has-session -t " . g:rplugin.tmuxsname)
     if v:shell_error
-        if g:rplugin.is_darwin
-            let rcmd = 'TERM=screen-256color ' . rcmd
-            let opencmd = printf("tmux -L VimR -2 %s new-session -s %s '%s'",
-                        \ tmuxcnf, g:rplugin.tmuxsname, rcmd)
-            call writefile(["#!/bin/sh", opencmd], $VIMR_TMPDIR . "/openR")
-            call system("chmod +x '" . $VIMR_TMPDIR . "/openR'")
-            let opencmd = "open '" . $VIMR_TMPDIR . "/openR'"
-        elseif s:term_name == "konsole"
+        if s:term_name == "konsole"
             let opencmd = printf("%s 'tmux -L VimR -2 %s new-session -s %s \"%s\"'",
                         \ s:term_cmd, tmuxcnf, g:rplugin.tmuxsname, rcmd)
         else
@@ -72,10 +65,6 @@ function StartR_ExternalTerm(rcmd)
                         \ s:term_cmd, tmuxcnf, g:rplugin.tmuxsname, rcmd)
         endif
     else
-        if g:rplugin.is_darwin
-            call RWarningMsg("Tmux session with R is already running")
-            return
-        endif
         let opencmd = printf("%s tmux -L VimR -2 %s attach-session -d -t %s",
                     \ s:term_cmd, tmuxcnf, g:rplugin.tmuxsname)
     endif
@@ -142,12 +131,6 @@ endfunction
 let g:R_objbr_place = substitute(g:R_objbr_place, "console", "script", "")
 
 let g:R_silent_term = get(g:, "R_silent_term", 0)
-
-if g:rplugin.is_darwin
-    let s:term_name = 'xterm'
-    let s:term_cmd = 'xterm -title R -e'
-    finish
-endif
 
 if type(g:R_external_term) == v:t_string
     let s:term_name = substitute(g:R_external_term, ' .*', '', '')
