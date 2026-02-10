@@ -5,7 +5,7 @@
 Authors: Jakson A. Aquino   <jalvesaq@gmail.com>
          Jose Claudio Faria <joseclaudio.faria@gmail.com>
 
-Version: 0.9.21
+Version: 0.9-169
 For Vim >= 8.2.84
 
  1. Overview                                    |vim-r-overview|
@@ -21,17 +21,16 @@ For Vim >= 8.2.84
 ==============================================================================
 1. Overview                                                  *vim-r-overview*
 
-This plugin improves the support for editing R code in Vim. It is available
-at:
+This plugin improves the support for editing R code in Vim. This is a
+maintenance fork available at:
 
-    https://github.com/jalvesaq/Vim-R
+    https://github.com/li-ruijie/vim-r
 
-The plugin should emit useful warnings if you do things it was not programmed
-to deal with. Please report critical bugs to:
+The upstream repository is at https://github.com/jalvesaq/Vim-R
 
-    https://github.com/jalvesaq/Vim-R/issues
+Please report bugs to:
 
-Pull requests fixing bugs are welcome.
+    https://github.com/li-ruijie/vim-r/issues
 
 
 ==============================================================================
@@ -160,7 +159,7 @@ Either use a plugin manager to install Vim-R or follow the instructions on
 Vim |packages| to install the Vim-R package (either the zip or the tar.gz
 file) released at:
 
-    https://github.com/jalvesaq/Vim-R/releases
+    https://github.com/li-ruijie/vim-r/releases
 
 
 ------------------------------------------------------------------------------
@@ -173,7 +172,7 @@ a .R, .Rnw, .Rd, .Rmd, .Rrst or .qmd file. The key bindings will not be
 active while editing either unnamed files or files with name extensions other
 than the mentioned above: Hhowever, see:
 
-  https://github.com/jalvesaq/Vim-R/wiki/Enable-Vim-R-for-any-file-type
+  https://github.com/li-ruijie/vim-r/wiki/Enable-Vim-R-for-any-file-type
 
 If the plugin is active, pressing <LocalLeader>rf should start R.
 
@@ -247,7 +246,7 @@ happier.
 You can also install additional plugins to get more useful functionality to
 edit R code. Please, access Vim-R's wiki:
 
-   https://github.com/jalvesaq/Vim-R/wiki
+   https://github.com/li-ruijie/vim-r/wiki
 
 
 ==============================================================================
@@ -815,7 +814,7 @@ will be no communication between R and the new Vim instance.
 Please see the explanation on the communication between Vim and R at the end
 of
 
-   https://github.com/jalvesaq/Vim-R/blob/master/README.md
+   https://github.com/li-ruijie/vim-r/blob/main/README.md
 
 
 ------------------------------------------------------------------------------
@@ -2364,10 +2363,10 @@ mounted locally. Below is an example of how to achieve this goal.
 >sh
        cd /tmp
        R CMD build /path/to/Vim-R/R/vimcom
-       scp vimcom_0.9-168.tar.gz remotelogin@remotehost:/tmp
+       scp vimcom_0.9-169.tar.gz remotelogin@remotehost:/tmp
        ssh remotelogin@remotehost
        cd /tmp
-       R CMD INSTALL vimcom_0.9-168.tar.gz
+       R CMD INSTALL vimcom_0.9-169.tar.gz
 <
 
 Alternative: vimcmdline~
@@ -2679,169 +2678,5 @@ you can create a shortcut to it by following the example:
 <
 See also: |R_source|.
 
-
 ==============================================================================
-8. News                                                          *vim-r-news*
-
- * Rename Nvim-R as Vim-R, nvimcom as vimcom, and cmp-nvim-r as cmp-vim-r.
-
-0.9.21 (2025-04-15)
-
- * Bug fixes.
-
-0.9.20 (2024-03-03)
-
- * Minor bug fixes.
-
-0.9.19 (2023-11-22)
-
- * Make TCP connection on Windows work again, and fix minor bugs.
-
-0.9.18 (2023-11-12)
-
- * TCP communication on Windows is broken.
- * Integration with cmp-nvim-r, a source for nvim-cmp.
- * Delete options R_auto_omni and R_hi_fun_globenv.
- * New options: R_filetypes, R_fun_data_1 and R_fun_data_2, R_quarto_intel,
-   R_bib_compl, R_enable_comment.
- * Require either Neovim 0.6.0 or Vim 8.2.84.
-
-0.9.17 (2022-09-29)
-
- * Require either Neovim 0.5.0 or Vim 8.2.84.
- * New options: R_set_omnifunc, R_auto_omni, R_rmarkdown_args,
-   R_objbr_auto_start, R_quarto_render_args, and R_quarto_preview_args,
-   R_debug_center, R_term_title.
- * Delete options: R_omni_tmp_file and R_omni_size
-
-0.9.16 (2021-04-29)
-
- * Minor bug fixes.
- * New options: R_omni_size and R_omni_tmp_file.
- * Option R_path might be a list of directories.
-
-0.9.15 (2021-04-14)
-
- * Delete options R_ls_env_tol, R_objbr_labelerr, R_show_arg_help.
- * New options: R_clear_console, R_debug, R_auto_start, R_dbg_jump.
- * Replace options R_in_buffer, R_term and R_term_cmd with a single option:
-   R_external_term.
- * Make R_rmdchunk more flexible.
- * Change default key binding for calling debug() from \db to \bg to avoid
-   conflict with \d (send line).
- * Require either Neovim >= 0.4.3 or Vim >= 8.1.1705.
-
-0.9.14 (2020-06-01)
-
- * New command \su (send all lines above the current one).
- * New command \m (send lines from motion command).
- * New option: R_disable_cmds.
- * New option: R_after_ob_open.
- * R_after_start is a list now.
- * Recommend Visidata and delete option R_csv_warn.
- * Delete command triggered by <LocalLeader>tp.
- * Delete options R_args_in_stline, R_sttline_fmt, R_show_args, R_complete and
-   Rtools_path.
- * Limited support for debugging R functions.
-
-0.9.13 (2019-05-05)
-
- * Support for Python code in knitr chunks: integration with the R package
-   reticulate and with the jedi-vim plugin.
- * New options: R_editing_mode, R_buffer_opts.
- * Minor bug fixes.
-
-0.9.12 (2018-08-19)
-
- * Minor bug fixes.
- * Bibliographic completion for Rmd.
- * New command:  :RDebugInfo
- * New options: R_hi_fun_globenv, R_auto_scroll, R_ls_env_tol,
-   R_non_r_compl, R_cite_pattern.
- * Accept prefix "terminal:" in `R_csv_app`.
- * Remove option R_tmux_split.
- * Changes:
-   - If the Object Browser is already open, \ro will close it.
-   - The values "bottom" and "top" are no longer valid for R_objbr_place
-     (use "below" and "above" instead).
-
-0.9.11 (2018-01-29)
-
- * The option R_latexcmd now is a list and the option R_latexmk no longer
-   exists. By default, latexmk and xelatex will be called to compile pdf
-   documents.
- * Arguments completion is now done by CTRL-X CTRL-O.
- * New options: R_OutDec, R_csv_delim, R_rmdchunk, R_parenblock,
-   R_bracketed_paste, R_complete.
- * New command: `:RSend`.
- * Require Neovim >= 0.2.0 (Linux) or >= 0.2.1 (Windows).
-
-0.9.10 (2017-09-08)
-
- * Change command \dt to \td and \pt to \tp.
- * New default value for R_show_args = 1.
- * New options: R_hi_fun_paren, R_show_arg_help,R_sttline_fmt and
-   R_set_sttline_cmd.
- * Minor bug fixes.
-
-0.9.9 (2017-04-22)
-
- * Delete option R_vsplit.
- * New options: R_min_editor_width and R_wait_reply, Rtools_path,
-   R_remote_tmpdir, R_nvimcom_home, R_paragraph_begin.
- * Rename option R_ca_ck as R_clear_line
- * Change in \pp behavior.
- * Minor bug fixes.
-
-0.9.8 (2016-12-10)
-
- * Minor bug fixes.
- * New commands: \dt and \pt
- * Require Neovim >= 0.1.7.
-
-0.9.7 (2016-09-26)
-
- * Require Vim >= 8.0.0 or Neovim >= 0.1.5.
- * Replaced R_nvimcom_wait (time in miliseconds) with R_wait (time in
-   seconds).
- * Minor bug fixes.
-
-0.9.6 (2016-08-10)
-
- * New option: R_open_example.
- * Change default value of R_source_args to "print.eval=TRUE".
- * Change in \aa and \ae: do not save the buffer before sending the whole file
-   to R.
- * Minor bug fixes.
-
-0.9.5 (2016-05-18)
-
- * Ask whether R_LIBS_USER directory should be created.
-
-0.9.4 (2016-05-16)
-
- * Delete option R_tmux_ob. The Object Browser will always start in a Vim
-   split window, not in a Tmux split pane.
- * New option: R_cmd
- * Minor bug fixes.
- * Require Neovim >= 0.1.4 or Vim >= 7.4.1829.
-
-0.9.3 (2016-03-26)
-
- * Build nvimcom even when Nvim-R directory in non-writable.
-
-0.9.2 (2016-03-19)
-
- * Support Vim.
- * New option: R_app.
-
-0.9.1 (2016-02-28)
-
- * New option: R_close_term.
- * Delete option: R_restart.
-
-0.9.0 (2015-11-03)
-
- * Initial release of Nvim-R for Neovim 0.1.0.
-
 vim:tw=78:ts=8:ft=help:norl
