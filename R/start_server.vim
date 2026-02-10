@@ -497,7 +497,7 @@ endif
 
 " 2023-06-03
 if exists("g:R_auto_omni")
-    call RWarningMsg('R_auto_omni no longer exists. Alternative: https://github.com/jalvesaq/cmp-vim-r')
+    call RWarningMsg('R_auto_omni no longer exists. Use vim-mucomplete for auto completion.')
 endif
 
 " 2023-07-23
