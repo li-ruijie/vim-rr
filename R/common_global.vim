@@ -679,6 +679,10 @@ function AddForDeletion(fname)
 endfunction
 
 function RVimLeave()
+    if get(g:, 'R_quit_on_close', 0) && exists("*QuitROnClose")
+        call QuitROnClose()
+    endif
+
     if has('nvim')
         for job in keys(g:rplugin.jobs)
             if IsJobRunning(job)
@@ -894,6 +898,7 @@ let g:R_synctex           = get(g:, "R_synctex",            1)
 let g:R_non_r_compl       = get(g:, "R_non_r_compl",        1)
 let g:R_vim_wd            = get(g:, "R_vim_wd",            0)
 let g:R_auto_start        = get(g:, "R_auto_start",         0)
+let g:R_quit_on_close     = get(g:, "R_quit_on_close",      0)
 let g:R_routnotab         = get(g:, "R_routnotab",          0)
 let g:R_objbr_w           = get(g:, "R_objbr_w",           40)
 let g:R_objbr_h           = get(g:, "R_objbr_h",           10)

@@ -280,6 +280,7 @@ Menu entry                                Default shortcut
 Start/Close
   . Start R (default)                                  \rf
   . Start R (custom)                                   \rc
+  . Restart R                                          \rst
   --------------------------------------------------------
   . Close R (no save)                                  \rq
   . Stop (interrupt) R                                 :RStop
@@ -893,6 +894,7 @@ the `init.vim`. The workaround is do not include the superfluous command
 6. Options                                                    *Vim-R-options*
 
 |R_auto_start|          Start R automatically
+|R_quit_on_close|       Quit R when Vim exits
 |R_objbr_auto_start|    Start the Object Browser automatically
 |R-built-in-terminal|   Options to control Vim's built-in terminal
 |R_external_term|       Command to run R in an external terminal emulator
@@ -999,6 +1001,18 @@ put in your |vimrc|:
    let R_objbr_auto_start = 1
 <
 See also: |R_after_ob_open|.
+
+                                                          *R_quit_on_close*
+
+By default, quitting Vim does not quit R or RStudio. If you want R to be
+terminated automatically when Vim exits, put in your |vimrc|:
+>vim
+   let R_quit_on_close = 1
+<
+When this option is set, Vim-R sends `quit(save = "no")` to R at the very
+beginning of |VimLeave|, while the communication pipeline is still alive.
+This is more reliable than calling `RQuit()` during VimLeave, because the
+pipeline is torn down before the quit command can reach R.
 
 
 ------------------------------------------------------------------------------
@@ -2458,6 +2472,7 @@ the list of the names for custom key bindings (the prefix RE means "echo"; RD,
    Star/Close R:
    RStart
    RCustomStart
+   RRestart
    RClose
    RSaveClose
 

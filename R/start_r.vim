@@ -446,6 +446,17 @@ function RRestart()
     call timer_start(200, {-> StartR("R")})
 endfunction
 
+" Send quit(save="no") through the pipeline.
+" Called from RVimLeave() when g:R_quit_on_close is set.
+" At this point the pipeline is still alive (before Server teardown).
+function QuitROnClose()
+    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
+        return
+    endif
+    call g:SendCmdToR('quit(save = "no")')
+    sleep 200m
+endfunction
+
 function ClearRInfo()
     call delete(g:rplugin.tmpdir . "/globenv_" . $VIMR_ID)
     call delete(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
