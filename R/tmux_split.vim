@@ -30,9 +30,6 @@ function! StartR_ExternalTerm(rcmd)
                 \ 'set-environment VIMR_SECRET ' . $VIMR_SECRET ,
                 \ 'set-environment VIMR_PORT ' . g:rplugin.myport ,
                 \ 'set-environment R_DEFAULT_PACKAGES ' . $R_DEFAULT_PACKAGES ]
-    if $NVIM_IP_ADDRESS != ""
-        call extend(tmuxconf, ['set-environment NVIM_IP_ADDRESS ' . $NVIM_IP_ADDRESS ])
-    endif
     if $R_LIBS_USER != ""
         call extend(tmuxconf, ['set-environment R_LIBS_USER ' . $R_LIBS_USER ])
     endif
