@@ -437,6 +437,15 @@ function RQuit(how)
     call ClearRInfo()
 endfunction
 
+function RRestart()
+    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
+        call StartR("R")
+        return
+    endif
+    call RQuit('nosave')
+    call timer_start(200, {-> StartR("R")})
+endfunction
+
 function ClearRInfo()
     call delete(g:rplugin.tmpdir . "/globenv_" . $VIMR_ID)
     call delete(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)

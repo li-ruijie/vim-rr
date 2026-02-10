@@ -565,6 +565,10 @@ function RCreateStartMaps()
     call RCreateMaps('nvi', 'RClose',       'rq', ":call RQuit('nosave')")
     call RCreateMaps('nvi', 'RSaveClose',   'rw', ":call RQuit('save')")
 
+    " Restart
+    "-------------------------------------
+    call RCreateMaps('nvi', 'RRestart', 'rst', ':call RRestart()')
+
 endfunction
 
 function RCreateEditMaps()
