@@ -1,9 +1,8 @@
-*vim-r.txt*                                                  *Vim-R*
-                                  Vim-R
+*vim-r.txt*                                                  *vim-r*
+                                  vim-r
                           Plugin to work with R
 
-Authors: Jakson A. Aquino   <jalvesaq@gmail.com>
-         Jose Claudio Faria <joseclaudio.faria@gmail.com>
+Author:  Li Ruijie
 
 Version: 0.9-169
 For Vim >= 8.2.84
@@ -15,14 +14,14 @@ For Vim >= 8.2.84
  5. Known bugs and workarounds                  |vim-r-known-bugs|
  6. Options                                     |vim-r-options|
  7. Custom key bindings                         |vim-r-key-bindings|
- 8. News                                        |vim-r-news|
 
 
 ==============================================================================
 1. Overview                                                  *vim-r-overview*
 
 This plugin improves the support for editing R code in Vim. This is a
-maintenance fork available at:
+Windows-focused maintenance fork that fixes issues and keeps things working.
+Neovim users should use R.nvim (https://github.com/R-nvim/R.nvim) instead.
 
     https://github.com/li-ruijie/vim-r
 
@@ -96,7 +95,7 @@ Main dependencies:
 
    Notes about the R package `vimcom`:
 
-     - The R package `vimcom` is included in Vim-R and is automatically
+     - The R package `vimcom` is included in vim-r and is automatically
        installed and updated whenever necessary. The package requires
        compilation by a C compiler (e.g. `gcc` or `clang`).
 
@@ -155,8 +154,8 @@ If you have a previous Vimball installation, you should uninstall it first:
    :packadd vimball
    :RmVimball Vim-R
 <
-Either use a plugin manager to install Vim-R or follow the instructions on
-Vim |packages| to install the Vim-R package (either the zip or the tar.gz
+Either use a plugin manager to install vim-r or follow the instructions on
+Vim |packages| to install the vim-r package (either the zip or the tar.gz
 file) released at:
 
     https://github.com/li-ruijie/vim-r/releases
@@ -170,11 +169,7 @@ Note: The <LocalLeader> is '\' by default.
 The plugin is a |file-type| plugin. It will be active only if you are editing
 a .R, .Rnw, .Rd, .Rmd, .Rrst or .qmd file. The key bindings will not be
 active while editing either unnamed files or files with name extensions other
-than the mentioned above: Hhowever, see:
-
-  https://github.com/li-ruijie/vim-r/wiki/Enable-Vim-R-for-any-file-type
-
-If the plugin is active, pressing <LocalLeader>rf should start R.
+than the mentioned above. If the plugin is active, pressing <LocalLeader>rf should start R.
 
 Did you see warning messages but they disappeared before you have had time to
 read them? Type the command |:messages| in Normal mode to see them again.
@@ -211,7 +206,7 @@ If you see the following message in the R console:
 Try quitting both R and Vim and starting them again.
 
 If you still see the message "The package vimcom wasn't loaded yet" after
-starting R, then Vim-R could not induce R to load vimcom. Vim-R sets the
+starting R, then vim-r could not induce R to load vimcom. vim-r sets the
 environment variable `R_DEFAULT_PACKAGES` before starting R. If the variable
 already exists, the string ",vimcom" is appended to it. However, if you set
 the option `defaultPackages` in your .Rprofile or in a .Rprofile in the
@@ -243,16 +238,11 @@ installed, but if you do not like how the plugin works, you could look at the
 section |vim-r-options| to see if there is an option that could make you
 happier.
 
-You can also install additional plugins to get more useful functionality to
-edit R code. Please, access Vim-R's wiki:
-
-   https://github.com/li-ruijie/vim-r/wiki
-
 
 ==============================================================================
 4. Use                                                            *vim-r-use*
 
-By default, Vim-R will run R in a built-in terminal emulator, but you can
+By default, vim-r will run R in a built-in terminal emulator, but you can
 change this behavior (see |R_external_term|).
 
 
@@ -511,7 +501,7 @@ the cursor is a data.frame or a matrix, instead of displaying the output of
 values separated by tab characters and display this file. The command
 <LocalLeader>vh will show the `head()` of the data.frame or matrix in a
 horizontal split that opens above the current window. This behavior can be
-customized, and you can configure Vim-R to call an external application to
+customized, and you can configure vim-r to call an external application to
 display the data.frame or matrix (see |vim-r-df-view|). All files involved in
 these operations are created in Vim-R's temporary directory and deleted when
 R quits.
@@ -546,7 +536,7 @@ value of 'shiftwidth' is passed as `indent_by`, and if `tidy_source()` is
 used, the value of the `width.cutoff` argument is set to the buffer's
 'textwidth' if it is not outside the range 20-180.
 
-Se R help on `tidy_source` for details on how to control the function
+See R help on `tidy_source` for details on how to control the function
 behavior.
 
 
@@ -582,7 +572,7 @@ viewer:
    Okular:  <S-LeftMouse>
    Sumatra: <Double-click>
 
-In any case, the pdf viewer must be started by the Vim-R plugin. See
+In any case, the pdf viewer must be started by the vim-r plugin. See
 |vim-r-synctex| for details.
 
 
@@ -590,7 +580,7 @@ In any case, the pdf viewer must be started by the Vim-R plugin. See
 4.3. Omni completion
 
 Vim-R sets 'omnifunc' so that CTRL-X CTRL-O triggers R completion. To get
-automatic (as-you-type) completion, pair Vim-R with an auto-completion plugin
+automatic (as-you-type) completion, pair vim-r with an auto-completion plugin
 such as vim-mucomplete (see |vim-r-mucomplete|).
 
 Vim-R does not complete the names of all functions of all installed packages
@@ -690,15 +680,15 @@ in the current directory.
 ------------------------------------------------------------------------------
 4.6. Debugging R functions (Unix only)                     *debug-R-functions*
 
-The Vim-R-Plugin has limited debugging facilities available on Unix systems
-(not available on Windows). To debug a function with Vim-R you have to do the
+vim-r has limited debugging facilities available on Unix systems
+(not available on Windows). To debug a function with vim-r you have to do the
 following:
 
    1. Source the R script where the function is with the `source()` function
       of the `base` package.
 
    2. In the R Console, run either `debug(funcname)` or `debugonce(funcname)`
-      where `funcname` is the name of the function (not quoted). Vim-R will
+      where `funcname` is the name of the function (not quoted). vim-r will
       send this command to R Console if you press <LocalLeader>db in Normal
       mode with the cursor over the function name.
 
@@ -744,13 +734,13 @@ only if a condition is satisfied. Example:
        return(invisible(NULL))
    }
 <
-One limitation is that Vim-R also does not help you setting breakpoints.
+One limitation is that vim-r also does not help you setting breakpoints.
 You have to set them manually as explained above.
 
-Another limitation of Vim-R is that it might be unable to jump to the line in
+Another limitation of vim-r is that it might be unable to jump to the line in
 the source code that is being evaluated if either you have sent the function
 directly to the R Console or the function has been sent by the `knitr`
-package, without calling the function `source()`. In either case, Vim-R will
+package, without calling the function `source()`. In either case, vim-r will
 try to find the pattern `funcname <- function(` in the buffer being edited. If
 the pattern is found, the cursor will jump to its position.
 
@@ -807,7 +797,7 @@ others would be very time consuming to fix without breaking anything.
 5.1. R must be started by Vim
 
 The communication between Vim and R will work only if R was started by the
-running Vim instance through the <LocalLeader>rf command. If you use Vim-R to
+running Vim instance through the <LocalLeader>rf command. If you use vim-r to
 start R in an external terminal and, then close Vim and open it again, there
 will be no communication between R and the new Vim instance.
 
@@ -908,7 +898,7 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_commented_lines|     Include commented lines in code sent to `source()`
 |R_latexcmd|            Command to run on .tex files
 |R_texerr|              Show a summary of LaTeX errors after compilation
-|R_sweaveargs|          Arguments do `Sweave()`
+|R_sweaveargs|          Arguments to `Sweave()`
 |R_rmd_environment|     Environment in which to save evaluated rmd code
 |R_rmarkdown_args|      Further options to be passed to `rmarkdown::render()`
 |R_quarto_render_args|  Options to be passed to `quarto::quarto_render()`
@@ -934,15 +924,15 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_disable_cmds|        List of commands to be disabled
 |R_tmpdir|              Where temporary files are created
 |R_compldir|            Where lists for omni completion are stored
-|R_set_omnifunc|        Should Vim-R set the 'omnifunc'?
+|R_set_omnifunc|        Should vim-r set the 'omnifunc'?
 |R_fun_data_1|          What the data.frame to complete function arguments is
 |R_fun_data_2|          Where the data.frame to complete function arguments is
 |R_quarto_intel|        Where the Quarto completion data is
 |R_bib_compl|           List of file types for bib completion
-|vim-r-mucomplete|    Integration with vim-mucomplete
+|vim-r-mucomplete|      Integration with vim-mucomplete
 |R_remote_compldir|     Mount point of remote cache directory
-|vim-r-df-view|        Options for visualizing a data.frame or matrix
-|vim-r-synctex|        Options for SyncTeX
+|vim-r-df-view|         Options for visualizing a data.frame or matrix
+|vim-r-synctex|         Options for SyncTeX
 
 
 ------------------------------------------------------------------------------
@@ -977,7 +967,7 @@ terminated automatically when Vim exits, put in your |vimrc|:
 >vim
    let R_quit_on_close = 1
 <
-When this option is set, Vim-R sends `quit(save = "no")` to R at the very
+When this option is set, vim-r sends `quit(save = "no")` to R at the very
 beginning of |VimLeave|, while the communication pipeline is still alive.
 This is more reliable than calling `RQuit()` during VimLeave, because the
 pipeline is torn down before the quit command can reach R.
@@ -988,7 +978,7 @@ pipeline is torn down before the quit command can reach R.
                                                                   *R_esc_term*
 By default, R runs in a Vim buffer created with the command |:term|,
 and the <Esc> key is mapped to stop the Terminal mode and go to Normal mode.
-In Terminal mode, What you type is passed directly to R while in Normal mode
+In Terminal mode, what you type is passed directly to R while in Normal mode
 Vim's navigation commands work as usual (see |motion.txt|).
 
 If you need the <Esc> key in R, for example if you want to use `vi` or `vim`
@@ -1009,7 +999,7 @@ terminal remains open after R quits, put in your |vimrc|:
    let R_close_term = 0
 <
                                                                     *R_OutDec*
-Right after starting R, Vim-R will try to detect if either the value of R's
+Right after starting R, vim-r will try to detect if either the value of R's
 `OutDec` option is `","` or the current R script sets the `OutDec` option. If
 `OutDec` is not correctly detected, to get numbers correctly recognized, you
 should put in your |vimrc|:
@@ -1027,7 +1017,7 @@ the width being set. Example:
 On Windows, the command is sent to R Console because it would crash R if sent
 through vimcom.
 
-If you have the option 'number' set in your |vimrc|, Vim-R will calculate the
+If you have the option 'number' set in your |vimrc|, vim-r will calculate the
 number of columns available for R as the window width - 6. If you want a
 different adjustment, you should set `R_setwidth` as a negative value between
 -1 and -16. Example:
@@ -1053,7 +1043,7 @@ value:
    let R_buffer_opts = "winfixwidth winfixheight nobuflisted"
 <
 If you do not want to run R in Vim's built in terminal emulator, you have to
-install Tmux >= 2.0, and then put in your |vimrc|:
+install Tmux >= 3.0, and then put in your |vimrc|:
 >vim
    let R_external_term = 1
 <
@@ -1070,7 +1060,7 @@ to send commands from Vim to R.
 R will run in Vim's built-in terminal emulator, unless you set the value of
 `R_external_term`, which can be a numeric value (either `0` or `1`), the name
 of the terminal emulator or the complete command to run the terminal emulator.
-On Windows, the only valid value is `1`, which will make Vim-R to run
+On Windows, the only valid value is `1`, which will make vim-r to run
 `Rgui.exe`, and not really a terminal emulator.
 
 On Linux, the complete command for running the terminal is predefined for the
@@ -1125,7 +1115,7 @@ variable in your |vimrc|:
 >vim
    let $PATH = "C:\\rtools40\\mingw64\\bin;C:\\rtools40\\usr\\bin;" . $PATH
 <
-By default, Vim-R will save the positions of R Console and Vim windows
+By default, vim-r will save the positions of R Console and Vim windows
 when you quit R with the <LocalLeader>rq command, and it will restore the
 positions of the windows when you start R. If you do not like this behavior,
 you can put in your |vimrc|:
@@ -1381,7 +1371,7 @@ in your system, you should set the value of `R_cmd` in your |vimrc|.
 
 By default the value of `R_app` is `"R"` on Unix systems (such as Linux). On
 Windows, it is `Rterm.exe` if R is going to run in a Vim buffer
-and `"Rgui.exe"` otherwise. Vim-R cannot send messages to `Rterm.exe` in an
+and `"Rgui.exe"` otherwise. vim-r cannot send messages to `Rterm.exe` in an
 external `cmd` window. If your R binary has a different name (for example, if
 it is called by a custom script), you should set the value of `R_app` in your
 |vimrc| (and, perhaps, `R_cmd` too). Example:
@@ -1430,9 +1420,9 @@ scripts, put the following in your |vimrc|:
 >vim
    let Rout_more_colors = 1
 <
-When syntax highlighting .Rout files, Vim-R considers "> " as the prompt
+When syntax highlighting .Rout files, vim-r considers "> " as the prompt
 string and "+ " as the continuation string. If you have defined different
-prompt and continuation strings in your `~/.Rprofile`, Vim-R will try to get
+prompt and continuation strings in your `~/.Rprofile`, vim-r will try to get
 them from R, but if they include special characters, you may have to define
 them in your |vimrc| too to avoid errors and get them properly highlighted.
 For example, if you have in your `~/.Rprofile`
@@ -1444,7 +1434,7 @@ you should put in your |vimrc|:
    let Rout_prompt_str = '»'
 <
                                                               *R_hi_fun_paren*
-By default, Vim-R highlights the names of R functions even if they are not
+By default, vim-r highlights the names of R functions even if they are not
 followed by a parenthesis. If you prefer to highlight R functions only if
 the `(` is typed, put in your |vimrc|:
 >vim
@@ -1590,7 +1580,7 @@ the plugin after <LocalLeader>rg if you put the following line in your
                                                            *R_bracketed_paste*
                                                            *R_clear_console*
 
-By default, when you press <LocalLeader>pp Vim-R sends all contiguous lines to
+By default, when you press <LocalLeader>pp vim-r sends all contiguous lines to
 R, that is all lines above and below the current one that are not separated by
 an empty line. If you prefer that only lines from the cursor position to the
 end of the paragraph are sent, put in your |vimrc|:
@@ -1625,7 +1615,7 @@ while others have no command to clear the console. You should set the value of
                                                            *R_commented_lines*
 
 When you send multiple lines of code to R (a selection of lines, a paragraph,
-code between two marks or an R chunk of code), Vim-R saves the lines in a
+code between two marks or an R chunk of code), vim-r saves the lines in a
 temporary file and, then, sends to R a command which calls `base::source()` to
 run the commands from the temporary file.
 
@@ -1651,12 +1641,12 @@ multi-line raw strings if they included a hashtag. See:
                                                               *R_cite_pattern*
 
 To produce a pdf document from the .tex file generated by either `Sweave()` or
-`knit()` command, Vim-R calls:
+`knit()` command, vim-r calls:
 >
    latexmk -pdf -pdflatex="xelatex %O -file-line-error -interaction=nonstopmode -synctex=1 %S"
 <
 If `xelatex` is not installed, it will be replaced with `pdflatex` in the
-above command. If `latexmk` is not installed, Vim-R will call either
+above command. If `latexmk` is not installed, vim-r will call either
 `xelatex` or `pdflatex` directly.
 
 You can set the value `R_latexcmd` to change this behavior. `R_latexcmd` is a
@@ -1668,16 +1658,16 @@ elements are arguments to be passed to the command. Examples:
    let R_latexcmd = ['latexmk', '-pdf', '-pdflatex="xelatex %O -synctex=1 %S"']
 <
 The elements of `R_latexcmd` may contain double quotes (as in the last example
-above), but not single quotes, because Vim-R will use single quotes to
+above), but not single quotes, because vim-r will use single quotes to
 separate them in an R's `c()` command.
 
 If you want to pass arguments to the `Sweave()` function, set the value of the
 `R_sweaveargs` variable.
 
-If the value of `R_texerr` is `1`, nvmimcom will output to R Console LaTeX
+If the value of `R_texerr` is `1`, vimcom will output to R Console LaTeX
 errors and warnings produced by the compilation of the .tex document into
 .pdf. So, you do not have to scroll the R Console seeking for these messages.
-However, if Vim-R cannot not find the LaTeX log file because it is not saved
+However, if vim-r cannot not find the LaTeX log file because it is not saved
 in the same directory as the Rnoweb, you should set the value of
 `R_latex_build_dir`. Example:
 >vim
@@ -1740,13 +1730,13 @@ type.
 When one types <C-a> in the R Console the cursor goes to the beginning of the
 line and when one types <C-k> the characters to the right of the cursor are
 deleted. This is useful to avoid characters left on the R Console being mixed
-with commands sent by Vim. Vim-R will add <C-a><C-k> to every command if you
+with commands sent by Vim. vim-r will add <C-a><C-k> to every command if you
 put in your |vimrc|:
 >vim
    let R_clear_line = 1
 <
 Vim-R reads your `~/.inputrc` and, if it finds the string "set editing-mode
-vi" it will send to R <Esc>0Da instead of <C-a><C-k>. If Vim-R fails to
+vi" it will send to R <Esc>0Da instead of <C-a><C-k>. If vim-r fails to
 detect that R is running in vi editing mode, you have to put this line in your
 |vimrc|:
 >vim
@@ -1777,7 +1767,7 @@ either `Sweave()` or `knit()`. This behavior is controlled by the variable
 the first time that pdflatex is called) or a number higher than 1 (always
 open the pdf). For example, if you want that the pdf application is started
 automatically but do not want the terminal (or GVim) losing focus every time
-that you generate the pdf, you should put in put in your |vimrc|:
+that you generate the pdf, you should put in your |vimrc|:
 >vim
    let R_openpdf = 1
 <
@@ -1791,7 +1781,7 @@ the X server) you may want to put in your |vimrc|:
 The default value of `R_openpdf` is 2 on Windows. On Linux, it is 2 on the X
 Server and on Sway Window Manager and 1 on other Wayland compositors.
 
-On Windows, Vim-R will call Sumatra to open the PDF. On Linux, you can change
+On Windows, vim-r will call Sumatra to open the PDF. On Linux, you can change
 the value of `R_pdfviewer` in your
 |vimrc| to define what PDF viewer will be called. Valid values are "zathura"
 (default, and the one best integrated with Vim-R), "evince" and "okular".
@@ -1812,8 +1802,8 @@ The meanings of different values of `R_openhtml` are:
    0: Never open the html.
    1: Always open the html.
 
-The browser application called by Vim-R is whatever is returned by the R
-command `getOption("browser")`, unless it is NULL. In this case, Vim-R will
+The browser application called by vim-r is whatever is returned by the R
+command `getOption("browser")`, unless it is NULL. In this case, vim-r will
 call `open` on Windows, and `xdg-open` on Linux.
 
 Most browser will open a new tab each time they are called instead of
@@ -1824,8 +1814,8 @@ Vim-R never tries to open the web browser, put in your |vimrc|:
 <
 For Quarto documents, the available key bindings are <LocalLeader>qr (render
 document), <LocalLeader>qp (preview document), and <LocalLeader>qs (stop
-previewing). The command <LocalLeader>kr achieves basically the same result of
-<LocalLeader>kr. The difference is that the generated document is open after
+previewing). The command <LocalLeader>qr achieves basically the same result as
+<LocalLeader>kr. The difference is that the generated document is opened after
 <LocalLeader>kr, and <LocalLeader>qr allows Quarto specific
 options (see |R_quarto_render_args|).
 
@@ -1837,7 +1827,7 @@ options (see |R_quarto_render_args|).
                                                               *R_rst2pdfpath*
                                                               *R_rst2pdfargs*
 
-By default, Vim-R sends the command `render_rst(strict=TRUE)` to R
+By default, vim-r sends the command `render_rst(strict=TRUE)` to R
 before using R's `knit()` function to convert an Rrst file into an rst one. If
 you prefer the non strict rst code, put the following in your |vimrc|:
 >vim
@@ -1872,7 +1862,7 @@ you prefer to remove only visible objects, put in your |vimrc|:
 >vim
    let g:R_rmhidden = 0
 <
-After removing the objects, Vim-R will also send CTRL-L to the R Console to
+After removing the objects, vim-r will also send CTRL-L to the R Console to
 clear the screen. If you have set vi mode in your `~/.inputrc` you might also
 want to set CTRL-L to clear the screen, as explained at
 
@@ -1889,7 +1879,7 @@ scripts, put in your |vimrc|:
 >vim
    let R_source = '~/path/to/MyScript.vim,/path/to/AnotherScript.vim'
 <
-Currently, there is only one script known to extend Vim-R features:
+Currently, there is only one script known to extend vim-r features:
 
    Support for the devtools R package:
    https://github.com/mllg/vim-devtools-plugin
@@ -1923,9 +1913,9 @@ and cmp-zotcite for completing citation keys directly from Zotero database:
    https://github.com/jalvesaq/zotcite
    https://github.com/jalvesaq/cmp-zotcite
 
-If zotcite is not installed, Vim-R will do omni completion of bibliographic
+If zotcite is not installed, vim-r will do omni completion of bibliographic
 citation keys from `.bib` files, requiring Python 3 and the PyBTeX library for
-Python 3 to work. Then, Vim-R will look for bibliographic data in any `.bib`
+Python 3 to work. Then, vim-r will look for bibliographic data in any `.bib`
 file listed in the `bibliography` field of the YAML header. If the
 `bibliography` field is not defined, it will use all `.bib` files that are in
 the same directory of the RMarkdown document as bibliography sources. The list
@@ -1951,7 +1941,7 @@ omni completion provided by another plugin, put in your |vimrc|:
 >vim
    let R_non_r_compl = 0
 <
-Then, Vim-R may use another function to complete non R code, such as the ones
+Then, vim-r may use another function to complete non R code, such as the ones
 from vim-pandoc or LaTeX-Box
 
 If you want a different function for completion of non R code, you should not
@@ -1978,8 +1968,8 @@ higher value for the variable in your |vimrc|. Example:
 ------------------------------------------------------------------------------
 6.30. Time to wait for R reply                                  *R_wait_reply*
 
-By default Vim-R waits 2 seconds for R to reply after a request for omni
-completion is issued. You can set the amount of time Vim-R waits (in seconds)
+By default vim-r waits 2 seconds for R to reply after a request for omni
+completion is issued. You can set the amount of time vim-r waits (in seconds)
 in your |vimrc|.  Example:
 >vim
    let R_wait_reply = 5
@@ -1998,7 +1988,7 @@ as Vim's working directory, put in your |vimrc|:
 <
 This option is useful only for those who did not enable 'autochdir'.
 
-If you prefer that Vim-R does not set the working directory in any way, put
+If you prefer that vim-r does not set the working directory in any way, put
 in |vimrc|:
 >vim
    let R_vim_wd = -1
@@ -2016,10 +2006,10 @@ start with `:`, R commands must be prefixed with `R:`, and external commands
 must be prefixed with `!`.
 
 You can put commands in your `~/.Rprofile` that will be run only if R was
-started by Vim-R as in the example below:
+started by vim-r as in the example below:
 >r
-   if (Sys.getenv("VIMR_TMPDIR") == "")
-       cat("~/Rprofile: R was called by Vim-R\n", file = stderr())
+   if (Sys.getenv("VIMR_TMPDIR") != "")
+       cat("~/Rprofile: R was called by vim-r\n", file = stderr())
 <
 However, if for any reason you `~/.Rprofile` is not being sourced, you can
 include in `R_after_start` R commands that should be executed during R startup
@@ -2052,7 +2042,7 @@ Then, make the script executable, and put in your |vimrc|:
    let R_external_term = 1
    let R_after_start = ['!after_R_start']
 <
-If you want that Vim-R executes Vim commands right after the Object Browser
+If you want that vim-r executes Vim commands right after the Object Browser
 is open, set the value of `R_after_ob_open` as a list of commands. Example:
 >vim
    let R_after_ob_open = [':tabnew %']
@@ -2080,18 +2070,18 @@ debug. You can hold the highlighted line in the middle of the window with
 <
 
 ------------------------------------------------------------------------------
-6.34. Disable Vim-R commands
+6.34. Disable vim-r commands
                                                             *R_user_maps_only*
                                                             *R_disable_cmds*
                                                             *R_filetypes*
 
-The Vim-R sets many default key bindings.  The user can set custom
-key bindings (|vim-r-key-bindings|).  If you wish Vim-R to only
+The vim-r sets many default key bindings.  The user can set custom
+key bindings (|vim-r-key-bindings|).  If you wish vim-r to only
 use those key-bindings specified by the user, put in your |vimrc|:
 >vim
     let R_user_maps_only = 1
 <
-If you want to disable only some of Vim-R commands, create a Vim list with
+If you want to disable only some of vim-r commands, create a Vim list with
 their key bindings names in your |vimrc|. The complete list of key bindings
 names is shown at the Custom key bindings section (Vim-R-key-bindings).
 Below is an example on how to disable the commands that sends `setwd()` and
@@ -2099,7 +2089,7 @@ Below is an example on how to disable the commands that sends `setwd()` and
 >vim
    let R_disable_cmds = ['RSetwd', 'RDputObj']
 <
-If you want to disable Vim-R for a specific file type, create the variable
+If you want to disable vim-r for a specific file type, create the variable
 `R_filetypes` with a list of file types that should be supported. Example:
 >vim
    let R_filetypes = ['r', 'rmd', 'rrst', 'rnoweb', 'quarto', 'rhelp']
@@ -2160,7 +2150,7 @@ that should have omni completion enabled. Example:
 >vim
    let R_set_omnifunc = ["r",  "rmd", "quarto", "rnoweb", "rhelp", "rrst"]
 <
-While completing function arguments, Vim-R may include column names from the
+While completing function arguments, vim-r may include column names from the
 data.frame passed as the first argument, and you may set in your |vimrc| the
 list of functions that might benefit from this kind of completion. The example
 below sets `R_fun_data_1` to its default value:
@@ -2194,10 +2184,10 @@ Vim-R receives the list of objects for omni completion from the vimrserver
 job running in the background. If the list is too big to be transmitted
 through vimrserver's `stdout`, the completion might be aborted.
 
-If editing Quarto documents, Vim-R will try to find the file
+If editing Quarto documents, vim-r will try to find the file
 `yaml-intelligence-resources.json` which is part of `quarto` application and
 has all necessary information for completion of valid YAML options in an
-Quarto document. If Vim-R fails to find the file, you can set the value of
+Quarto document. If vim-r fails to find the file, you can set the value of
 `R_quarto_intel` in your |vimrc|. Example:
 >vim
    let R_quarto_intel = '~/Downloads/quarto-1.1.251/share/editor/tools/yaml/yaml-intelligence-resources.json'
@@ -2214,15 +2204,12 @@ file types if you include them in the list `R_bib_compl`. Example:
 However, there are many alternative plugins for completing bib keys that work
 better than Vim-R. Examples:
 
-   - `zotcite` with `cmp-zotice` (for Markdown, Rmd and Quarto):
+   - `zotcite` with `cmp-zotcite` (for Markdown, Rmd and Quarto):
      https://github.com/jalvesaq/zotcite
      https://github.com/jalvesaq/cmp-zotcite
 
    - `VimTeX` (for Rnoweb):
      https://github.com/lervag/vimtex/
-
-   - `cmp-pandoc-references`:
-     https://github.com/jc-doyle/cmp-pandoc-references
 
 
 ------------------------------------------------------------------------------
@@ -2275,7 +2262,7 @@ Only R on the remote machine~
 
 However, if you need to start Vim on the local machine and run R in the
 remote machine, then, a lot of additional configuration is required to enable
-full communication between Vim and R because by default both Vim-R and vimcom
+full communication between Vim and R because by default both vim-r and vimcom
 only accept TCP connections from the local host, and, R saves temporary files
 in the `/tmp` directory of the machine where it is running. To make the
 communication between local Vim and remote R possible, the remote R has to
@@ -2402,11 +2389,11 @@ https://github.com/jalvesaq/vimcmdline/blob/master/doc/vimcmdline.txt).
 
 
 You can see data.frames and matrices in external applications with
-<LocalLeader>rv. By default, Vim-R will generate a `tsv` file from the
+<LocalLeader>rv. By default, vim-r will generate a `tsv` file from the
 `data.frame` or `matrix` and display it in a new tab. But you can change this
 by setting the value of `R_csv_app` which must be a string.
 
-If `R_csv_app` begins with "terminal:", Vim-R will open a new tab with the
+If `R_csv_app` begins with "terminal:", vim-r will open a new tab with the
 application running in a terminal emulator. For example, if you want to use
 Visidata to see tabular data, put in your |vimrc|:
 >vim
@@ -2416,7 +2403,7 @@ If you are running Vim within Tmux, you may prefer:
 >vim
    let R_csv_app = 'tmux new-window vd'
 <
-If `R_csv_app` begins with ":", Vim-R will append the name of the tsv file
+If `R_csv_app` begins with ":", vim-r will append the name of the tsv file
 and |:execute| the command. Example:
 >vim
    let R_csv_app = ':vsplit'
@@ -2437,7 +2424,7 @@ in your |vimrc|. Valid values are `"\t"`, `";"` and `","`. Example:
 >vim
    let R_csv_delim = ','
 <
-There is also the option of configuring Vim-R to run an R command to
+There is also the option of configuring vim-r to run an R command to
 display the data. Examples:
 >vim
    let R_df_viewer = "relimp::showData(%s, font = 'Courier 14')"
@@ -2451,7 +2438,7 @@ name of the object under the cursor.
 
 SyncTeX is a communication system used by some PDF viewers and by some text
 editors which allow users to jump from a specific line in the text editor to
-the corresponding line in the PDF viewer and vice-versa. Vim-R has support
+the corresponding line in the PDF viewer and vice-versa. vim-r has support
 for SyncTeX in four applications:
 
    Linux:   Zathura, Evince and Okular
@@ -2679,4 +2666,6 @@ you can create a shortcut to it by following the example:
 See also: |R_source|.
 
 ==============================================================================
+Based on work by Jakson A. Aquino and Jose Claudio Faria.
+
 vim:tw=78:ts=8:ft=help:norl

@@ -1,6 +1,6 @@
 # vim-r
 
-Maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vim plugin for editing and running R code.
+Windows-focused maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vim plugin for editing and running R code. This fork fixes issues and keeps things working on Windows. Neovim users should use [R.nvim](https://github.com/R-nvim/R.nvim) instead.
 
 ## Features
 
@@ -26,18 +26,6 @@ Maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vi
 
 ```vim
 Plug 'li-ruijie/vim-r'
-```
-
-### [lazy.nvim](https://github.com/folke/lazy.nvim)
-
-```lua
-{ 'li-ruijie/vim-r' }
-```
-
-### [packer.nvim](https://github.com/wbthomason/packer.nvim)
-
-```lua
-use 'li-ruijie/vim-r'
 ```
 
 ### Vim packages (manual)
