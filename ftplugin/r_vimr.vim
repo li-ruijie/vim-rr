@@ -43,12 +43,8 @@ function! ShowRout()
     else
         let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  s:routfile]
     endif
-    if has("nvim")
-        let g:rplugin.jobs["R_CMD"] = jobstart(rcmd, {'on_exit': function('GetRCmdBatchOutput')})
-    else
-        let rjob = job_start(rcmd, {'close_cb': function('GetRCmdBatchOutput')})
-        let g:rplugin.jobs["R_CMD"] = job_getchannel(rjob)
-    endif
+    let rjob = job_start(rcmd, {'close_cb': function('GetRCmdBatchOutput')})
+    let g:rplugin.jobs["R_CMD"] = job_getchannel(rjob)
 endfunction
 
 " Convert R script into Rmd, md and, then, html -- using knitr::spin()

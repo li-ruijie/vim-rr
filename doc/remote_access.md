@@ -55,7 +55,7 @@ mounted locally. Below is an example of how to achieve this goal.
        REMOTE_CACHE_DIR=$VIMR_REMOTE_COMPLDIR
        REMOTE_LOGIN_HOST=remotelogin@remotehost
 
-       NVIM_IP_ADDRESS=$(hostname -I)
+       VIMR_IP_ADDRESS=$(hostname -I)
        REMOTE_DIR_IS_MOUNTED=$(df | grep $LOCAL_MOUNT_POINT)
 
        if [ "x$REMOTE_DIR_IS_MOUNTED" = "x" ]
@@ -79,7 +79,7 @@ mounted locally. Below is an example of how to achieve this goal.
          VIMR_ID=$VIMR_ID \
          VIMR_SECRET=$VIMR_SECRET \
          R_DEFAULT_PACKAGES=$R_DEFAULT_PACKAGES \
-         NVIM_IP_ADDRESS=$NVIM_IP_ADDRESS \
+         VIMR_IP_ADDRESS=$VIMR_IP_ADDRESS \
          VIMR_PORT=$VIMR_PORT R $*"
        ```
 
@@ -91,16 +91,6 @@ mounted locally. Below is an example of how to achieve this goal.
        let R_compldir = '/home/locallogin/.remoteR
        let R_remote_compldir = '/home/remotelogin/.cache/Vim-R'
        let R_local_R_library_dir = '/path/to/local/R/library' " where vimcom is installed
-       ```
-
-       or, if using `init.lua`:
-
-       ```lua
-       vim.g.R_app = '/home/locallogin/bin/sshR'
-       vim.g.R_cmd = '/home/locallogin/bin/sshR'
-       vim.g.R_compldir = '/home/locallogin/.remoteR'
-       vim.g.R_remote_compldir = '/home/remotelogin/.cache/Vim-R'
-       vim.g.R_local_R_library_dir = '/path/to/local/R/library' -- where vimcom is installed
        ```
 
      - Mount the remote directory:
@@ -135,20 +125,18 @@ latency is too high, you could consider using
 course, none of Vim-R's features that depend on information on R's workspace
 will be available.
 
-Below is an example for `init.lua` of how to configure _vimcmdline_ for
+Below is an example for your `vimrc` of how to configure _vimcmdline_ for
 accessing R remotely:
 
-```lua
-vim.g.cmdline_app = {
-    r = 'ssh -t user@remote-machine R --no-save',
-}
+```vim
+let g:cmdline_app = {'r': 'ssh -t user@remote-machine R --no-save'}
 ```
 
 Most of Vim-R's key bindings call functions that send code to R, and, because they
 will not be used, it is better to disable them:
 
-```lua
-vim.g.R_user_maps_only = 1
+```vim
+let g:R_user_maps_only = 1
 ```
 
 Finally, you may want to enable custom actions in _vimcmdline_ (seek `cmdline_actions`

@@ -1255,8 +1255,8 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     if (verbose > 0)
         REprintf("vimcom %s loaded\n", CHAR(STRING_ELT(nvv, 0)));
     if (verbose > 1) {
-        if (getenv("NVIM_IP_ADDRESS")) {
-            REprintf("  NVIM_IP_ADDRESS: %s\n", getenv("NVIM_IP_ADDRESS"));
+        if (getenv("VIMR_IP_ADDRESS")) {
+            REprintf("  VIMR_IP_ADDRESS: %s\n", getenv("VIMR_IP_ADDRESS"));
         }
         REprintf("  VIMR_PORT: %s\n", nrs_port);
         REprintf("  VIMR_ID: %s\n", getenv("VIMR_ID"));
@@ -1303,8 +1303,8 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
 
             // assign IP, PORT
             servaddr.sin_family = AF_INET;
-            if (getenv("NVIM_IP_ADDRESS"))
-                servaddr.sin_addr.s_addr = inet_addr(getenv("NVIM_IP_ADDRESS"));
+            if (getenv("VIMR_IP_ADDRESS"))
+                servaddr.sin_addr.s_addr = inet_addr(getenv("VIMR_IP_ADDRESS"));
             else
                 servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
             servaddr.sin_port = htons(atoi(nrs_port));
