@@ -1,68 +1,64 @@
-# Vim-R (superseded by R.nvim)
+# vim-r
 
-> [!Important]
-> This is a mirror of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R).
+Maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vim plugin for editing and running R code.
 
-> [!Note]
-> For Neovim users, this plugin is superseded by [R.nvim](https://github.com/R-nvim/R.nvim).
-> I no longer use Vim-R and will only fix newly reported bugs if they
-> are serious enough to prevent its use. I will not fix minor bugs.
+## Features
 
-Vim-R improves Vim's support to edit R scripts.
+- Start, restart, and close R from Vim
+- Send lines, selections, paragraphs, functions, blocks, or entire files to R
+- Omni-completion for R objects, function arguments, knitr chunk options, and Quarto cell options
+- Object Browser for `.GlobalEnv` and loaded packages
+- View R documentation in a Vim buffer with syntax highlighting
+- Additional syntax highlighting for functions of loaded packages
+- SyncTeX support for Rnoweb documents
+- Limited support for debugging R functions
 
-## Installation and use
+## Requirements
 
-Please, read sections _Instalation_ and _Use_ of the
-[documentation](https://github.com/jalvesaq/Vim-R/blob/master/doc/Vim-R.txt).
+- Vim >= 8.2.84 (with `+channel`, `+job`, `+conceal`)
+- R >= 4.0.0
+- A C compiler (the bundled `vimcom` R package is compiled automatically)
+- [Rtools](https://cran.r-project.org/bin/windows/Rtools/) on Windows
 
-## The communication between R and Vim
+## Installation
 
-The diagram below shows how the communication between Vim and R works.
-![Vim-R communication](https://raw.githubusercontent.com/jalvesaq/Vim-R/master/vimrcom.svg "Vim-R communication")
+### [vim-plug](https://github.com/junegunn/vim-plug)
 
-The black arrows represent all commands that you trigger in the editor and
-that you can see being pasted into R Console.
-There are three different ways of sending the commands to R Console:
+```vim
+Plug 'li-ruijie/vim-r'
+```
 
-  - When running R in a Vim built-in terminal, the function `chansend()`
-    is used to send code to R Console.
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-  - When running R in an external terminal emulator, Tmux is used to send
-    commands to R Console.
+```lua
+{ 'li-ruijie/vim-r' }
+```
 
-  - On the Windows operating system, Vim-R can send a message to R (vimcom)
-    which forwards the command to R Console.
+### [packer.nvim](https://github.com/wbthomason/packer.nvim)
 
-The R package *vimcom* includes the application *vimrserver* which is never
-used by R itself, but is run as a Vim's job. That is, the communication
-between the *vimrserver* and Vim is through the *vimrserver* standard
-input and output (green arrows). The *vimrserver* application runs a TCP
-server. When *vimcom* is loaded, it immediately starts a TCP client that
-connects to *vimrserver* (red arrows).
+```lua
+use 'li-ruijie/vim-r'
+```
 
-Some commands that you trigger are not pasted into R Console and do not output
-anything in R Console; their results are seen in the editor itself. These are
-the commands to do omnicompletion (of names of objects and function
-arguments), start and manipulate the Object Browser (`\ro`, `\r=` and `\r-`),
-call R help (`\rh` or `:Rhelp`), insert the output of an R command
-(`:Rinsert`) and format selected text (`:Rformat`).
+### Vim packages (manual)
 
-When new objects are created or new libraries are loaded, vimcom sends
-messages that tell the editor to update the Object Browser, update the syntax
-highlight to include newly loaded libraries and open the PDF output after
-knitting an Rnoweb file and compiling the LaTeX result. Most of the
-information is transmitted through the TCP connection to the *vimrserver*,
-but temporary files are used in a few cases.
+```sh
+# Unix
+mkdir -p ~/.vim/pack/plugins/start
+git clone https://github.com/li-ruijie/vim-r ~/.vim/pack/plugins/start/vim-r
 
+# Windows
+git clone https://github.com/li-ruijie/vim-r %USERPROFILE%\vimfiles\pack\plugins\start\vim-r
+```
 
-## See also:
+See the full [documentation](doc/Vim-R.txt) for configuration and usage.
 
-   - [cmp-vim-r](https://github.com/jalvesaq/cmp-vim-r): [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) source using Vim-R as backend.
+## How it works
 
-   - [languageserver](https://cran.r-project.org/web/packages/languageserver/index.html): a language server for R.
+Vim communicates with R through `vimrserver` (a TCP server run as a Vim job) and `vimcom` (an R package with a C extension that connects to `vimrserver` over TCP).
 
-   - [colorout](https://github.com/jalvesaq/colorout): a package to colorize R's output.
+```
+Vim ──stdio──▸ vimrserver ◂──TCP──▸ vimcom ──▸ R
+```
 
-[Neovim]: https://github.com/neovim/neovim
-[southernlights]: https://github.com/jalvesaq/southernlights
-[colorout]: https://github.com/jalvesaq/colorout
+Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows) directly through the TCP link to RGui.
