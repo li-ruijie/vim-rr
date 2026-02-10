@@ -18,5 +18,19 @@ for FILE in $(git diff --staged --name-only --diff-filter=ACMR "*.c" "*.h"); do
 	git add "$FILE"
 done
 
+# Sync vimcom version in vim-r.txt with DESCRIPTION
+DESC="R/vimcom/DESCRIPTION"
+DOC="doc/vim-r.txt"
+if [ -f "$DESC" ] && [ -f "$DOC" ]; then
+	VER=$(sed -n 's/^Version: *//p' "$DESC")
+	if [ -n "$VER" ]; then
+		sed -i "s/^Version: .*/Version: $VER/" "$DOC"
+		sed -i "s/vimcom_[0-9]\+\.[0-9]\+-[0-9]\+/vimcom_$VER/g" "$DOC"
+		if ! git diff --quiet "$DOC"; then
+			git add "$DOC"
+		fi
+	fi
+fi
+
 # Now we can commit
 exit 0
