@@ -87,7 +87,7 @@ static int curdepth = 0; // Current level of the list or S4 object being parsed
                          // for omni-completion.
 static int autoglbenv = 0; // Should the list of objects in .GlobalEnv be
 // automatically updated after each top level command is executed? It will
-// always be 1 if cmp-vim-r is installed or the Object Browser is open.
+// always be 1 if the Object Browser is open.
 
 static char tmpdir[512]; // The environment variable VIMR_TMPDIR.
 static int setwidth = 0; // Set the option width after each command is executed
