@@ -15,7 +15,12 @@ function StartRStudio()
                     \ 'on_exit':   function('ROnJobExit'),
                     \ 'detach': 1 })
     else
-        let g:rplugin.jobs["RStudio"] = StartJob([g:RStudio_cmd], {
+        if has("win32") && g:RStudio_cmd =~? '\.exe$'
+            let rstudio_launch_cmd = ['cmd', '/c', g:RStudio_cmd]
+        else
+            let rstudio_launch_cmd = [g:RStudio_cmd]
+        endif
+        let g:rplugin.jobs["RStudio"] = StartJob(rstudio_launch_cmd, {
                     \ 'err_cb':  'ROnJobStderr',
                     \ 'exit_cb': 'ROnJobExit',
                     \ 'stoponexit': '' })
