@@ -51,7 +51,7 @@ git clone https://github.com/li-ruijie/vim-r ~/.vim/pack/plugins/start/vim-r
 git clone https://github.com/li-ruijie/vim-r %USERPROFILE%\vimfiles\pack\plugins\start\vim-r
 ```
 
-See the full [documentation](doc/Vim-R.txt) for configuration and usage.
+See the full [documentation](doc/vim-r.txt) for configuration and usage.
 
 ## How it works
 

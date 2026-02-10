@@ -905,7 +905,6 @@ let g:R_objbr_h           = get(g:, "R_objbr_h",           10)
 let g:R_objbr_opendf      = get(g:, "R_objbr_opendf",       1)
 let g:R_objbr_openlist    = get(g:, "R_objbr_openlist",     0)
 let g:R_objbr_allnames    = get(g:, "R_objbr_allnames",     0)
-let g:R_applescript       = get(g:, "R_applescript",        0)
 let g:R_never_unmake_menu = get(g:, "R_never_unmake_menu",  0)
 let g:R_insert_mode_cmds  = get(g:, "R_insert_mode_cmds",   0)
 let g:R_disable_cmds      = get(g:, "R_disable_cmds",    [''])
@@ -1098,10 +1097,6 @@ if has("win32")
     exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/windows.vim"
 else
     exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/unix.vim"
-endif
-
-if g:R_applescript
-    exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/osx.vim"
 endif
 
 if type(g:R_external_term) == v:t_number && g:R_external_term == 0

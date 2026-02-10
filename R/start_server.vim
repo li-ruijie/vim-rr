@@ -410,7 +410,7 @@ function AddToRhelpList(lib)
 endfunction
 
 " The calls to system() and executable() below are in this script to run
-" asynchronously and avoid slow startup on Mac OS X.
+" asynchronously and avoid slow startup.
 " See https://github.com/jalvesaq/Vim-R/issues/625
 if !executable(g:rplugin.R)
     call RWarningMsg("R executable not found: '" . g:rplugin.R . "'")
