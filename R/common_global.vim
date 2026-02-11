@@ -618,11 +618,9 @@ function RVimLeave()
     for fn in g:rplugin.del_list
         call delete(fn)
     endfor
-    if executable("rmdir")
-        call system("rmdir '" . g:rplugin.tmpdir . "'")
-        if g:rplugin.localtmpdir != g:rplugin.tmpdir
-            call system("rmdir '" . g:rplugin.localtmpdir . "'")
-        endif
+    call delete(g:rplugin.tmpdir, 'd')
+    if g:rplugin.localtmpdir != g:rplugin.tmpdir
+        call delete(g:rplugin.localtmpdir, 'd')
     endif
 endfunction
 
