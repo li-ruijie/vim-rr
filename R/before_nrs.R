@@ -43,7 +43,7 @@ check_vimcom_installation <- function() {
     np <- find.package("vimcom", quiet = TRUE, verbose = FALSE)
     if (length(np) == 1) {
         nd <- utils::packageDescription("vimcom")
-        if (nd$Version != needed_nvc_version) {
+        if (nd$Version != needed_vimcom_version) {
             out("RWarn: Failed to update vimcom.")
             quit(save = "no", status = 63)
         }
@@ -65,14 +65,14 @@ check_vimcom_installation <- function() {
 # The vimcom directory will not exist if vimcom was packaged separately from
 # the rest of Vim-R. I will also not be found if running Vim in MSYS2 and R
 # on Windows because the directory names change between the two systems.
-if (!is.null(needed_nvc_version)) {
+if (!is.null(needed_vimcom_version)) {
     np <- find.package("vimcom", quiet = TRUE, verbose = FALSE)
     if (length(np) == 1) {
         nd <- utils::packageDescription("vimcom")
         if (!grepl(paste0('^R ', R_version), nd$Built)) {
             need_new_vimcom <- paste0("R version mismatch: '", R_version, "' vs '", nd$Built, "'")
         } else {
-            if (nd$Version != needed_nvc_version) {
+            if (nd$Version != needed_vimcom_version) {
                 need_new_vimcom <- "vimcom version mismatch"
                 fi <- file.info(paste0(np, "/DESCRIPTION"))
                 if (sum(grepl("uname", names(fi))) == 1 &&
@@ -109,10 +109,10 @@ if (!is.null(needed_nvc_version)) {
         }
 
         if (!file.exists(paste0(vim_r_home, "/R/vimcom"))) {
-            if (file.exists(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_nvc_version, ".tar.gz"))) {
+            if (file.exists(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"))) {
                 out("echo \"Installing vimcom... \"")
-                tools:::.install_packages(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_nvc_version, ".tar.gz"), no.q = TRUE)
-                unlink(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_nvc_version, ".tar.gz"))
+                tools:::.install_packages(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"), no.q = TRUE)
+                unlink(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"))
                 check_vimcom_installation()
             } else {
                 out(paste0("RWarn: Cannot build vimcom: directory '", vim_r_home, "/R/vimcom", "' not found"))
@@ -122,14 +122,14 @@ if (!is.null(needed_nvc_version)) {
 
             out("echo \"Building vimcom... \"")
             tools:::.build_packages(paste0(vim_r_home, "/R/vimcom"), no.q = TRUE)
-            if (!file.exists(paste0("vimcom_", needed_nvc_version, ".tar.gz"))) {
+            if (!file.exists(paste0("vimcom_", needed_vimcom_version, ".tar.gz"))) {
                 out("RWarn: Failed to build vimcom.")
                 quit(save = "no", status = 66)
             }
 
             out("echo \"Installing vimcom... \"")
-            tools:::.install_packages(paste0("vimcom_", needed_nvc_version, ".tar.gz"), no.q = TRUE)
-            unlink(paste0("vimcom_", needed_nvc_version, ".tar.gz"))
+            tools:::.install_packages(paste0("vimcom_", needed_vimcom_version, ".tar.gz"), no.q = TRUE)
+            unlink(paste0("vimcom_", needed_vimcom_version, ".tar.gz"))
             check_vimcom_installation()
         }
     }

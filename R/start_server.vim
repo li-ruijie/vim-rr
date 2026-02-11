@@ -9,9 +9,9 @@ def g:CheckVimcomVersion()
     if filereadable(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
         var ndesc = readfile(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
         var current = substitute(matchstr(ndesc, '^Version: '), 'Version: ', '', '')
-        flines = ['needed_nvc_version <- "' .. current .. '"']
+        flines = ['needed_vimcom_version <- "' .. current .. '"']
     else
-        flines = ['needed_nvc_version <- NULL']
+        flines = ['needed_vimcom_version <- NULL']
     endif
 
     var libs = g:ListRLibsFromBuffer()

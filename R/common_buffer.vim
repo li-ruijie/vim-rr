@@ -6,10 +6,6 @@ vim9script
 # Source scripts common to R, Rnoweb, Rhelp and rdoc files:
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_global.vim'
 
-if exists('g:has_Rnvim')
-    finish
-endif
-
 b:rplugin_knitr_pattern = ''
 
 g:rplugin.lastft = &filetype

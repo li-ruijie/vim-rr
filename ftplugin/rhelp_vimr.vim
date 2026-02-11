@@ -6,10 +6,6 @@ endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
-if exists('g:has_Rnvim')
-    finish
-endif
-
 if !exists('*g:RhelpIsInRCode')
     function g:RhelpIsInRCode(vrb)
         let lastsec = search('^\\[a-z][a-z]*{', "bncW")
