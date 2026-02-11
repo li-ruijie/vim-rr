@@ -1020,8 +1020,8 @@ def g:GlobalRInit(...args: list<any>)
     g:rplugin.debug_info['Time']['GlobalRInit'] = reltime()
     execute 'source ' .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/start_server.vim"
     # Set security variables
-    $VIMR_ID = rand(srand())
-    $VIMR_SECRET = rand()
+    $VIMR_ID = string(rand(srand()))
+    $VIMR_SECRET = string(rand())
     g:CheckVimcomVersion()
     g:rplugin.debug_info['Time']['GlobalRInit'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['GlobalRInit'], reltime()))
 enddef
