@@ -52,17 +52,17 @@ declare -A TEST_MAP=(
 	[R/setcompldir.vim]="test_04_setcompldir.vim test_11_vim9_lint.vim"
 
 	# test_05 — pdf
-	[R/pdf_init.vim]=test_05_pdf.vim
-	[R/pdf_zathura.vim]=test_05_pdf.vim
-	[R/pdf_evince.vim]=test_05_pdf.vim
-	[R/pdf_okular.vim]=test_05_pdf.vim
-	[R/pdf_sumatra.vim]=test_05_pdf.vim
-	[R/pdf_qpdfview.vim]=test_05_pdf.vim
+	[R/pdf_init.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
+	[R/pdf_zathura.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
+	[R/pdf_evince.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
+	[R/pdf_okular.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
+	[R/pdf_sumatra.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
+	[R/pdf_qpdfview.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
 	[R/pdf_generic.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
 
 	# test_06 — extern_term
 	[R/extern_term.vim]=test_06_extern_term.vim
-	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim"
+	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim test_11_vim9_lint.vim"
 	[R/tmux_split.vim]=test_06_extern_term.vim
 	[R/unix.vim]="test_06_extern_term.vim test_11_vim9_lint.vim"
 
@@ -93,7 +93,8 @@ declare -A TEST_MAP=(
 	[R/start_server.vim]=test_09_ftplugin_syntax_gui.vim
 
 	# test_10 — edge cases (files not already listed above)
-	[R/vimbuffer.vim]=test_10_edge_cases.vim
+	[R/vimbuffer.vim]="test_10_edge_cases.vim test_11_vim9_lint.vim"
+	[R/rstudio.vim]=test_11_vim9_lint.vim
 
 	# test_11 — vim9 lint (files not already listed above)
 	[R/functions.vim]=test_11_vim9_lint.vim

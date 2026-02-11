@@ -169,6 +169,29 @@ def BareCallsInDef(filepath: string, legacy: dict<bool>): list<string>
 enddef
 
 # ========================================================================
+# E117: bare calls to def g: functions inside def blocks
+# ========================================================================
+# Same issue as legacy functions: inside a def body, FuncName() is
+# resolved at compile time in script-local scope only.  Functions
+# defined with `def g:FuncName()` are global, not script-local, so
+# calling them without g: prefix causes E117.
+def CollectDefGFuncNames(all_files: list<string>): dict<bool>
+  var names: dict<bool> = {}
+  for filepath in all_files
+    if !IsVim9(filepath)
+      continue
+    endif
+    for line in readfile(filepath)
+      var m = matchstr(line, '^\s*def g:\zs[A-Z]\w*')
+      if m != ''
+        names[m] = true
+      endif
+    endfor
+  endfor
+  return names
+enddef
+
+# ========================================================================
 # E700: function('LegacyName') inside def blocks without g: prefix
 # ========================================================================
 # In a def body, function('FuncName') resolves at runtime but only in
@@ -274,10 +297,12 @@ var comment_errors: list<string> = []
 var defg_errors: list<string> = []
 var funcbang_errors: list<string> = []
 var barecall_errors: list<string> = []
+var baredefg_errors: list<string> = []
 var funcref_errors: list<string> = []
 var rfexec_errors: list<string> = []
 
 var legacy_names = CollectLegacyFuncNames(vim_files)
+var defg_names = CollectDefGFuncNames(vim_files)
 
 for filepath in vim_files
   if IsVim9(filepath)
@@ -285,6 +310,7 @@ for filepath in vim_files
     defg_errors += DefGWithFinishGuard(filepath)
     funcbang_errors += FunctionBangInVim9(filepath)
     barecall_errors += BareCallsInDef(filepath, legacy_names)
+    baredefg_errors += BareCallsInDef(filepath, defg_names)
     funcref_errors += FuncrefInDef(filepath, legacy_names)
     rfexec_errors += ReadfileExecuteGuard(filepath)
   endif
@@ -314,8 +340,14 @@ g:Assert(len(barecall_errors) == 0,
       ? ' — found in: ' .. join(barecall_errors, ', ')
       : ''))
 
+g:Assert(len(baredefg_errors) == 0,
+  'E117: no bare calls to def g: functions inside def blocks (use g: prefix)'
+  .. (len(baredefg_errors) > 0
+      ? ' — found in: ' .. join(baredefg_errors, ', ')
+      : ''))
+
 g:Assert(len(funcref_errors) == 0,
-  'E700: no function(''LegacyName'') inside def blocks (resolve at script level)'
+  'E700: no function(''LegacyName'') inside def blocks (use g: prefix)'
   .. (len(funcref_errors) > 0
       ? ' — found in: ' .. join(funcref_errors, ', ')
       : ''))
