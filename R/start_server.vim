@@ -83,16 +83,23 @@ def g:RInitStdout(...args: list<any>)
         # In spite of flush(stdout()), rcmd might be concatenating two commands
         # (https://github.com/jalvesaq/Vim-R/issues/713)
         var rcmdl = split(rcmd, "\x14", 0)
+        var cmd: string
         for rcmd_item in rcmdl
-            var cmd = rcmd_item
+            cmd = rcmd_item
             if cmd == ''
                 continue
             endif
             if cmd =~ '^RWarn: '
                 RWarn += [substitute(cmd, '^RWarn: ', '', '')]
-            elseif cmd =~ '^let ' || cmd =~ '^echo ' || cmd =~ '^call '
+            elseif cmd =~ '^let '
                 try
-                    legacy execute cmd
+                    execute substitute(cmd, '^let ', '', '')
+                catch
+                    g:RWarningMsg("[Init R] " .. v:exception .. ": " .. cmd)
+                endtry
+            elseif cmd =~ '^echo ' || cmd =~ '^call '
+                try
+                    execute cmd
                 catch
                     g:RWarningMsg("[Init R] " .. v:exception .. ": " .. cmd)
                 endtry

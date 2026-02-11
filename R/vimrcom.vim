@@ -67,9 +67,15 @@ def g:ROnJobStdout(job_id: any, msg: string)
         endif
     endif
 
-    if cmd =~ "^call " || cmd =~ "^let " || cmd =~ "^unlet "
+    if cmd =~ "^let "
         try
-            legacy execute cmd
+            execute substitute(cmd, '^let ', '', '')
+        catch
+            g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] " .. v:exception .. ": " .. cmd)
+        endtry
+    elseif cmd =~ "^call " || cmd =~ "^unlet "
+        try
+            execute cmd
         catch
             g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] " .. v:exception .. ": " .. cmd)
         endtry
