@@ -99,7 +99,7 @@ if (!is.null(needed_nvc_version)) {
             if (dir.exists(p) && file.access(p, mode = 2) == 0)
                 ok <- TRUE
         if (!ok) {
-            out(paste0("let s:libd = '", libp[1], "'"))
+            out(paste0("let g:rplugin.libd = '", libp[1], "'"))
             quit(save = "no", status = 71)
         }
 

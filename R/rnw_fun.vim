@@ -1,213 +1,201 @@
+vim9script
 
-" Source functions only once
-if exists("*RWriteChunk")
-    finish
-endif
-
-function RWriteChunk()
-    if getline(".") =~ "^\\s*$" && RnwIsInRCode(0) == 0
-        let curline = line(".")
-        call setline(curline, "<<>>=")
-        call append(curline, ["@", ""])
-        call cursor(curline, 2)
+def g:RWriteChunk()
+    if getline(".") =~ "^\\s*$" && g:RnwIsInRCode(0) == 0
+        var curline = line(".")
+        setline(curline, "<<>>=")
+        append(curline, ["@", ""])
+        cursor(curline, 2)
     else
-        exe "normal! a<"
+        execute "normal! a<"
     endif
-endfunction
+enddef
 
-function RnwIsInRCode(vrb)
-    let chunkline = search("^<<", "bncW")
-    let docline = search("^@", "bncW")
+def g:RnwIsInRCode(vrb: number): number
+    var chunkline = search("^<<", "bncW")
+    var docline = search("^@", "bncW")
     if chunkline == line(".")
         return 2
     elseif chunkline > docline
         return 1
     else
-        if a:vrb
-            call RWarningMsg("Not inside an R code chunk.")
+        if vrb
+            g:RWarningMsg("Not inside an R code chunk.")
         endif
         return 0
     endif
-endfunction
+enddef
 
-function RnwPreviousChunk() range
-    let rg = range(a:firstline, a:lastline)
-    let chunk = len(rg)
-    for var in range(1, chunk)
-        let curline = line(".")
-        if RnwIsInRCode(0) == 1
-            let i = search("^<<.*$", "bnW")
-            if i != 0
-                call cursor(i-1, 1)
-            endif
-        endif
-        let i = search("^<<.*$", "bnW")
-        if i == 0
-            call cursor(curline, 1)
-            call RWarningMsg("There is no previous R code chunk to go.")
-            return
-        else
-            call cursor(i+1, 1)
-        endif
-    endfor
-    return
-endfunction
-
-function RnwNextChunk() range
-    let rg = range(a:firstline, a:lastline)
-    let chunk = len(rg)
-    for var in range(1, chunk)
-        let i = search("^<<.*$", "nW")
-        if i == 0
-            call RWarningMsg("There is no next R code chunk to go.")
-            return
-        else
-            call cursor(i+1, 1)
-        endif
-    endfor
-    return
-endfunction
-
-
-" Because this function delete files, it will not be documented.
-" If you want to try it, put in your vimrc:
-"
-" let R_rm_knit_cache = 1
-"
-" If don't want to answer the question about deleting files, and
-" if you trust this code more than I do, put in your vimrc:
-"
-" let R_ask_rm_knitr_cache = 0
-"
-" Note that if you have the string "cache.path=" in more than one place only
-" the first one above the cursor position will be found. The path must be
-" surrounded by quotes; if it's an R object, it will not be recognized.
-function RKnitRmCache()
-    let lnum = search('\<cache\.path\>\s*=', 'bnwc')
-    if lnum == 0
-        let pathdir = "cache/"
-    else
-        let pathregexpr = '.*\<cache\.path\>\s*=\s*[' . "'" . '"]\(.\{-}\)[' . "'" . '"].*'
-        let pathdir = substitute(getline(lnum), pathregexpr, '\1', '')
-        if pathdir !~ '/$'
-            let pathdir .= '/'
+def g:RnwPreviousChunk()
+    var curline = line(".")
+    if g:RnwIsInRCode(0) == 1
+        var i = search("^<<.*$", "bnW")
+        if i != 0
+            cursor(i - 1, 1)
         endif
     endif
-    if exists("g:R_ask_rm_knitr_cache") && g:R_ask_rm_knitr_cache == 0
-        let cleandir = 1
+    var i = search("^<<.*$", "bnW")
+    if i == 0
+        cursor(curline, 1)
+        g:RWarningMsg("There is no previous R code chunk to go.")
     else
-        call inputsave()
-        let answer = input('Delete all files from "' . pathdir . '"? [y/n]: ')
-        call inputrestore()
+        cursor(i + 1, 1)
+    endif
+enddef
+
+def g:RnwNextChunk()
+    var i = search("^<<.*$", "nW")
+    if i == 0
+        g:RWarningMsg("There is no next R code chunk to go.")
+    else
+        cursor(i + 1, 1)
+    endif
+enddef
+
+
+# Because this function delete files, it will not be documented.
+# If you want to try it, put in your vimrc:
+#
+# let R_rm_knit_cache = 1
+#
+# If don't want to answer the question about deleting files, and
+# if you trust this code more than I do, put in your vimrc:
+#
+# let R_ask_rm_knitr_cache = 0
+#
+# Note that if you have the string "cache.path=" in more than one place only
+# the first one above the cursor position will be found. The path must be
+# surrounded by quotes; if it's an R object, it will not be recognized.
+def g:RKnitRmCache()
+    var lnum = search('\<cache\.path\>\s*=', 'bnwc')
+    var pathdir: string
+    if lnum == 0
+        pathdir = "cache/"
+    else
+        var pathregexpr = '.*\<cache\.path\>\s*=\s*[' .. "'" .. '"]\(.\{-}\)[' .. "'" .. '"].*'
+        pathdir = substitute(getline(lnum), pathregexpr, '\1', '')
+        if pathdir !~ '/$'
+            pathdir ..= '/'
+        endif
+    endif
+    var cleandir: number
+    if exists("g:R_ask_rm_knitr_cache") && g:R_ask_rm_knitr_cache == 0
+        cleandir = 1
+    else
+        inputsave()
+        var answer = input('Delete all files from "' .. pathdir .. '"? [y/n]: ')
+        inputrestore()
         if answer == "y"
-            let cleandir = 1
+            cleandir = 1
         else
-            let cleandir = 0
+            cleandir = 0
         endif
     endif
     normal! :<Esc>
     if cleandir
-        call g:SendCmdToR('rm(list=ls(all.names=TRUE)); unlink("' . pathdir . '*")')
+        g:SendCmdToR('rm(list=ls(all.names=TRUE)); unlink("' .. pathdir .. '*")')
     endif
-endfunction
+enddef
 
-" Weave and compile the current buffer content
-function RWeave(bibtex, knit, pdf)
-    if !exists("s:check_latexcmd")
-        let s:check_latexcmd = 1
+var check_latexcmd = false
+
+# Weave and compile the current buffer content
+def g:RWeave(bibtex: string, knit: number, pdf: number)
+    if !check_latexcmd
+        check_latexcmd = true
         if g:R_latexcmd[0] == "default"
             if !executable("xelatex")
                 if executable("pdflatex")
-                    let g:R_latexcmd = ['latexmk', '-pdf', '-pdflatex="pdflatex %O -file-line-error -interaction=nonstopmode -synctex=1 %S"']
+                    g:R_latexcmd = ['latexmk', '-pdf', '-pdflatex="pdflatex %O -file-line-error -interaction=nonstopmode -synctex=1 %S"']
                 else
-                    call RWarningMsg("You should install 'xelatex' to be able to compile pdf documents.")
+                    g:RWarningMsg("You should install 'xelatex' to be able to compile pdf documents.")
                 endif
             endif
             if (g:R_latexcmd[0] == "default" || g:R_latexcmd[0] == "latexmk") && !executable("latexmk")
                 if executable("xelatex")
-                    let g:R_latexcmd = ['xelatex', '-file-line-error', '-interaction=nonstopmode', '-synctex=1']
+                    g:R_latexcmd = ['xelatex', '-file-line-error', '-interaction=nonstopmode', '-synctex=1']
                 elseif executable("pdflatex")
-                    let g:R_latexcmd = ['pdflatex', '-file-line-error', '-interaction=nonstopmode', '-synctex=1']
+                    g:R_latexcmd = ['pdflatex', '-file-line-error', '-interaction=nonstopmode', '-synctex=1']
                 else
-                    call RWarningMsg("You should install both 'xelatex' and 'latexmk' to be able to compile pdf documents.")
+                    g:RWarningMsg("You should install both 'xelatex' and 'latexmk' to be able to compile pdf documents.")
                 endif
             endif
         endif
     endif
 
     update
-    let rnwdir = expand("%:p:h")
+    var rnwdir = expand("%:p:h")
     if has("win32")
-        let rnwdir = substitute(rnwdir, '\\', '/', 'g')
+        rnwdir = substitute(rnwdir, '\\', '/', 'g')
     endif
-    let pdfcmd = 'vim.interlace.rnoweb("' . expand("%:t") . '", rnwdir = "' . rnwdir . '"'
+    var pdfcmd = 'vim.interlace.rnoweb("' .. expand("%:t") .. '", rnwdir = "' .. rnwdir .. '"'
 
-    if a:knit == 0
-        let pdfcmd = pdfcmd . ', knit = FALSE'
+    if knit == 0
+        pdfcmd = pdfcmd .. ', knit = FALSE'
     endif
 
-    if a:pdf == 0
-        let pdfcmd = pdfcmd . ', buildpdf = FALSE'
+    if pdf == 0
+        pdfcmd = pdfcmd .. ', buildpdf = FALSE'
     endif
 
     if g:R_latexcmd[0] != "default"
-        let pdfcmd = pdfcmd . ", latexcmd = '" . g:R_latexcmd[0] . "'"
+        pdfcmd = pdfcmd .. ", latexcmd = '" .. g:R_latexcmd[0] .. "'"
         if len(g:R_latexcmd) == 1
-            let pdfcmd = pdfcmd . ", latexargs = character()"
+            pdfcmd = pdfcmd .. ", latexargs = character()"
         else
-            let pdfcmd = pdfcmd . ", latexargs = c('" . join(g:R_latexcmd[1:], "', '"). "')"
+            pdfcmd = pdfcmd .. ", latexargs = c('" .. join(g:R_latexcmd[1 :], "', '") .. "')"
         endif
     endif
 
     if g:R_synctex == 0
-        let pdfcmd = pdfcmd . ", synctex = FALSE"
+        pdfcmd = pdfcmd .. ", synctex = FALSE"
     endif
 
-    if a:bibtex == "bibtex"
-        let pdfcmd = pdfcmd . ", bibtex = TRUE"
+    if bibtex == "bibtex"
+        pdfcmd = pdfcmd .. ", bibtex = TRUE"
     endif
 
-    if a:pdf == 0 || g:R_openpdf == 0 || b:pdf_is_open
-        let pdfcmd = pdfcmd . ", view = FALSE"
+    if pdf == 0 || g:R_openpdf == 0 || b:pdf_is_open
+        pdfcmd = pdfcmd .. ", view = FALSE"
     endif
 
-    if a:pdf && g:R_openpdf == 1
-        let b:pdf_is_open = 1
+    if pdf && g:R_openpdf == 1
+        b:pdf_is_open = 1
     endif
 
     if exists('g:R_latex_build_dir')
-        let pdfcmd .= ', builddir="' . g:R_latex_build_dir . '"'
+        pdfcmd ..= ', builddir="' .. g:R_latex_build_dir .. '"'
     endif
 
-    if a:knit == 0 && exists("g:R_sweaveargs")
-        let pdfcmd = pdfcmd . ", " . g:R_sweaveargs
+    if knit == 0 && exists("g:R_sweaveargs")
+        pdfcmd = pdfcmd .. ", " .. g:R_sweaveargs
     endif
 
-    let pdfcmd = pdfcmd . ")"
-    call g:SendCmdToR(pdfcmd)
-endfunction
+    pdfcmd = pdfcmd .. ")"
+    g:SendCmdToR(pdfcmd)
+enddef
 
-" Send Sweave chunk to R
-function RnwSendChunkToR(e, m)
-    if RnwIsInRCode(1) == 2
-        call cursor(line(".") + 1, 1)
-    elseif RnwIsInRCode(1) == 0
+# Send Sweave chunk to R
+def g:RnwSendChunkToR(e: string, m: string)
+    if g:RnwIsInRCode(1) == 2
+        cursor(line(".") + 1, 1)
+    elseif g:RnwIsInRCode(1) == 0
         return
     endif
-    let chunkline = search("^<<", "bncW") + 1
-    let docline = search("^@", "ncW") - 1
-    let lines = getline(chunkline, docline)
-    let ok = RSourceLines(lines, a:e, "chunk")
+    var chunkline = search("^<<", "bncW") + 1
+    var docline = search("^@", "ncW") - 1
+    var lines = getline(chunkline, docline)
+    var ok = g:RSourceLines(lines, e, "chunk")
     if ok == 0
         return
     endif
-    if a:m == "down"
-        call RnwNextChunk()
+    if m == "down"
+        g:RnwNextChunk()
     endif
-endfunction
+enddef
 
-function SyncTeX_GetMaster()
-    if filereadable(expand("%:p:r") . "-concordance.tex")
+def g:SyncTeX_GetMaster(): string
+    if filereadable(expand("%:p:r") .. "-concordance.tex")
         if has("win32")
             return substitute(expand("%:p:r"), '\\', '/', 'g')
         else
@@ -215,288 +203,292 @@ function SyncTeX_GetMaster()
         endif
     endif
 
-    let ischild = search('% *!Rnw *root *=', 'bwn')
+    var ischild = search('% *!Rnw *root *=', 'bwn')
     if ischild
-        let mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
+        var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
+        var mdir: string
         if mfile =~ "/"
-            let mdir = substitute(mfile, '\(.*\)/.*', '\1', '')
-            let mfile = substitute(mfile, '.*/', '', '')
+            mdir = substitute(mfile, '\(.*\)/.*', '\1', '')
+            mfile = substitute(mfile, '.*/', '', '')
             if mdir == '..'
-                let mdir = expand("%:p:h:h")
+                mdir = expand("%:p:h:h")
             endif
         else
-            let mdir = expand("%:p:h")
+            mdir = expand("%:p:h")
         endif
-        let basenm = substitute(mfile, '\....$', '', '')
+        var basenm = substitute(mfile, '\....$', '', '')
         if has("win32")
-            return substitute(mdir, '\\', '/', 'g') . "/" . basenm
+            return substitute(mdir, '\\', '/', 'g') .. "/" .. basenm
         else
-            return mdir . "/" . basenm
+            return mdir .. "/" .. basenm
         endif
     endif
 
-    " Maybe this buffer is a master Rnoweb not compiled yet.
+    # Maybe this buffer is a master Rnoweb not compiled yet.
     if has("win32")
         return substitute(expand("%:p:r"), '\\', '/', 'g')
     else
         return expand("%:p:r")
     endif
-endfunction
+enddef
 
-" See http://www.stats.uwo.ca/faculty/murdoch/9864/Sweave.pdf page 25
-function SyncTeX_readconc(basenm)
-    let texidx = 0
-    let rnwidx = 0
-    let ntexln = len(readfile(a:basenm . ".tex"))
-    let lstexln = range(1, ntexln)
-    let lsrnwf = range(1, ntexln)
-    let lsrnwl = range(1, ntexln)
-    let conc = readfile(a:basenm . "-concordance.tex")
-    let idx = 0
-    let maxidx = len(conc)
+# See http://www.stats.uwo.ca/faculty/murdoch/9864/Sweave.pdf page 25
+def g:SyncTeX_readconc(basenm: string): dict<list<any>>
+    var texidx = 0
+    var rnwidx = 0
+    var ntexln = len(readfile(basenm .. ".tex"))
+    var lstexln = range(1, ntexln)
+    var lsrnwf = range(1, ntexln)
+    var lsrnwl = range(1, ntexln)
+    var conc = readfile(basenm .. "-concordance.tex")
+    var idx = 0
+    var maxidx = len(conc)
     while idx < maxidx && texidx < ntexln && conc[idx] =~ "Sconcordance"
-        let texf = substitute(conc[idx], '\\Sconcordance{concordance:\(.\{-}\):.*', '\1', "g")
-        let rnwf = substitute(conc[idx], '\\Sconcordance{concordance:.\{-}:\(.\{-}\):.*', '\1', "g")
-        let idx += 1
-        let concnum = ""
+        var texf = substitute(conc[idx], '\\Sconcordance{concordance:\(.\{-}\):.*', '\1', "g")
+        var rnwf = substitute(conc[idx], '\\Sconcordance{concordance:.\{-}:\(.\{-}\):.*', '\1', "g")
+        idx += 1
+        var concnum = ""
         while idx < maxidx && conc[idx] !~ "Sconcordance"
-            let concnum = concnum . conc[idx]
-            let idx += 1
+            concnum = concnum .. conc[idx]
+            idx += 1
         endwhile
-        let concnum = substitute(concnum, '%', '', 'g')
-        let concnum = substitute(concnum, '}', '', '')
-        let concl = split(concnum)
-        let ii = 0
-        let maxii = len(concl) - 2
-        let rnwl = str2nr(concl[0])
-        let lsrnwl[texidx] = rnwl
-        let lsrnwf[texidx] = rnwf
-        let texidx += 1
+        concnum = substitute(concnum, '%', '', 'g')
+        concnum = substitute(concnum, '}', '', '')
+        var concl = split(concnum)
+        var ii = 0
+        var maxii = len(concl) - 2
+        var rnwl = str2nr(concl[0])
+        lsrnwl[texidx] = rnwl
+        lsrnwf[texidx] = rnwf
+        texidx += 1
         while ii < maxii && texidx < ntexln
-            let ii += 1
-            let lnrange = range(1, concl[ii])
-            let ii += 1
+            ii += 1
+            var lnrange = range(1, concl[ii])
+            ii += 1
             for iii in lnrange
-                if  texidx >= ntexln
+                if texidx >= ntexln
                     break
                 endif
-                let rnwl += concl[ii]
-                let lsrnwl[texidx] = rnwl
-                let lsrnwf[texidx] = rnwf
-                let texidx += 1
+                rnwl += concl[ii]
+                lsrnwl[texidx] = rnwl
+                lsrnwf[texidx] = rnwf
+                texidx += 1
             endfor
         endwhile
     endwhile
-    return {"texlnum": lstexln, "rnwfile": lsrnwf, "rnwline": lsrnwl}
-endfunction
+    return {texlnum: lstexln, rnwfile: lsrnwf, rnwline: lsrnwl}
+enddef
 
-function GoToBuf(rnwbn, rnwf, basedir, rnwln)
-    if expand("%:t") != a:rnwbn
-        if bufloaded(a:basedir . '/' . a:rnwf)
-            let savesb = &switchbuf
+def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): number
+    if expand("%:t") != rnwbn
+        if bufloaded(basedir .. '/' .. rnwf)
+            var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            exe "sb " . substitute(a:basedir . '/' . a:rnwf, ' ', '\\ ', 'g')
-            exe "set switchbuf=" . savesb
-        elseif bufloaded(a:rnwf)
-            let savesb = &switchbuf
+            execute "sb " .. substitute(basedir .. '/' .. rnwf, ' ', '\\ ', 'g')
+            execute "set switchbuf=" .. savesb
+        elseif bufloaded(rnwf)
+            var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            exe "sb " . substitute(a:rnwf, ' ', '\\ ', 'g')
-            exe "set switchbuf=" . savesb
+            execute "sb " .. substitute(rnwf, ' ', '\\ ', 'g')
+            execute "set switchbuf=" .. savesb
         else
-            if filereadable(a:basedir . '/' . a:rnwf)
-                exe "tabnew " . substitute(a:basedir . '/' . a:rnwf, ' ', '\\ ', 'g')
-            elseif filereadable(a:rnwf)
-                exe "tabnew " . substitute(a:rnwf, ' ', '\\ ', 'g')
+            if filereadable(basedir .. '/' .. rnwf)
+                execute "tabnew " .. substitute(basedir .. '/' .. rnwf, ' ', '\\ ', 'g')
+            elseif filereadable(rnwf)
+                execute "tabnew " .. substitute(rnwf, ' ', '\\ ', 'g')
             else
-                call RWarningMsg('Could not find either "' . a:rnwbn . ' or "' . a:rnwf . '" in "' . a:basedir . '".')
+                g:RWarningMsg('Could not find either "' .. rnwbn .. ' or "' .. rnwf .. '" in "' .. basedir .. '".')
                 return 0
             endif
         endif
     endif
-    exe a:rnwln
+    execute rnwln
     redraw
     return 1
-endfunction
+enddef
 
-function SyncTeX_backward(fname, ln)
-    let flnm = substitute(a:fname, '/\./', '/', '')   " Okular
-    let basenm = substitute(flnm, "\....$", "", "")   " Delete extension
+def g:SyncTeX_backward(fname: string, ln: number)
+    var flnm = substitute(fname, '/\./', '/', '')   # Okular
+    var basenm = substitute(flnm, "\....$", "", "")   # Delete extension
+    var basedir: string
     if basenm =~ "/"
-        let basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
+        basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
     else
-        let basedir = '.'
+        basedir = '.'
     endif
-    if filereadable(basenm . "-concordance.tex")
-        if !filereadable(basenm . ".tex")
-            call RWarningMsg('SyncTeX [Vim-R]: "' . basenm . '.tex" not found.')
+    if filereadable(basenm .. "-concordance.tex")
+        if !filereadable(basenm .. ".tex")
+            g:RWarningMsg('SyncTeX [Vim-R]: "' .. basenm .. '.tex" not found.')
             return
         endif
-        let concdata = SyncTeX_readconc(basenm)
-        let texlnum = concdata["texlnum"]
-        let rnwfile = concdata["rnwfile"]
-        let rnwline = concdata["rnwline"]
-        let rnwln = 0
+        var concdata = g:SyncTeX_readconc(basenm)
+        var texlnum = concdata["texlnum"]
+        var rnwfile = concdata["rnwfile"]
+        var rnwline = concdata["rnwline"]
+        var rnwln = 0
+        var rnwf = ''
         for ii in range(len(texlnum))
-            if texlnum[ii] >= a:ln
-                let rnwf = rnwfile[ii]
-                let rnwln = rnwline[ii]
+            if texlnum[ii] >= ln
+                rnwf = rnwfile[ii]
+                rnwln = rnwline[ii]
                 break
             endif
         endfor
         if rnwln == 0
-            call RWarningMsg("Could not find Rnoweb source line.")
+            g:RWarningMsg("Could not find Rnoweb source line.")
             return
         endif
     else
-        if filereadable(basenm . ".Rnw") || filereadable(basenm . ".rnw")
-            call RWarningMsg('SyncTeX [Vim-R]: "' . basenm . '-concordance.tex" not found.')
+        var rnwf: string
+        var rnwln: number
+        if filereadable(basenm .. ".Rnw") || filereadable(basenm .. ".rnw")
+            g:RWarningMsg('SyncTeX [Vim-R]: "' .. basenm .. '-concordance.tex" not found.')
             return
         elseif filereadable(flnm)
-            let rnwf = flnm
-            let rnwln = a:ln
+            rnwf = flnm
+            rnwln = ln
         else
-            call RWarningMsg("Could not find '" . basenm . ".Rnw'.")
+            g:RWarningMsg("Could not find '" .. basenm .. ".Rnw'.")
             return
         endif
     endif
 
-    let rnwbn = substitute(rnwf, '.*/', '', '')
-    let rnwf = substitute(rnwf, '^\./', '', '')
+    var rnwbn = substitute(rnwf, '.*/', '', '')
+    rnwf = substitute(rnwf, '^\./', '', '')
 
-    if GoToBuf(rnwbn, rnwf, basedir, rnwln)
+    if g:GoToBuf(rnwbn, rnwf, basedir, rnwln)
         if g:rplugin.has_wmctrl
             if v:windowid != 0
-                call system("wmctrl -ia " . v:windowid)
+                system("wmctrl -ia " .. v:windowid)
             elseif $WINDOWID != ""
-                call system("wmctrl -ia " . $WINDOWID)
+                system("wmctrl -ia " .. $WINDOWID)
             endif
         elseif g:rplugin.has_awbt && exists('g:R_term_title')
-            call RRaiseWindow(g:R_term_title)
+            g:RRaiseWindow(g:R_term_title)
         elseif has("gui_running")
             if has("win32")
-                call JobStdin(g:rplugin.jobs["Server"], "87\n")
+                g:JobStdin(g:rplugin.jobs["Server"], "87\n")
             else
-                call foreground()
+                foreground()
             endif
         endif
     endif
-endfunction
+enddef
 
-function SyncTeX_forward(...)
-    let basenm = expand("%:t:r")
-    let lnum = 0
-    let rnwf = expand("%:t")
+def g:SyncTeX_forward(...args: list<any>)
+    var basenm = expand("%:t:r")
+    var lnum = 0
+    var rnwf = expand("%:t")
 
-    if filereadable(expand("%:p:r") . "-concordance.tex")
-        let lnum = line(".")
+    if filereadable(expand("%:p:r") .. "-concordance.tex")
+        lnum = line(".")
     else
-        let ischild = search('% *!Rnw *root *=', 'bwn')
+        var ischild = search('% *!Rnw *root *=', 'bwn')
         if ischild
-            let mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
-            let basenm = substitute(mfile, '\....$', '', '')
-            if filereadable(expand("%:p:h") . "/" . basenm . "-concordance.tex")
-                let mlines = readfile(expand("%:p:h") . "/" . mfile)
+            var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
+            basenm = substitute(mfile, '\....$', '', '')
+            if filereadable(expand("%:p:h") .. "/" .. basenm .. "-concordance.tex")
+                var mlines = readfile(expand("%:p:h") .. "/" .. mfile)
                 for ii in range(len(mlines))
-                    " Sweave has detailed child information
-                    if mlines[ii] =~ 'SweaveInput.*' . expand("%:t")
-                        let lnum = line(".")
+                    # Sweave has detailed child information
+                    if mlines[ii] =~ 'SweaveInput.*' .. expand("%:t")
+                        lnum = line(".")
                         break
                     endif
-                    " Knitr does not include detailed child information
-                    if mlines[ii] =~ '<<.*child *=.*' . expand("%:t") . '["' . "']"
-                        let lnum = ii + 1
-                        let rnwf = expand("%:p:h") . "/" . mfile
+                    # Knitr does not include detailed child information
+                    if mlines[ii] =~ '<<.*child *=.*' .. expand("%:t") .. '["' .. "']"
+                        lnum = ii + 1
+                        rnwf = expand("%:p:h") .. "/" .. mfile
                         break
                     endif
                 endfor
                 if lnum == 0
-                    call RWarningMsg('Could not find "child=' . expand("%:t") . '" in ' . expand("%:p:h") . "/" . mfile . '.')
+                    g:RWarningMsg('Could not find "child=' .. expand("%:t") .. '" in ' .. expand("%:p:h") .. "/" .. mfile .. '.')
                     return
                 endif
             else
-                call RWarningMsg('Vim-R [SyncTeX]: "' . basenm . '-concordance.tex" not found.')
+                g:RWarningMsg('Vim-R [SyncTeX]: "' .. basenm .. '-concordance.tex" not found.')
                 return
             endif
         else
-            call RWarningMsg('SyncTeX [Vim-R]: "' . basenm . '-concordance.tex" not found.')
+            g:RWarningMsg('SyncTeX [Vim-R]: "' .. basenm .. '-concordance.tex" not found.')
             return
         endif
     endif
 
-    if !filereadable(expand("%:p:h") . "/" . basenm . ".tex")
-        call RWarningMsg('"' . expand("%:p:h") . "/" . basenm . '.tex" not found.')
+    if !filereadable(expand("%:p:h") .. "/" .. basenm .. ".tex")
+        g:RWarningMsg('"' .. expand("%:p:h") .. "/" .. basenm .. '.tex" not found.')
         return
     endif
-    let concdata = SyncTeX_readconc(expand("%:p:h") . "/" . basenm)
-    let rnwf = substitute(rnwf, ".*/", "", "")
-    let texlnum = concdata["texlnum"]
-    let rnwfile = concdata["rnwfile"]
-    let rnwline = concdata["rnwline"]
-    let texln = 0
+    var concdata = g:SyncTeX_readconc(expand("%:p:h") .. "/" .. basenm)
+    rnwf = substitute(rnwf, ".*/", "", "")
+    var texlnum = concdata["texlnum"]
+    var rnwfile = concdata["rnwfile"]
+    var rnwline = concdata["rnwline"]
+    var texln = 0
     for ii in range(len(texlnum))
         if rnwfile[ii] =~ rnwf && rnwline[ii] >= lnum
-            let texln = texlnum[ii]
+            texln = texlnum[ii]
             break
         endif
     endfor
 
     if texln == 0
-        call RWarningMsg("Error: did not find LaTeX line.")
+        g:RWarningMsg("Error: did not find LaTeX line.")
         return
     endif
+    var basedir = ''
     if basenm =~ '/'
-        let basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
-        let basenm = substitute(basenm, '.*/', '', '')
-        exe "cd " . substitute(basedir, ' ', '\\ ', 'g')
-    else
-        let basedir = ''
+        basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
+        basenm = substitute(basenm, '.*/', '', '')
+        execute "cd " .. substitute(basedir, ' ', '\\ ', 'g')
     endif
 
-    if a:0 && a:1
-        call GoToBuf(basenm . ".tex", basenm . ".tex", basedir, texln)
+    if len(args) > 0 && args[0]
+        g:GoToBuf(basenm .. ".tex", basenm .. ".tex", basedir, texln)
         return
     endif
 
-    if !filereadable(b:rplugin_pdfdir . "/" . basenm . ".pdf")
-        call RWarningMsg('SyncTeX forward cannot be done because the file "' . b:rplugin_pdfdir . "/" . basenm . '.pdf" is missing.')
+    if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".pdf")
+        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.pdf" is missing.')
         return
     endif
-    if !filereadable(b:rplugin_pdfdir . "/" . basenm . ".synctex.gz")
-        call RWarningMsg('SyncTeX forward cannot be done because the file "' . b:rplugin_pdfdir . "/" . basenm . '.synctex.gz" is missing.')
+    if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".synctex.gz")
+        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.synctex.gz" is missing.')
         if g:R_latexcmd != "default" && g:R_latexcmd !~ "synctex"
-            call RWarningMsg('Note: The string "-synctex=1" is not in your R_latexcmd. Please check your vimrc.')
+            g:RWarningMsg('Note: The string "-synctex=1" is not in your R_latexcmd. Please check your vimrc.')
         endif
         return
     endif
 
-    call SyncTeX_forward2(SyncTeX_GetMaster() . '.tex', b:rplugin_pdfdir . "/" . basenm . ".pdf", texln, 1)
-endfunction
+    g:SyncTeX_forward2(g:SyncTeX_GetMaster() .. '.tex', b:rplugin_pdfdir .. "/" .. basenm .. ".pdf", texln, 1)
+enddef
 
-function SetPDFdir()
-    let master = SyncTeX_GetMaster()
-    let mdir = substitute(master, '\(.*\)/.*', '\1', '')
-    let b:rplugin_pdfdir = "."
-    " Latexmk has an option to create the PDF in a directory other than '.'
+def g:SetPDFdir()
+    var master = g:SyncTeX_GetMaster()
+    var mdir = substitute(master, '\(.*\)/.*', '\1', '')
+    b:rplugin_pdfdir = "."
+    # Latexmk has an option to create the PDF in a directory other than '.'
     if (g:R_latexcmd[0] =~ "default" || g:R_latexcmd[0] =~ "latexmk") && filereadable(expand("~/.latexmkrc"))
-        let ltxmk = readfile(expand("~/.latexmkrc"))
+        var ltxmk = readfile(expand("~/.latexmkrc"))
         for line in ltxmk
             if line =~ '\$out_dir\s*='
-                let b:rplugin_pdfdir = substitute(line, '.*\$out_dir\s*=\s*"\(.*\)".*', '\1', '')
-                let b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, ".*\\$out_dir\\s*=\\s*'\\(.*\\)'.*", '\1', '')
+                b:rplugin_pdfdir = substitute(line, '.*\$out_dir\s*=\s*"\(.*\)".*', '\1', '')
+                b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, ".*\\$out_dir\\s*=\\s*'\\(.*\\)'.*", '\1', '')
             endif
         endfor
     endif
     if join(g:R_latexcmd) =~ "-outdir" || join(g:R_latexcmd) =~ "-output-directory"
-        let b:rplugin_pdfdir = substitute(join(g:R_latexcmd), '.*\(-outdir\|-output-directory\)\s*=*\s*', '', '')
-        let b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, " .*", "", "")
-        let b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, '["' . "']", "", "")
+        b:rplugin_pdfdir = substitute(join(g:R_latexcmd), '.*\(-outdir\|-output-directory\)\s*=*\s*', '', '')
+        b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, " .*", "", "")
+        b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, '["' .. "']", "", "")
     endif
     if b:rplugin_pdfdir == "."
-        let b:rplugin_pdfdir = mdir
+        b:rplugin_pdfdir = mdir
     elseif b:rplugin_pdfdir !~ "^/"
-        let b:rplugin_pdfdir = mdir . "/" . b:rplugin_pdfdir
+        b:rplugin_pdfdir = mdir .. "/" .. b:rplugin_pdfdir
         if !isdirectory(b:rplugin_pdfdir)
-            let b:rplugin_pdfdir = "."
+            b:rplugin_pdfdir = "."
         endif
     endif
-endfunction
+enddef

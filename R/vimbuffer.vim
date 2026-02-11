@@ -46,7 +46,7 @@ def g:SendCmdToR_Buffer(...args: list<any>): number
 enddef
 
 def g:StartR_InBuffer()
-    if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
+    if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
         return
     endif
 

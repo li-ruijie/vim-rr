@@ -1,3 +1,5 @@
+vim9script
+
 syntax clear
 
 syn match inLineCodeDelim /`/ conceal contained

@@ -1,159 +1,158 @@
-if exists('*RCompleteBib')
-    finish
-endif
+vim9script
 
-function RCompleteBib(base)
-    if !IsJobRunning("BibComplete")
+def g:RCompleteBib(base: string): list<dict<string>>
+    if !g:IsJobRunning("BibComplete")
         return []
     endif
     if b:rplugin_bibf == ''
-        call RWarningMsg('Bib file not defined')
+        g:RWarningMsg('Bib file not defined')
         return []
     endif
-    call delete(g:rplugin.tmpdir . "/bibcompl")
-    let g:rplugin.bib_finished = 0
-    call JobStdin(g:rplugin.jobs["BibComplete"], "\x03" . a:base . "\x05" . expand("%:p") . "\n")
-    call AddForDeletion(g:rplugin.tmpdir . "/bibcompl")
-    let resp = []
-    let wt = 0
+    delete(g:rplugin.tmpdir .. "/bibcompl")
+    g:rplugin.bib_finished = 0
+    g:JobStdin(g:rplugin.jobs["BibComplete"], "\x03" .. base .. "\x05" .. expand("%:p") .. "\n")
+    g:AddForDeletion(g:rplugin.tmpdir .. "/bibcompl")
+    var resp: list<dict<string>> = []
+    var wt = 0
     sleep 20m
     while wt < 10 && g:rplugin.bib_finished == 0
-        let wt += 1
+        wt += 1
         sleep 50m
     endwhile
-    if filereadable(g:rplugin.tmpdir . "/bibcompl")
-        let lines = readfile(g:rplugin.tmpdir . "/bibcompl")
+    if filereadable(g:rplugin.tmpdir .. "/bibcompl")
+        var lines = readfile(g:rplugin.tmpdir .. "/bibcompl")
         for line in lines
-            let tmp = split(line, "\x09")
-            call add(resp, {'word': tmp[0], 'abbr': tmp[1], 'menu': tmp[2]})
+            var tmp = split(line, "\x09")
+            add(resp, {word: tmp[0], abbr: tmp[1], menu: tmp[2]})
         endfor
     endif
     return resp
-endfunction
+enddef
 
-function! s:GetBibFileName()
+def GetBibFileName()
     if !exists('b:rplugin_bibf')
-        let b:rplugin_bibf = ''
+        b:rplugin_bibf = ''
     endif
+    var newbibf: string
     if &filetype == 'rmd' || &filetype == 'quarto'
-        let newbibf = RmdGetYamlField('bibliography')
+        newbibf = g:RmdGetYamlField('bibliography')
         if newbibf == ''
-            let newbibf = join(glob(expand("%:p:h") . '/*.bib', 0, 1), "\x06")
+            newbibf = join(glob(expand("%:p:h") .. '/*.bib', 0, 1), "\x06")
         endif
     else
-        let newbibf = join(glob(expand("%:p:h") . '/*.bib', 0, 1), "\x06")
+        newbibf = join(glob(expand("%:p:h") .. '/*.bib', 0, 1), "\x06")
     endif
     if newbibf != b:rplugin_bibf && newbibf !~ 'zotcite.bib$'
-        let b:rplugin_bibf = newbibf
-        if IsJobRunning('BibComplete')
-            call JobStdin(g:rplugin.jobs["BibComplete"], "\x04" . expand("%:p") . "\x05" . b:rplugin_bibf . "\n")
+        b:rplugin_bibf = newbibf
+        if g:IsJobRunning('BibComplete')
+            g:JobStdin(g:rplugin.jobs["BibComplete"], "\x04" .. expand("%:p") .. "\x05" .. b:rplugin_bibf .. "\n")
         else
-            let aa = [g:rplugin.py3, g:rplugin.home . '/R/bibtex.py', expand("%:p"), b:rplugin_bibf]
-            let g:rplugin.jobs["BibComplete"] = StartJob(aa, g:rplugin.job_handlers)
-            call RCreateMaps('n', 'ROpenRefFile', 'od', ':call GetBibAttachment()')
+            var aa = [g:rplugin.py3, g:rplugin.home .. '/R/bibtex.py', expand("%:p"), b:rplugin_bibf]
+            g:rplugin.jobs["BibComplete"] = g:StartJob(aa, g:rplugin.job_handlers)
+            g:RCreateMaps('n', 'ROpenRefFile', 'od', ':call g:GetBibAttachment()')
         endif
     endif
-endfunction
+enddef
 
-function s:HasPython3()
+def HasPython3(): bool
     if exists("g:R_python3")
         if filereadable("g:R_python3")
             if executable("g:R_python3")
-                let g:rplugin.py3 = g:R_python3
-                return 1
+                g:rplugin.py3 = g:R_python3
+                return true
             else
-                let g:rplugin.debug_info['BibComplete'] = g:R_python3 . ' is not executable'
+                g:rplugin.debug_info['BibComplete'] = g:R_python3 .. ' is not executable'
             endif
         else
-            let g:rplugin.debug_info['BibComplete'] = g:R_python3 . ' not found'
+            g:rplugin.debug_info['BibComplete'] = g:R_python3 .. ' not found'
         endif
-        return 0
+        return false
     endif
-    silent let out = system('python3 --version')
+    silent var out = system('python3 --version')
     if v:shell_error == 0 && out =~ 'Python 3'
-        let g:rplugin.py3 = 'python3'
+        g:rplugin.py3 = 'python3'
     else
-        silent let out = system('python --version')
+        silent out = system('python --version')
         if v:shell_error == 0 && out =~ 'Python 3'
-            let g:rplugin.py3 = 'python'
+            g:rplugin.py3 = 'python'
         else
-            let g:rplugin.debug_info['BibComplete'] = "No Python 3"
-            let g:rplugin.py3 = ''
-            return 0
+            g:rplugin.debug_info['BibComplete'] = "No Python 3"
+            g:rplugin.py3 = ''
+            return false
         endif
     endif
-    return 1
-endfunction
+    return true
+enddef
 
-function CheckPyBTeX(...)
+def g:CheckPyBTeX(_timer: number)
     if !has_key(g:rplugin.debug_info, 'BibComplete')
-        if !s:HasPython3()
+        if !HasPython3()
             return
         endif
-        silent call system(g:rplugin.py3, "from pybtex.database import parse_file\n")
+        silent system(g:rplugin.py3, "from pybtex.database import parse_file\n")
         if v:shell_error == 0
-            let g:rplugin.debug_info['BibComplete'] = "PyBTex OK"
+            g:rplugin.debug_info['BibComplete'] = "PyBTex OK"
         else
-            let g:rplugin.debug_info['BibComplete'] = "No PyBTex"
-            let g:rplugin.py3 = ''
+            g:rplugin.debug_info['BibComplete'] = "No PyBTex"
+            g:rplugin.py3 = ''
         endif
     endif
     if g:rplugin.debug_info['BibComplete'] == "PyBTex OK"
-        " Use RBibComplete if possible
-        call s:GetBibFileName()
+        # Use RBibComplete if possible
+        GetBibFileName()
         if !exists("b:rplugin_did_bib_autocmd")
-            autocmd BufWritePost <buffer> call s:GetBibFileName()
+            autocmd BufWritePost <buffer> call <SID>GetBibFileName()
             if &filetype == 'rnoweb'
-                let b:rplugin_non_r_omnifunc = "RnwNonRCompletion"
-                autocmd CompleteDone <buffer> call RnwOnCompleteDone()
+                b:rplugin_non_r_omnifunc = "RnwNonRCompletion"
+                autocmd CompleteDone <buffer> call g:RnwOnCompleteDone()
             endif
         endif
-        let b:rplugin_did_bib_autocmd = 1
+        b:rplugin_did_bib_autocmd = 1
     endif
-endfunction
+enddef
 
-function GetBibAttachment()
-    let oldisk = &iskeyword
+def g:GetBibAttachment()
+    var oldisk = &iskeyword
     set iskeyword=@,48-57,_,192-255,@-@
-    let wrd = expand('<cword>')
-    exe 'set iskeyword=' . oldisk
+    var wrd = expand('<cword>')
+    execute 'set iskeyword=' .. oldisk
     if wrd =~ '^@'
-        let wrd = substitute(wrd, '^@', '', '')
+        wrd = substitute(wrd, '^@', '', '')
         if wrd != ''
-            let g:rplugin.last_attach = ''
-            call JobStdin(g:rplugin.jobs["BibComplete"], "\x02" . expand("%:p") . "\x05" . wrd . "\n")
+            g:rplugin.last_attach = ''
+            g:JobStdin(g:rplugin.jobs["BibComplete"], "\x02" .. expand("%:p") .. "\x05" .. wrd .. "\n")
             sleep 20m
-            let count = 0
+            var count = 0
             while count < 100 && g:rplugin.last_attach == ''
-                let count += 1
+                count += 1
                 sleep 10m
             endwhile
             if g:rplugin.last_attach == 'nOaTtAChMeNt'
-                call RWarningMsg(wrd . "'s attachment not found")
+                g:RWarningMsg(wrd .. "'s attachment not found")
             elseif g:rplugin.last_attach =~ 'nObIb:'
-                call RWarningMsg('"' . substitute(g:rplugin.last_attach, 'nObIb:', '', '') . '" not found')
+                g:RWarningMsg('"' .. substitute(g:rplugin.last_attach, 'nObIb:', '', '') .. '" not found')
             elseif g:rplugin.last_attach == 'nOcItEkEy'
-                call RWarningMsg(wrd . " not found")
+                g:RWarningMsg(wrd .. " not found")
             elseif g:rplugin.last_attach == ''
-                call RWarningMsg('No reply from BibComplete')
+                g:RWarningMsg('No reply from BibComplete')
             else
-                let fpath = g:rplugin.last_attach
-                let fls = split(fpath, ':')
+                var fpath = g:rplugin.last_attach
+                var fls = split(fpath, ':')
                 if filereadable(fls[0])
-                    let fpath = fls[0]
+                    fpath = fls[0]
                 elseif len(fls) > 1 && filereadable(fls[1])
-                    let fpath = fls[1]
+                    fpath = fls[1]
                 endif
                 if filereadable(fpath)
                     if has('win32')
-                        call system('start "" "' . fpath . '"')
+                        system('start "" "' .. fpath .. '"')
                     else
-                        call system('xdg-open "' . fpath . '"')
+                        system('xdg-open "' .. fpath .. '"')
                     endif
                 else
-                    call RWarningMsg('Could not find "' . fpath . '"')
+                    g:RWarningMsg('Could not find "' .. fpath .. '"')
                 endif
             endif
         endif
     endif
-endfunction
+enddef

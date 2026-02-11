@@ -67,7 +67,7 @@ declare -A TEST_MAP=(
 	[R/unix.vim]="test_06_extern_term.vim test_11_vim9_lint.vim"
 
 	# test_07 — start_r
-	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim"
+	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim"
 
 	# test_08 — rnw, bibcompl, complete
 	[R/rnw_fun.vim]=test_08_rnw_bibcompl_complete.vim

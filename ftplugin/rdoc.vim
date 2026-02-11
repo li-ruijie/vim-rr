@@ -1,144 +1,150 @@
+vim9script
 
-" Only do this when not yet done for this buffer
+# Only do this when not yet done for this buffer
 if exists("b:did_rdoc_ftplugin")
     finish
 endif
 
-" Don't load another plugin for this buffer
-let b:did_rdoc_ftplugin = 1
+# Don't load another plugin for this buffer
+b:did_rdoc_ftplugin = 1
 
-let s:cpo_save = &cpo
+var cpo_save = &cpo
 set cpo&vim
 
-" Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-exe "source " . substitute(expand("<sfile>:h:h"), ' ', '\ ', 'g') . "/R/common_buffer.vim"
-if exists("g:has_Rnvim")
+# Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
+execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
+if exists('g:has_Rnvim')
     finish
 endif
 
 setlocal iskeyword=@,48-57,_,.
 
-" Prepare R documentation output to be displayed by Vim
-function! FixRdoc()
-    let lnr = line("$")
-    for ii in range(1, lnr)
-        let lii = getline(ii)
-        let lii = substitute(lii, "_\010", "", "g")
-        let lii = substitute(lii, '<URL: \(.\{-}\)>', ' |\1|', 'g')
-        let lii = substitute(lii, '<email: \(.\{-}\)>', ' |\1|', 'g')
-        if &encoding == "utf-8"
-            let lii = substitute(lii, "\x91", "‘", 'g')
-            let lii = substitute(lii, "\x92", "’", 'g')
-        endif
-        call setline(ii, lii)
-    endfor
+# Prepare R documentation output to be displayed by Vim
+if !exists('*g:FixRdoc')
+    function g:FixRdoc()
+        let lnr = line("$")
+        for ii in range(1, lnr)
+            let lii = getline(ii)
+            let lii = substitute(lii, "_\010", "", "g")
+            let lii = substitute(lii, '<URL: \(.\{-}\)>', ' |\1|', 'g')
+            let lii = substitute(lii, '<email: \(.\{-}\)>', ' |\1|', 'g')
+            if &encoding == "utf-8"
+                let lii = substitute(lii, "\x91", "'", 'g')
+                let lii = substitute(lii, "\x92", "'", 'g')
+            endif
+            call setline(ii, lii)
+        endfor
 
-    " Mark the end of Examples
-    let ii = search("^Examples:$", "nw")
-    if ii
-        if getline("$") !~ "^###$"
-            let lnr = line("$") + 1
-            call setline(lnr, '###')
-        endif
-    endif
-
-    " Add a tab character at the end of the Arguments section to mark its end.
-    let ii = search("^Arguments:$", "nw")
-    if ii
-        " A space after 'Arguments:' is necessary for correct syntax highlight
-        " of the first argument
-        call setline(ii, "Arguments: ")
-        let doclength = line("$")
-        let ii += 2
-        let lin = getline(ii)
-        while lin !~ "^[A-Z].*:$" && ii < doclength
-            let ii += 1
-            let lin = getline(ii)
-        endwhile
-        if ii < doclength
-            let ii -= 1
-            if getline(ii) =~ "^$"
-                call setline(ii, " \t")
+        " Mark the end of Examples
+        let ii = search("^Examples:$", "nw")
+        if ii
+            if getline("$") !~ "^###$"
+                let lnr = line("$") + 1
+                call setline(lnr, '###')
             endif
         endif
-    endif
 
-    " Add a tab character at the end of the Usage section to mark its end.
-    let ii = search("^Usage:$", "nw")
-    if ii
-        let doclength = line("$")
-        let ii += 2
-        let lin = getline(ii)
-        while lin !~ "^[A-Z].*:" && ii < doclength
-            let ii += 1
+        " Add a tab character at the end of the Arguments section to mark its end.
+        let ii = search("^Arguments:$", "nw")
+        if ii
+            " A space after 'Arguments:' is necessary for correct syntax highlight
+            " of the first argument
+            call setline(ii, "Arguments: ")
+            let doclength = line("$")
+            let ii += 2
             let lin = getline(ii)
-        endwhile
-        if ii < doclength
-            let ii -= 1
-            if getline(ii) =~ "^ *$"
-                call setline(ii, "\t")
+            while lin !~ "^[A-Z].*:$" && ii < doclength
+                let ii += 1
+                let lin = getline(ii)
+            endwhile
+            if ii < doclength
+                let ii -= 1
+                if getline(ii) =~ "^$"
+                    call setline(ii, " \t")
+                endif
             endif
         endif
-    endif
 
-    normal! gg
-
-    " Clear undo history
-    let old_undolevels = &undolevels
-    set undolevels=-1
-    exe "normal a \<BS>\<Esc>"
-    let &undolevels = old_undolevels
-    unlet old_undolevels
-endfunction
-
-function! RdocIsInRCode(vrb)
-    let exline = search("^Examples:$", "bncW")
-    if exline > 0 && line(".") > exline
-        return 1
-    else
-        if a:vrb
-            call RWarningMsg('Not in the "Examples" section.')
+        " Add a tab character at the end of the Usage section to mark its end.
+        let ii = search("^Usage:$", "nw")
+        if ii
+            let doclength = line("$")
+            let ii += 2
+            let lin = getline(ii)
+            while lin !~ "^[A-Z].*:" && ii < doclength
+                let ii += 1
+                let lin = getline(ii)
+            endwhile
+            if ii < doclength
+                let ii -= 1
+                if getline(ii) =~ "^ *$"
+                    call setline(ii, "\t")
+                endif
+            endif
         endif
-        return 0
-    endif
-endfunction
 
-let b:IsInRCode = function("RdocIsInRCode")
+        normal! gg
 
-"==========================================================================
-" Key bindings and menu items
-
-call RCreateSendMaps()
-call RControlMaps()
-
-" Menu R
-if has("gui_running")
-    exe "source " . substitute(expand("<sfile>:h:h"), ' ', '\ ', 'g') . "/R/gui_running.vim"
-    call MakeRMenu()
+        " Clear undo history
+        let old_undolevels = &undolevels
+        set undolevels=-1
+        exe "normal a \<BS>\<Esc>"
+        let &undolevels = old_undolevels
+        unlet old_undolevels
+    endfunction
 endif
 
-function! RDocExSection()
-    let ii = search("^Examples:$", "nW")
-    if ii == 0
-        call RWarningMsg("No example section below.")
-        return
-    else
-        call cursor(ii+1, 1)
-    endif
-endfunction
+if !exists('*g:RdocIsInRCode')
+    function g:RdocIsInRCode(vrb)
+        let exline = search("^Examples:$", "bncW")
+        if exline > 0 && line(".") > exline
+            return 1
+        else
+            if a:vrb
+                call g:RWarningMsg('Not in the "Examples" section.')
+            endif
+            return 0
+        endif
+    endfunction
+endif
 
-nnoremap <buffer><silent> ge :call RDocExSection()<CR>
+b:IsInRCode = function('g:RdocIsInRCode')
+
+#==========================================================================
+# Key bindings and menu items
+
+g:RCreateSendMaps()
+g:RControlMaps()
+
+# Menu R
+if has("gui_running")
+    execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/gui_running.vim'
+    g:MakeRMenu()
+endif
+
+if !exists('*g:RDocExSection')
+    function g:RDocExSection()
+        let ii = search("^Examples:$", "nW")
+        if ii == 0
+            call g:RWarningMsg("No example section below.")
+            return
+        else
+            call cursor(ii + 1, 1)
+        endif
+    endfunction
+endif
+
+nnoremap <buffer><silent> ge :call g:RDocExSection()<CR>
 nnoremap <buffer><silent> q :q<CR>
 
 setlocal bufhidden=wipe
 setlocal nonumber
 setlocal noswapfile
 set buftype=nofile
-autocmd VimResized <buffer> let g:R_newsize = 1
-call FixRdoc()
-autocmd FileType rdoc call FixRdoc()
+autocmd VimResized <buffer> g:R_newsize = 1
+g:FixRdoc()
+autocmd FileType rdoc g:FixRdoc()
 
-let &cpo = s:cpo_save
-unlet s:cpo_save
+&cpo = cpo_save
 
-" vim: sw=4
+# vim: sw=4
