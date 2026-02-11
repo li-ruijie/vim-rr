@@ -97,6 +97,7 @@ declare -A TEST_MAP=(
 
 	# test_11 — vim9 lint (files not already listed above)
 	[R/functions.vim]=test_11_vim9_lint.vim
+	[R/functions_def.vim]=test_11_vim9_lint.vim
 	[R/common_buffer.vim]=test_11_vim9_lint.vim
 )
 

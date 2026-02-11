@@ -1,6 +1,6 @@
 vim9script
 # Static lint checks for vim9script files
-# Catches porting errors that cause E114, E117, and E127 at runtime.
+# Catches porting errors that cause E114, E127, and E477 at runtime.
 
 g:SetSuite('vim9_lint')
 
@@ -87,15 +87,35 @@ def DefGWithFinishGuard(filepath: string): list<string>
 enddef
 
 # ========================================================================
+# E477: function! (with bang) is not allowed in vim9script
+# ========================================================================
+# In vim9script, function definitions use def/enddef.  Legacy function
+# (without !) is tolerated for interop, but function! is an error.
+def FunctionBangInVim9(filepath: string): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var lnum = 0
+  for line in lines
+    lnum += 1
+    if line =~ '^\s*function!\s'
+      add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+    endif
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run checks on every vim9script file
 # ========================================================================
 var comment_errors: list<string> = []
 var defg_errors: list<string> = []
+var funcbang_errors: list<string> = []
 
 for filepath in vim_files
   if IsVim9(filepath)
     comment_errors += ScriptLevelLegacyComments(filepath)
     defg_errors += DefGWithFinishGuard(filepath)
+    funcbang_errors += FunctionBangInVim9(filepath)
   endif
 endfor
 
@@ -109,4 +129,10 @@ g:Assert(len(defg_errors) == 0,
   'E127: no def g: in files with re-source guards'
   .. (len(defg_errors) > 0
       ? ' — found in: ' .. join(defg_errors, ', ')
+      : ''))
+
+g:Assert(len(funcbang_errors) == 0,
+  'E477: no function! in vim9script files'
+  .. (len(funcbang_errors) > 0
+      ? ' — found in: ' .. join(funcbang_errors, ', ')
       : ''))
