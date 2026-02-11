@@ -150,7 +150,7 @@ if !exists('*g:SendRrstChunkToR')
     function g:SendRrstChunkToR(e, m)
         if g:RrstIsInRCode(0) == 2
             call cursor(line(".") + 1, 1)
-        elseif g:RrstIsInRCode(0)
+        elseif g:RrstIsInRCode(0) != 1
             call g:RWarningMsg("Not inside an R code chunk.")
             return
         endif

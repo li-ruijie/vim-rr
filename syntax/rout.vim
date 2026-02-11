@@ -172,8 +172,9 @@ if exists("g:rout_follow_colorscheme") && g:rout_follow_colorscheme
     hi def link routWarn	WarningMsg
 else
     def SetGroupColor(group: string, cgui: string, c256: string, c16: string)
-        if exists('g:rout_color_' .. tolower(group))
-            execute 'hi rout' .. group .. eval('g:rout_color_' .. tolower(group))
+        var gname = trim(group)
+        if exists('g:rout_color_' .. tolower(gname))
+            execute 'hi rout' .. group .. eval('g:rout_color_' .. tolower(gname))
         elseif str2nr(&t_Co) == 256
             execute 'hi rout' .. group .. 'ctermfg=' .. c256 .. ' guifg=' .. cgui
         else

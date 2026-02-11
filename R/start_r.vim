@@ -65,7 +65,7 @@ enddef
 # This function is called by vimrserver when its server binds to a specific port.
 var waiting_to_start_r = ''
 def g:RSetMyPort(p: string)
-    g:rplugin.myport = p
+    g:rplugin.myport = str2nr(p)
     $VIMR_PORT = p
     if waiting_to_start_r != ''
         g:StartR(waiting_to_start_r)
@@ -432,6 +432,9 @@ def g:ClearRInfo()
     endfor
     g:SendCmdToR = function('g:SendCmdToR_fake')
     g:rplugin.R_pid = 0
+    if has_key(g:rplugin, 'R_bufnr')
+        remove(g:rplugin, 'R_bufnr')
+    endif
 
     # Legacy support for running R in a Tmux split pane
     if has_key(g:rplugin, "tmux_split") && exists('g:R_tmux_title') && g:rplugin.tmux_split
@@ -439,7 +442,9 @@ def g:ClearRInfo()
         system("tmux set automatic-rename on")
     endif
 
-    g:JobStdin(g:rplugin.jobs["Server"], "43\n")
+    if g:IsJobRunning("Server")
+        g:JobStdin(g:rplugin.jobs["Server"], "43\n")
+    endif
 enddef
 
 var wait_vimcom = 0
@@ -548,9 +553,9 @@ def g:StartObjBrowser()
         elseif g:R_objbr_place =~# 'BOTTOM'
             sil exe 'botright split Object_Browser'
         else
-            if g:R_objbr_place =~? 'console'
+            if g:R_objbr_place =~? 'console' && has_key(g:rplugin, 'R_bufnr')
                 sil exe 'sb ' .. g:rplugin.R_bufnr
-            else
+            elseif g:rplugin.rscript_name != ''
                 sil exe 'sb ' .. g:rplugin.rscript_name
             endif
             if g:R_objbr_place =~# 'right'
@@ -562,7 +567,7 @@ def g:StartObjBrowser()
             elseif g:R_objbr_place =~# 'below'
                 sil exe 'belowright split Object_Browser'
             else
-                g:RWarningMsg('Invalid value for R_objbr_place: "' .. R_objbr_place .. '"')
+                g:RWarningMsg('Invalid value for R_objbr_place: "' .. g:R_objbr_place .. '"')
                 exe "set switchbuf=" .. savesb
                 return
             endif
@@ -665,10 +670,14 @@ def g:FindDebugFunc(srcref: string)
         curtab = tabpagenr()
         isnormal = mode() ==# 'n'
         curwin = winnr()
-        exe 'sb ' .. g:rplugin.R_bufnr
+        if has_key(g:rplugin, 'R_bufnr')
+            exe 'sb ' .. g:rplugin.R_bufnr
+        endif
         sleep 30m # Time to fill the buffer lines
         rlines = getline(1, "$")
-        exe 'sb ' .. g:rplugin.rscript_name
+        if g:rplugin.rscript_name != ''
+            exe 'sb ' .. g:rplugin.rscript_name
+        endif
     elseif string(g:SendCmdToR) == "function('g:SendCmdToR_Term')"
         var tout = system('tmux -L VimR capture-pane -p -t ' .. g:rplugin.tmuxsname)
         rlines = split(tout, "\n")
@@ -775,7 +784,7 @@ def g:RDebugJump(fnm: string, lnum: number)
     #call sign_place(1, 'rdebugcurline', 'dbgline', fname, {'lnum': flnum})
     sign unplace 1
     exe 'sign place 1 line=' .. flnum .. ' name=dbgline file=' .. fname
-    if g:R_dbg_jump && !rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0
+    if g:R_dbg_jump && !rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0 && has_key(g:rplugin, 'R_bufnr')
         exe 'sb ' .. g:rplugin.R_bufnr
         startinsert
     elseif bname != expand("%")
@@ -922,7 +931,7 @@ def g:SetRTextWidth(rkeyword: string)
             rdoctitle = "R_doc"
         endif
     endif
-    if !bufloaded(rdoctitle) || g:R_newsize == 1
+    if !bufloaded(rdoctitle) || get(g:, 'R_newsize', 0) == 1
         g:R_newsize = 0
 
         # vimpager_local is used to calculate the width of the R help documentation
@@ -960,7 +969,8 @@ def g:SetRTextWidth(rkeyword: string)
             htwf = (hwidth - 1) / 0.9
         endif
         htw = float2nr(htwf)
-        htw = htw - (&number || &relativenumber) * &numberwidth
+        var numcol = (&number || &relativenumber) ? &numberwidth : 0
+        htw = htw - numcol
     endif
 enddef
 
@@ -1016,7 +1026,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
             msg ..= idx + 1 .. " : " .. libs[idx] .. "\n"
         endfor
         redraw
-        var chn = input(msg .. "Please, select one of them: ")
+        var chn = str2nr(input(msg .. "Please, select one of them: "))
         if chn > 0 && chn <= len(libs)
             g:SendToVimcom("E", 'vimcom:::vim.help("' .. topic .. '", ' .. htw .. 'L, package="' .. libs[chn - 1] .. '")')
         endif
@@ -1307,6 +1317,20 @@ def g:SendMBlockToR(e: string, m: string)
         cursor(lineB, 1)
         g:GoDown()
     endif
+enddef
+
+# Strip strings and comments from an R line so that brace/paren
+# matching is not confused by characters inside literals.
+def g:SanitizeRLine(line: string): string
+    # Remove content inside double-quoted strings (handle \" escapes)
+    var result = substitute(line, '"[^"\\]*\%(\\.[^"\\]*\)*"', 's', 'g')
+    # Remove content inside single-quoted strings (handle \' escapes)
+    result = substitute(result, "'[^'\\]*\\%(\\.[^'\\]*\\)*'", 's', 'g')
+    # Remove R comments
+    result = substitute(result, '#.*', '', '')
+    # Strip trailing whitespace
+    result = substitute(result, '\s*$', '', '')
+    return result
 enddef
 
 # Count braces
@@ -1931,9 +1955,7 @@ def g:RAction(rcmd: string, ...args: list<any>)
             else
                 if bufname("%") =~ "Object_Browser"
                     if g:rplugin.curview == "libraries"
-                        var pkg = g:RBGetPkgName()
-                    else
-                        var pkg = ""
+                        rhelppkg = g:RBGetPkgName()
                     endif
                 endif
                 g:AskRDoc(rhelptopic, rhelppkg, 1)

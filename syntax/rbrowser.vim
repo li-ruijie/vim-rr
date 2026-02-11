@@ -63,4 +63,6 @@ hi def link rbrowserDelim	Ignore
 hi def link rbrowserTab		Ignore
 hi def link rbrowserLen		Comment
 
+b:current_syntax = "rbrowser"
+
 # vim: ts=8 sw=4

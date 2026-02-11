@@ -4,7 +4,7 @@ def g:ROpenPDF2(fullpath: string)
     system("env VIMR_PORT=" .. g:rplugin.myport
         .. " qpdfview --unique '" .. fullpath .. "' 2>/dev/null >/dev/null &")
     if g:R_synctex && fullpath =~ " "
-        g:RWarningMsg("Qpdfview does support file names with spaces: SyncTeX backward will not work.")
+        g:RWarningMsg("Qpdfview does not support file names with spaces: SyncTeX backward will not work.")
     endif
 enddef
 

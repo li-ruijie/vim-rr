@@ -6,7 +6,7 @@ var R_width = 0
 var number_col = 0
 
 def g:SendCmdToR_Buffer(...args: list<any>): number
-    if g:IsJobRunning(g:rplugin.jobs["R"])
+    if g:IsJobRunning("R")
         var cmd: string
         if g:R_clear_line
             if g:R_editing_mode == "emacs"
@@ -55,7 +55,7 @@ def g:StartR_InBuffer()
     var edbuf = bufname("%")
     set switchbuf=useopen
 
-    if g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + (&number * &numberwidth))
+    if g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + ((&number ? 1 : 0) * &numberwidth))
         if g:R_rconsole_width > 16 && g:R_rconsole_width < (winwidth(0) - 17)
             silent execute "belowright " .. g:R_rconsole_width .. "vnew"
         else

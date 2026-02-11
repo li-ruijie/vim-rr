@@ -18,6 +18,9 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: numb
     var texname = substitute(n1, " ", "%20", "g") .. n2
     var pdfname = substitute(ppath, " ", "%20", "g")
 
+    if !has_key(g:rplugin, 'evince_loop')
+        g:rplugin.evince_loop = 0
+    endif
     if g:rplugin.evince_loop < 2
         g:rplugin.jobs["Python (Evince forward)"] = g:StartJob([py,
             g:rplugin.home .. "/R/pdf_evince_forward.py",

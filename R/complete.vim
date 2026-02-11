@@ -18,6 +18,7 @@ g:did_vimr_complete = 1
 g:rplugin.compl_float_win = 0
 g:rplugin.compl_event = {}
 g:rplugin.compl_cls = ''
+g:rplugin.compl_usage = ''
 
 def g:FormatInfo(width: number, needblank: number): list<string>
     var ud = g:rplugin.compl_event['completed_item']['user_data']
@@ -397,7 +398,7 @@ def g:NeedRArguments(line: string, cpos: list<number>): list<any>
                                 idx = stridx(ln, rkeyword1)
                             else
                                 rkeyword1 = rkeyword0
-                                listdf = v:false
+                                listdf = 0
                             endif
                         endif
                     endif
@@ -452,6 +453,7 @@ def g:CompleteR(findstart: number, base: string): any
             return g:FindStartRObj()
         endif
     else
+        g:rplugin.completion_id += 1
         if g:rplugin.compl_type == 4
             return g:CompleteQuartoCellOptions(base)
         elseif g:rplugin.compl_type == 3

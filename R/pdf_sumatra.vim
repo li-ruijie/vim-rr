@@ -30,7 +30,7 @@ def g:ROpenPDF2(fullpath: string)
         var pdir = substitute(fullpath, '\(.*\)/.*', '\1', '')
         var pname = substitute(fullpath, '.*/\(.*\)', '\1', '')
         var olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
-        execute "cd " .. pdir
+        execute "cd " .. fnameescape(pdir)
         $VIMR_PORT = string(g:rplugin.myport)
         writefile(['start SumatraPDF.exe -reuse-instance -inverse-search "vimrserver.exe %%f %%l" "' .. fullpath .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
         system(g:rplugin.tmpdir .. "/run_cmd.bat")

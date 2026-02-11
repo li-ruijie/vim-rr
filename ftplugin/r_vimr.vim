@@ -11,20 +11,19 @@ if exists('g:has_Rnvim')
 endif
 
 if !exists('*g:GetRCmdBatchOutput')
-    function g:GetRCmdBatchOutput(...)
-        if filereadable(s:routfile)
-            let curpos = getpos(".")
+    function g:GetRCmdBatchOutput(routfile, ...)
+        if filereadable(a:routfile)
             if g:R_routnotab == 1
-                exe "split " . s:routfile
+                exe "split " . a:routfile
                 set filetype=rout
                 exe "normal! \<c-w>\<c-p>"
             else
-                exe "tabnew " . s:routfile
+                exe "tabnew " . a:routfile
                 set filetype=rout
                 normal! gT
             endif
         else
-            call g:RWarningMsg("The file '" . s:routfile . "' either does not exist or not readable.")
+            call g:RWarningMsg("The file '" . a:routfile . "' either does not exist or not readable.")
         endif
     endfunction
 endif
@@ -33,22 +32,23 @@ endif
 # window
 if !exists('*g:ShowRout')
     function g:ShowRout()
-        let s:routfile = expand("%:r") . ".Rout"
-        if bufloaded(s:routfile)
-            exe "bunload " . s:routfile
-            call delete(s:routfile)
+        let l:routfile = expand("%:r") . ".Rout"
+        if bufloaded(l:routfile)
+            exe "bunload " . l:routfile
+            call delete(l:routfile)
         endif
 
         " if not silent, the user will have to type <Enter>
         silent update
 
         if has("win32")
-            let rcmd = g:rplugin.Rcmd . ' CMD BATCH --no-restore --no-save "' . expand("%") . '" "' . s:routfile . '"'
+            let rcmd = g:rplugin.Rcmd . ' CMD BATCH --no-restore --no-save "' . expand("%") . '" "' . l:routfile . '"'
         else
-            let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  s:routfile]
+            let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  l:routfile]
         endif
-        let rjob = job_start(rcmd, {'close_cb': function('g:GetRCmdBatchOutput')})
-        let g:rplugin.jobs["R_CMD"] = job_getchannel(rjob)
+        let Cb = function('g:GetRCmdBatchOutput', [l:routfile])
+        let rjob = job_start(rcmd, {'close_cb': Cb})
+        let g:rplugin.jobs["R_CMD"] = rjob
     endfunction
 endif
 
