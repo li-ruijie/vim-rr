@@ -1,12 +1,11 @@
 vim9script
 
-def g:JobStdin(ch: any, cmd: string)
-    ch_sendraw(ch, cmd)
+def g:JobStdin(jb: any, cmd: string)
+    ch_sendraw(job_getchannel(jb), cmd)
 enddef
 
-def g:StartJob(cmd: any, opt: dict<any>): channel
-    var jobid = job_start(cmd, opt)
-    return job_getchannel(jobid)
+def g:StartJob(cmd: any, opt: dict<any>): job
+    return job_start(cmd, opt)
 enddef
 
 def g:GetJobTitle(job_id: any): string
@@ -39,6 +38,9 @@ def g:ROnJobStdout(job_id: any, msg: string)
     if cmd[0 : 0] == "\x11"
         # Check the size of possibly very big string (dictionary for menu completion).
         var cmdsplt = split(cmd, "\x11")
+        if len(cmdsplt) < 2
+            return
+        endif
         var size = str2nr(cmdsplt[0])
         var received = strlen(cmdsplt[1])
         if size == received
@@ -108,17 +110,13 @@ def g:ROnJobExit(job_id: any, stts: number)
 enddef
 
 def g:IsJobRunning(key: string): number
-    var chstt: string
+    var jstt: string
     try
-        chstt = ch_status(g:rplugin.jobs[key])
+        jstt = job_status(g:rplugin.jobs[key])
     catch /.*/
-        chstt = "no"
+        jstt = "fail"
     endtry
-    if chstt == "open"
-        return 1
-    else
-        return 0
-    endif
+    return jstt == "run" ? 1 : 0
 enddef
 
 g:rplugin.jobs = {Server: "no", R: "no", "Terminal emulator": "no", BibComplete: "no"}

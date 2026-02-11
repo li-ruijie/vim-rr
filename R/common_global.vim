@@ -19,7 +19,7 @@ g:did_vimr_global_stuff = 1
 
 if !exists('g:rplugin')
     # Attention: also in functions.vim because either of them might be sourced first.
-    g:rplugin = {'debug_info': {}, 'libs_in_nrs': [], 'nrs_running': 0, 'myport': 0, 'R_pid': 0}
+    g:rplugin = {'debug_info': {}, 'libs_in_nrs': [], 'nrs_running': 0, 'myport': 0, 'R_pid': 0, 'rscript_name': ''}
 endif
 
 g:rplugin.debug_info['Time'] = {'common_global.vim': reltime()}
@@ -365,7 +365,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
 enddef
 
 def g:ROpenPDF(fullpath: string)
-    if g:R_openpdf == 0
+    if !exists('g:R_openpdf') || g:R_openpdf == 0
         return
     endif
 
@@ -380,7 +380,9 @@ def g:ROpenPDF(fullpath: string)
         if g:R_openpdf == 1
             b:pdf_is_open = 1
         endif
-        g:ROpenPDF2(fullpath)
+        if exists('*g:ROpenPDF2')
+            g:ROpenPDF2(fullpath)
+        endif
     endif
 enddef
 
@@ -500,8 +502,8 @@ enddef
 def g:RCreateStartMaps()
     # Start
     #-------------------------------------
-    g:RCreateMaps('nvi', 'RStart',       'rf', ':call StartR("R")')
-    g:RCreateMaps('nvi', 'RCustomStart', 'rc', ':call StartR("custom")')
+    g:RCreateMaps('nvi', 'RStart',       'rf', ':call g:StartR("R")')
+    g:RCreateMaps('nvi', 'RCustomStart', 'rc', ':call g:StartR("custom")')
 
     # Close
     #-------------------------------------
@@ -581,7 +583,7 @@ def g:RCreateSendMaps()
     g:RCreateMaps('i',   'RILeftPart', 'r<left>', 'l:call RSendPartOfLine("left", 1)')
     g:RCreateMaps('i',   'RIRightPart', 'r<right>', 'l:call RSendPartOfLine("right", 1)')
     if &filetype == "r"
-        g:RCreateMaps('n', 'RSendAboveLines',  'su', ':call SendAboveLinesToR()')
+        g:RCreateMaps('n', 'RSendAboveLines',  'su', ':call g:SendAboveLinesToR()')
     endif
 
     # Debug
@@ -788,7 +790,7 @@ g:rplugin.localtmpdir = g:rplugin.tmpdir
 if exists("g:R_remote_compldir")
     $VIMR_REMOTE_COMPLDIR = g:R_remote_compldir
     $VIMR_REMOTE_TMPDIR = g:R_remote_compldir .. '/tmp'
-    g:rplugin.tmpdir = g:R_compldir .. '/tmp'
+    g:rplugin.tmpdir = g:rplugin.compldir .. '/tmp'
     if !isdirectory(g:rplugin.tmpdir)
         mkdir(g:rplugin.tmpdir, "p", 0700)
     endif

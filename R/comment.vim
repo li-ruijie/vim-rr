@@ -126,7 +126,7 @@ def g:MovePosRCodeComment(mode: string)
         lline = fline
     endif
 
-    var cpos = g:r_indent_comment_column
+    var cpos = get(g:, 'r_indent_comment_column', 40)
     var lnum = fline
     while lnum <= lline
         var line = getline(lnum)

@@ -24,7 +24,7 @@ else
     endif
 endif
 
-g:rplugin.tmuxsname = "VimR-" .. substitute(localtime(), '.*\(...\)', '\1', '')
+g:rplugin.tmuxsname = "VimR-" .. substitute(string(localtime()), '.*\(...\)', '\1', '')
 
 g:R_setwidth = get(g:, 'R_setwidth', 2)
 

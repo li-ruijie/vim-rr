@@ -10,7 +10,7 @@ syn region mdItalic start="\*\ze\S" end="\S\zs\*\|^$" skip="\\\*" contains=mdIBD
 syn region mdBold start="\*\*\ze\S" end="\S\zs\*\*\|^$" skip="\\\*" contains=mdIBDelim keepend concealends
 syn region mdBoldItalic start="\*\*\*\ze\S" end="\S\zs\*\*\*\|^$" skip="\\\*" contains=mdIBDelim keepend concealends
 
-if g:rplugin.compl_cls == 'f'
+if get(g:rplugin, 'compl_cls', '') == 'f'
     syn include @R syntax/r.vim
     syn region rCodeRegion start="^```{R} $" end="^\ze```$" contains=@R,docCodeDelim1,docCodeDelim2
     syn match docCodeDelim2 /```/ contained conceal

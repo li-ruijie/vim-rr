@@ -72,7 +72,7 @@ def g:RInitStdout(...args: list<any>)
             return
         endif
     endif
-    if rcmd =~ '^RWarn: ' || rcmd =~ '^let ' || rcmd =~ '^echo '
+    if rcmd =~ '^RWarn: ' || rcmd =~ '^let ' || rcmd =~ '^echo ' || rcmd =~ '^call '
         if rcmd !~ "\x14"
             # R has sent an incomplete line
             RoutLine ..= rcmd

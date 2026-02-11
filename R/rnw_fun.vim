@@ -238,8 +238,8 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     var rnwidx = 0
     var ntexln = len(readfile(basenm .. ".tex"))
     var lstexln = range(1, ntexln)
-    var lsrnwf = range(1, ntexln)
-    var lsrnwl = range(1, ntexln)
+    var lsrnwf: list<any> = range(1, ntexln)
+    var lsrnwl: list<any> = range(1, ntexln)
     var conc = readfile(basenm .. "-concordance.tex")
     var idx = 0
     var maxidx = len(conc)
@@ -263,13 +263,13 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
         texidx += 1
         while ii < maxii && texidx < ntexln
             ii += 1
-            var lnrange = range(1, concl[ii])
+            var lnrange = range(1, str2nr(concl[ii]))
             ii += 1
             for iii in lnrange
                 if texidx >= ntexln
                     break
                 endif
-                rnwl += concl[ii]
+                rnwl += str2nr(concl[ii])
                 lsrnwl[texidx] = rnwl
                 lsrnwf[texidx] = rnwf
                 texidx += 1
@@ -453,7 +453,7 @@ def g:SyncTeX_forward(...args: list<any>)
     endif
     if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".synctex.gz")
         g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.synctex.gz" is missing.')
-        if g:R_latexcmd != "default" && g:R_latexcmd !~ "synctex"
+        if g:R_latexcmd[0] != "default" && join(g:R_latexcmd) !~ "synctex"
             g:RWarningMsg('Note: The string "-synctex=1" is not in your R_latexcmd. Please check your vimrc.')
         endif
         return

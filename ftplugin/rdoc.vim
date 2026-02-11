@@ -140,7 +140,7 @@ nnoremap <buffer><silent> q :q<CR>
 setlocal bufhidden=wipe
 setlocal nonumber
 setlocal noswapfile
-set buftype=nofile
+setlocal buftype=nofile
 autocmd VimResized <buffer> g:R_newsize = 1
 g:FixRdoc()
 autocmd FileType rdoc g:FixRdoc()

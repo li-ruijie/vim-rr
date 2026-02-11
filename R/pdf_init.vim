@@ -37,6 +37,15 @@ def g:RSetPDFViewer()
         elseif &filetype == "rnoweb" && g:R_synctex
             g:RWarningMsg("The application wmctrl must be installed to edit Rnoweb effectively.")
         endif
+    elseif !has("win32") && $WAYLAND_DISPLAY != "" && $GNOME_SHELL_SESSION_MODE != ""
+        if executable("busctl")
+            var sout = system("busctl --user introspect org.gnome.Shell "
+                .. "/de/lucaswerkmeister/ActivateWindowByTitle "
+                .. "de.lucaswerkmeister.ActivateWindowByTitle 2>/dev/null")
+            if v:shell_error == 0 && sout =~ 'activateBySubstring'
+                g:rplugin.has_awbt = 1
+            endif
+        endif
     endif
 enddef
 
@@ -64,7 +73,7 @@ def g:RRaiseWindow(wttl: string): number
                     .. substitute(sout, "\n", " ", "g"))
                 return 0
             endif
-            return sout =~ wttl ? 1 : 0
+            return sout =~ escape(wttl, '[].*~^$\') ? 1 : 0
         endif
     endif
     return 0

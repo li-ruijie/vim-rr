@@ -9,10 +9,10 @@ enddef
 
 def StartOkularVim(fullpath: string)
     var jobid = job_start(["okular", "--unique",
-        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  \"%l\")'", fullpath],
+        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  str2nr(\"%l\"))'", fullpath],
         {stoponexit: "", out_cb: OkularJobStdout})
     if job_info(jobid)["status"] == "run"
-        g:rplugin.jobs["Okular"] = job_getchannel(jobid)
+        g:rplugin.jobs["Okular"] = jobid
     else
         g:RWarningMsg("Failed to run Okular...")
     endif
@@ -26,11 +26,11 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: nu
     var texname = substitute(tpath, ' ', '\\ ', 'g')
     var pdfname = substitute(ppath, ' ', '\\ ', 'g')
     var jobid = job_start(["okular", "--unique",
-        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  \"%l\")'",
+        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  str2nr(\"%l\"))'",
         pdfname .. "#src:" .. texln .. texname],
         {stoponexit: "", out_cb: OkularJobStdout})
     if job_info(jobid)["status"] == "run"
-        g:rplugin.jobs["OkularSyncTeX"] = job_getchannel(jobid)
+        g:rplugin.jobs["OkularSyncTeX"] = jobid
     else
         g:RWarningMsg("Failed to run Okular (SyncTeX forward)...")
     endif

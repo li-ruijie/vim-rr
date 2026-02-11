@@ -10,8 +10,8 @@ if !executable("zathura")
 endif
 
 var has_dbus_send = executable("dbus-send")
-var synctex_editor_cmd = "echo 'call SyncTeX_backward(\"%{input}\",  \"%{line}\")'"
-var OnJobStderr = function('ROnJobStderr')
+var synctex_editor_cmd = "echo 'call SyncTeX_backward(\"%{input}\",  str2nr(\"%{line}\"))'"
+var OnJobStderr = function('g:ROnJobStderr')
 
 def ZathuraJobStdout(_ch: channel, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
@@ -26,7 +26,7 @@ def StartZathuraVim(fullpath: string)
         {stoponexit: "", err_cb: OnJobStderr,
             out_cb: ZathuraJobStdout})
     if job_info(jobid)["status"] == "run"
-        g:rplugin.jobs["Zathura"] = job_getchannel(jobid)
+        g:rplugin.jobs["Zathura"] = jobid
         g:rplugin.zathura_pid[fullpath] = job_info(jobid)["process"]
     else
         g:RWarningMsg("Failed to run Zathura...")

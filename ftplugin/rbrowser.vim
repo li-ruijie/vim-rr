@@ -77,12 +77,6 @@ if !exists('*g:UpdateOB')
         setlocal modifiable
         let curline = line(".")
         let curcol = col(".")
-        if !exists("curline")
-            let curline = 3
-        endif
-        if !exists("curcol")
-            let curcol = 1
-        endif
         let save_unnamed_reg = @@
         sil normal! ggdG
         let @@ = save_unnamed_reg
@@ -304,7 +298,7 @@ endif
 
 if !exists('*g:OnOBBufUnload')
     function g:OnOBBufUnload()
-        if g:rplugin.update_glbenv == 0
+        if g:rplugin.update_glbenv == 0 && exists('*g:SendToVimcom')
             call g:SendToVimcom("N", "OnOBBufUnload")
         endif
     endfunction

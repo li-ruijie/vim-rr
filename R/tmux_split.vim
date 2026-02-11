@@ -38,12 +38,10 @@ def g:StartR_ExternalTerm(rcmd: string)
     system("tmux source-file '" .. g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf" .. "'")
     delete(g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf")
     var tcmd = "tmux split-window "
-    if g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + (&number * &numberwidth))
-        if g:R_rconsole_width == -1
-            tcmd ..= "-h"
-        else
-            tcmd ..= "-h -l " .. g:R_rconsole_width
-        endif
+    if g:R_rconsole_width == -1
+        tcmd ..= "-h"
+    elseif g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + ((&number ? 1 : 0) * &numberwidth))
+        tcmd ..= "-h -l " .. g:R_rconsole_width
     else
         tcmd ..= "-l " .. g:R_rconsole_height
     endif
