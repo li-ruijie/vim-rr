@@ -38,6 +38,7 @@ def ScriptLevelLegacyComments(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
   var in_legacy_func = 0
+  var in_def = 0
   var lnum = 0
   for line in lines
     lnum += 1
@@ -46,8 +47,13 @@ def ScriptLevelLegacyComments(filepath: string): list<string>
     elseif line =~ '^\s*endfu\%[nction]'
       in_legacy_func = max([0, in_legacy_func - 1])
     endif
-    # Flag " as first non-whitespace when outside legacy function bodies
-    if in_legacy_func == 0 && line =~ '^\s*"'
+    if line =~ '^\s*def\s'
+      in_def += 1
+    elseif line =~ '^\s*enddef'
+      in_def = max([0, in_def - 1])
+    endif
+    # Flag " as first non-whitespace only at true script level
+    if in_legacy_func == 0 && in_def == 0 && line =~ '^\s*"'
       add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
     endif
   endfor
@@ -112,6 +118,13 @@ enddef
 # other files may not exist yet — use g:FuncName() to defer lookup.
 # We collect all legacy function names from the plugin, then flag bare
 # calls to them inside def blocks of vim9script files.
+def StripStringLiterals(line: string): string
+  # Strip double-quoted strings (handling \" escapes)
+  var s = substitute(line, '"[^"\\]*\%(\\.[^"\\]*\)*"', '', 'g')
+  # Strip single-quoted strings
+  return substitute(s, "'[^']*'", '', 'g')
+enddef
+
 def CollectLegacyFuncNames(all_files: list<string>): dict<bool>
   var names: dict<bool> = {}
   for filepath in all_files
@@ -144,9 +157,10 @@ def BareCallsInDef(filepath: string, legacy: dict<bool>): list<string>
     if line =~ '^\s*#'
       continue
     endif
+    var stripped = StripStringLiterals(line)
     for fname in keys(legacy)
       # Match FuncName( but not g:FuncName(
-      if line =~ '\<' .. fname .. '\s*(' && line !~ 'g:' .. fname
+      if stripped =~ '\<' .. fname .. '\s*(' && stripped !~ 'g:' .. fname
         add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum .. ' ' .. fname)
       endif
     endfor

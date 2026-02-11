@@ -1,7 +1,5 @@
 vim9script
 
-var editor_cmd = "echo 'call SyncTeX_backward(\"%f\",  \"%l\")'"
-
 def OkularJobStdout(_job_id: job, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
     if cmd =~ "^call "
@@ -10,8 +8,8 @@ def OkularJobStdout(_job_id: job, msg: string)
 enddef
 
 def StartOkularVim(fullpath: string)
-    var jobid = job_start(
-        ["okular", "--unique", "--editor-cmd", editor_cmd, fullpath],
+    var jobid = job_start(["okular", "--unique",
+        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  \"%l\")'", fullpath],
         {stoponexit: "", out_cb: OkularJobStdout})
     if job_info(jobid)["status"] == "run"
         g:rplugin.jobs["Okular"] = job_getchannel(jobid)
@@ -27,9 +25,9 @@ enddef
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: number)
     var texname = substitute(tpath, ' ', '\\ ', 'g')
     var pdfname = substitute(ppath, ' ', '\\ ', 'g')
-    var jobid = job_start(
-        ["okular", "--unique", "--editor-cmd", editor_cmd,
-            pdfname .. "#src:" .. texln .. texname],
+    var jobid = job_start(["okular", "--unique",
+        "--editor-cmd", "echo 'call SyncTeX_backward(\"%f\",  \"%l\")'",
+        pdfname .. "#src:" .. texln .. texname],
         {stoponexit: "", out_cb: OkularJobStdout})
     if job_info(jobid)["status"] == "run"
         g:rplugin.jobs["OkularSyncTeX"] = job_getchannel(jobid)
