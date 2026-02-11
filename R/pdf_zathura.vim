@@ -11,6 +11,7 @@ endif
 
 var has_dbus_send = executable("dbus-send")
 var synctex_editor_cmd = "echo 'call SyncTeX_backward(\"%{input}\",  \"%{line}\")'"
+var OnJobStderr = function('ROnJobStderr')
 
 def ZathuraJobStdout(_job_id: job, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
@@ -22,7 +23,7 @@ enddef
 def StartZathuraVim(fullpath: string)
     var jobid = job_start(
         ["zathura", "--synctex-editor-command", synctex_editor_cmd, fullpath],
-        {stoponexit: "", err_cb: function('ROnJobStderr'),
+        {stoponexit: "", err_cb: OnJobStderr,
             out_cb: ZathuraJobStdout})
     if job_info(jobid)["status"] == "run"
         g:rplugin.jobs["Zathura"] = job_getchannel(jobid)

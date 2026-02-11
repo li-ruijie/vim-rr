@@ -119,18 +119,18 @@ def g:StartR_Windows()
         sleep 200m
     endif
 
-    g:SendCmdToR = function('SendCmdToR_NotYet')
+    g:SendCmdToR = function('g:SendCmdToR_NotYet')
 
-    SetRHome()
+    g:SetRHome()
     silent execute '!start ' .. g:rplugin.R .. ' ' .. join(g:R_args)
-    UnsetRHome()
+    g:UnsetRHome()
 
     g:WaitVimcomStart()
 enddef
 
 def g:CleanVimAndStartR()
     g:ClearRInfo()
-    StartR_Windows()
+    g:StartR_Windows()
 enddef
 
 def g:SendCmdToR_Windows(...args: list<string>): number
