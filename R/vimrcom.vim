@@ -68,7 +68,7 @@ def g:ROnJobStdout(job_id: any, msg: string)
     endif
 
     if cmd =~ "^call " || cmd =~ "^let " || cmd =~ "^unlet "
-        execute cmd
+        legacy execute cmd
     elseif cmd != ""
         if len(cmd) > 128
             cmd = substitute(cmd, '^\(.\{128}\).*', '\1', '') .. ' [...]'
