@@ -572,13 +572,13 @@ function FillQuartoComplMenu()
                 endif
             endif
         elseif executable('quarto')
-            let quarto_bin = system('which quarto')
+            let quarto_bin = exepath('quarto')
             let quarto_dir1 = substitute(quarto_bin, '\(.*\)/.\{-}/.*', '\1', 'g')
             let quarto_yaml_intel = ''
             if filereadable(quarto_dir1 . '/share/editor/tools/yaml/yaml-intelligence-resources.json')
                 let quarto_yaml_intel = quarto_dir1 . '/share/editor/tools/yaml/yaml-intelligence-resources.json'
             else
-                let quarto_bin = system('readlink ' . quarto_bin)
+                let quarto_bin = resolve(quarto_bin)
                 let quarto_dir2 = substitute(quarto_bin, '\(.*\)/.\{-}/.*', '\1', 'g')
                 if quarto_dir2 =~ '^\.\./'
                     while quarto_dir2 =~ '^\.\./'
