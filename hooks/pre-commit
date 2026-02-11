@@ -32,5 +32,92 @@ if [ -f "$DESC" ] && [ -f "$DOC" ]; then
 	fi
 fi
 
+# Run tests for staged source files
+#
+# Map source files to the test files that cover them.  When a staged file
+# matches, its test(s) are collected into a deduplicated list and run via
+# VIMR_TEST_FILTER.  The commit is blocked if any test fails.
+
+declare -A TEST_MAP=(
+	# test_01 — common_global
+	[R/common_global.vim]=test_01_common_global.vim
+
+	# test_02 — comment
+	[R/comment.vim]=test_02_comment.vim
+
+	# test_03 — vimrcom
+	[R/vimrcom.vim]=test_03_vimrcom.vim
+
+	# test_04 — setcompldir
+	[R/setcompldir.vim]=test_04_setcompldir.vim
+
+	# test_05 — pdf
+	[R/pdf_init.vim]=test_05_pdf.vim
+	[R/pdf_zathura.vim]=test_05_pdf.vim
+	[R/pdf_evince.vim]=test_05_pdf.vim
+	[R/pdf_okular.vim]=test_05_pdf.vim
+	[R/pdf_sumatra.vim]=test_05_pdf.vim
+	[R/pdf_qpdfview.vim]=test_05_pdf.vim
+	[R/pdf_generic.vim]=test_05_pdf.vim
+
+	# test_06 — extern_term
+	[R/extern_term.vim]=test_06_extern_term.vim
+	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim"
+	[R/tmux_split.vim]=test_06_extern_term.vim
+	[R/unix.vim]=test_06_extern_term.vim
+
+	# test_07 — start_r
+	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim"
+
+	# test_08 — rnw, bibcompl, complete
+	[R/rnw_fun.vim]=test_08_rnw_bibcompl_complete.vim
+	[R/bibcompl.vim]=test_08_rnw_bibcompl_complete.vim
+	[R/complete.vim]="test_08_rnw_bibcompl_complete.vim test_10_edge_cases.vim"
+
+	# test_09 — ftplugin, syntax, gui, windows
+	[ftdetect/r.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/r_vimr.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/rhelp_vimr.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/quarto_vimr.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/rdoc.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/rmd_vimr.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/rnoweb_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim"
+	[ftplugin/rrst_vimr.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftplugin/rbrowser.vim]=test_09_ftplugin_syntax_gui.vim
+	[syntax/rout.vim]=test_09_ftplugin_syntax_gui.vim
+	[syntax/rdoc.vim]=test_09_ftplugin_syntax_gui.vim
+	[syntax/rbrowser.vim]=test_09_ftplugin_syntax_gui.vim
+	[syntax/rdocpreview.vim]=test_09_ftplugin_syntax_gui.vim
+	[R/gui_running.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim"
+	[R/windows.vim]=test_09_ftplugin_syntax_gui.vim
+	[R/start_server.vim]=test_09_ftplugin_syntax_gui.vim
+
+	# test_10 — edge cases (files not already listed above)
+	[R/vimbuffer.vim]=test_10_edge_cases.vim
+)
+
+# Collect unique test filenames to run
+declare -A TESTS_TO_RUN
+for FILE in $(git diff --staged --name-only --diff-filter=ACMR); do
+	if [[ -n "${TEST_MAP[$FILE]+x}" ]]; then
+		for T in ${TEST_MAP[$FILE]}; do
+			TESTS_TO_RUN[$T]=1
+		done
+	fi
+done
+
+if [ ${#TESTS_TO_RUN[@]} -gt 0 ]; then
+	FILTER=$(printf '%s\n' "${!TESTS_TO_RUN[@]}" | sort | paste -sd,)
+	echo "Running tests: $FILTER"
+
+	VIMR_TEST_FILTER="$FILTER" vim -N -u NONE -i NONE -e -s -S tests/run_tests.vim
+	if [ $? -ne 0 ]; then
+		echo ""
+		echo "Tests failed — commit aborted."
+		exit 1
+	fi
+	echo "Tests passed."
+fi
+
 # Now we can commit
 exit 0
