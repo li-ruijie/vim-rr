@@ -40,16 +40,16 @@ fi
 
 declare -A TEST_MAP=(
 	# test_01 — common_global
-	[R/common_global.vim]=test_01_common_global.vim
+	[R/common_global.vim]="test_01_common_global.vim test_11_vim9_lint.vim"
 
 	# test_02 — comment
-	[R/comment.vim]=test_02_comment.vim
+	[R/comment.vim]="test_02_comment.vim test_11_vim9_lint.vim"
 
 	# test_03 — vimrcom
-	[R/vimrcom.vim]=test_03_vimrcom.vim
+	[R/vimrcom.vim]="test_03_vimrcom.vim test_11_vim9_lint.vim"
 
 	# test_04 — setcompldir
-	[R/setcompldir.vim]=test_04_setcompldir.vim
+	[R/setcompldir.vim]="test_04_setcompldir.vim test_11_vim9_lint.vim"
 
 	# test_05 — pdf
 	[R/pdf_init.vim]=test_05_pdf.vim
@@ -58,13 +58,13 @@ declare -A TEST_MAP=(
 	[R/pdf_okular.vim]=test_05_pdf.vim
 	[R/pdf_sumatra.vim]=test_05_pdf.vim
 	[R/pdf_qpdfview.vim]=test_05_pdf.vim
-	[R/pdf_generic.vim]=test_05_pdf.vim
+	[R/pdf_generic.vim]="test_05_pdf.vim test_11_vim9_lint.vim"
 
 	# test_06 — extern_term
 	[R/extern_term.vim]=test_06_extern_term.vim
 	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim"
 	[R/tmux_split.vim]=test_06_extern_term.vim
-	[R/unix.vim]=test_06_extern_term.vim
+	[R/unix.vim]="test_06_extern_term.vim test_11_vim9_lint.vim"
 
 	# test_07 — start_r
 	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim"
@@ -75,7 +75,7 @@ declare -A TEST_MAP=(
 	[R/complete.vim]="test_08_rnw_bibcompl_complete.vim test_10_edge_cases.vim"
 
 	# test_09 — ftplugin, syntax, gui, windows
-	[ftdetect/r.vim]=test_09_ftplugin_syntax_gui.vim
+	[ftdetect/r.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim"
 	[ftplugin/r_vimr.vim]=test_09_ftplugin_syntax_gui.vim
 	[ftplugin/rhelp_vimr.vim]=test_09_ftplugin_syntax_gui.vim
 	[ftplugin/quarto_vimr.vim]=test_09_ftplugin_syntax_gui.vim
@@ -89,11 +89,15 @@ declare -A TEST_MAP=(
 	[syntax/rbrowser.vim]=test_09_ftplugin_syntax_gui.vim
 	[syntax/rdocpreview.vim]=test_09_ftplugin_syntax_gui.vim
 	[R/gui_running.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim"
-	[R/windows.vim]=test_09_ftplugin_syntax_gui.vim
+	[R/windows.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim"
 	[R/start_server.vim]=test_09_ftplugin_syntax_gui.vim
 
 	# test_10 — edge cases (files not already listed above)
 	[R/vimbuffer.vim]=test_10_edge_cases.vim
+
+	# test_11 — vim9 lint (files not already listed above)
+	[R/functions.vim]=test_11_vim9_lint.vim
+	[R/common_buffer.vim]=test_11_vim9_lint.vim
 )
 
 # Collect unique test filenames to run
