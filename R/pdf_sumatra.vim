@@ -1,59 +1,56 @@
-" Nothing yet
-if exists("*SumatraInPath")
-    finish
-endif
+vim9script
 
-function ROpenPDF2(fullpath)
-    if SumatraInPath()
-        let pdir = substitute(a:fullpath, '\(.*\)/.*', '\1', '')
-        let pname = substitute(a:fullpath, '.*/\(.*\)', '\1', '')
-        let olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
-        exe "cd " . pdir
-        let $VIMR_PORT = g:rplugin.myport
-        call writefile(['start SumatraPDF.exe -reuse-instance -inverse-search "vimrserver.exe %%f %%l" "' . a:fullpath . '"'], g:rplugin.tmpdir . "/run_cmd.bat")
-        call system(g:rplugin.tmpdir . "/run_cmd.bat")
-        exe "cd " . olddir
-    endif
-endfunction
+var sumatra_in_path = 0
 
-let s:sumatra_in_path = 0
-
-function SumatraInPath()
-    if s:sumatra_in_path
-        return 1
+def SumatraInPath(): bool
+    if sumatra_in_path
+        return true
     endif
     if $PATH =~ "SumatraPDF"
-        let s:sumatra_in_path = 1
-        return 1
+        sumatra_in_path = 1
+        return true
     endif
 
-    " $ProgramFiles has different values for win32 and win64
-    if executable($ProgramFiles . "\\SumatraPDF\\SumatraPDF.exe")
-        let $PATH = $ProgramFiles . "\\SumatraPDF;" . $PATH
-        let s:sumatra_in_path = 1
-        return 1
+    # $ProgramFiles has different values for win32 and win64
+    if executable($ProgramFiles .. "\\SumatraPDF\\SumatraPDF.exe")
+        $PATH = $ProgramFiles .. "\\SumatraPDF;" .. $PATH
+        sumatra_in_path = 1
+        return true
     endif
-    if executable($ProgramFiles . " (x86)\\SumatraPDF\\SumatraPDF.exe")
-        let $PATH = $ProgramFiles . " (x86)\\SumatraPDF;" . $PATH
-        let s:sumatra_in_path = 1
-        return 1
+    if executable($ProgramFiles .. " (x86)\\SumatraPDF\\SumatraPDF.exe")
+        $PATH = $ProgramFiles .. " (x86)\\SumatraPDF;" .. $PATH
+        sumatra_in_path = 1
+        return true
     endif
-    return 0
-endfunction
+    return false
+enddef
 
-function SyncTeX_forward2(tpath, ppath, texln, unused)
-    if a:tpath =~ ' '
-        " call RWarningMsg('You must remove the empty spaces from the rnoweb file name ("' . a:tpath .'") to get SyncTeX support with SumatraPDF.')
+def g:ROpenPDF2(fullpath: string)
+    if SumatraInPath()
+        var pdir = substitute(fullpath, '\(.*\)/.*', '\1', '')
+        var pname = substitute(fullpath, '.*/\(.*\)', '\1', '')
+        var olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
+        execute "cd " .. pdir
+        $VIMR_PORT = string(g:rplugin.myport)
+        writefile(['start SumatraPDF.exe -reuse-instance -inverse-search "vimrserver.exe %%f %%l" "' .. fullpath .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
+        system(g:rplugin.tmpdir .. "/run_cmd.bat")
+        execute "cd " .. olddir
+    endif
+enddef
+
+def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: number)
+    if tpath =~ ' '
+        # SumatraPDF has issues with spaces in file names for SyncTeX
     endif
     if SumatraInPath()
-        let tname = substitute(a:tpath, '.*/\(.*\)', '\1', '')
-        let tdir = substitute(a:tpath, '\(.*\)/.*', '\1', '')
-        let pname = substitute(a:ppath, tdir . '/', '', '')
-        let olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
-        exe "cd " . substitute(tdir, ' ', '\\ ', 'g')
-        let $VIMR_PORT = g:rplugin.myport
-        call writefile(['start SumatraPDF.exe -reuse-instance -forward-search "' . tname . '" ' . a:texln . ' -inverse-search "vimrserver.exe %%f %%l" "' . pname . '"'], g:rplugin.tmpdir . "/run_cmd.bat")
-        call system(g:rplugin.tmpdir . "/run_cmd.bat")
-        exe "cd " . olddir
+        var tname = substitute(tpath, '.*/\(.*\)', '\1', '')
+        var tdir = substitute(tpath, '\(.*\)/.*', '\1', '')
+        var pname = substitute(ppath, tdir .. '/', '', '')
+        var olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
+        execute "cd " .. substitute(tdir, ' ', '\\ ', 'g')
+        $VIMR_PORT = string(g:rplugin.myport)
+        writefile(['start SumatraPDF.exe -reuse-instance -forward-search "' .. tname .. '" ' .. texln .. ' -inverse-search "vimrserver.exe %%f %%l" "' .. pname .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
+        system(g:rplugin.tmpdir .. "/run_cmd.bat")
+        execute "cd " .. olddir
     endif
-endfunction
+enddef

@@ -1,39 +1,41 @@
+vim9script
 
-function StartRStudio()
+def g:StartRStudio()
     if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
         return
     endif
 
-    let g:SendCmdToR = function('SendCmdToR_NotYet')
+    g:SendCmdToR = function('SendCmdToR_NotYet')
 
     if has("win32")
-        call SetRHome()
+        g:SetRHome()
     endif
+    var rstudio_launch_cmd: list<string>
     if has("win32") && g:RStudio_cmd =~? '\.exe$'
-        let rstudio_launch_cmd = ['cmd', '/c', g:RStudio_cmd]
+        rstudio_launch_cmd = ['cmd', '/c', g:RStudio_cmd]
     else
-        let rstudio_launch_cmd = [g:RStudio_cmd]
+        rstudio_launch_cmd = [g:RStudio_cmd]
     endif
-    let g:rplugin.jobs["RStudio"] = StartJob(rstudio_launch_cmd, {
-                \ 'err_cb':  'ROnJobStderr',
-                \ 'exit_cb': 'ROnJobExit',
-                \ 'stoponexit': '' })
+    g:rplugin.jobs["RStudio"] = g:StartJob(rstudio_launch_cmd, {
+        'err_cb':  'ROnJobStderr',
+        'exit_cb': 'ROnJobExit',
+        'stoponexit': ''})
     if has("win32")
-        call UnsetRHome()
+        g:UnsetRHome()
     endif
 
-    call WaitVimcomStart()
-endfunction
+    g:WaitVimcomStart()
+enddef
 
-function SendCmdToRStudio(...)
-    if !IsJobRunning("RStudio")
-        call RWarningMsg("Is RStudio running?")
+def g:SendCmdToRStudio(...args: list<string>): number
+    if !g:IsJobRunning("RStudio")
+        g:RWarningMsg("Is RStudio running?")
         return 0
     endif
-    let cmd = substitute(a:1, '"', '\\"', "g")
-    call SendToVimcom("E", 'sendToConsole("' . cmd . '", execute=TRUE)')
+    var cmd = substitute(args[0], '"', '\\"', "g")
+    g:SendToVimcom("E", 'sendToConsole("' .. cmd .. '", execute=TRUE)')
     return 1
-endfunction
+enddef
 
-let g:R_bracketed_paste = 0
-let g:R_parenblock = 0
+g:R_bracketed_paste = 0
+g:R_parenblock = 0
