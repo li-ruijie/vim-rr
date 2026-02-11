@@ -110,12 +110,12 @@ enddef
 
 def g:StartR_Windows()
     if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
-        JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
+        g:JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
         return
     endif
 
     if g:rplugin.R =~? 'Rterm' && g:R_app =~? 'Rterm'
-        RWarningMsg('"R_app" cannot be "Rterm.exe". R will crash if you send any command.')
+        g:RWarningMsg('"R_app" cannot be "Rterm.exe". R will crash if you send any command.')
         sleep 200m
     endif
 
@@ -125,11 +125,11 @@ def g:StartR_Windows()
     silent execute '!start ' .. g:rplugin.R .. ' ' .. join(g:R_args)
     UnsetRHome()
 
-    WaitVimcomStart()
+    g:WaitVimcomStart()
 enddef
 
 def g:CleanVimAndStartR()
-    ClearRInfo()
+    g:ClearRInfo()
     StartR_Windows()
 enddef
 
@@ -140,7 +140,7 @@ def g:SendCmdToR_Windows(...args: list<string>): number
     else
         cmd = args[0] .. "\n"
     endif
-    JobStdin(g:rplugin.jobs['Server'], '83' .. cmd)
+    g:JobStdin(g:rplugin.jobs['Server'], '83' .. cmd)
     return 1
 enddef
 
