@@ -1,8 +1,10 @@
-"==============================================================================
-" Function to start R and functions that are called only after R is started.
-"==============================================================================
+vim9script
 
-" Delete provisory links
+# ==============================================================================
+# Function to start R and functions that are called only after R is started.
+# ==============================================================================
+
+# Delete provisory links
 unlet g:RAction
 unlet g:RAskHelp
 unlet g:RBrOpenCloseLs
@@ -25,364 +27,366 @@ unlet g:SendParagraphToR
 unlet g:SendSelectionToR
 unlet g:SignalToR
 
-"==============================================================================
-" Functions to start and close R
-"==============================================================================
+# ==============================================================================
+# Functions to start and close R
+# ==============================================================================
 
-function s:RGetBufDir()
-    let rwd = expand("%:p:h")
+def RGetBufDir(): string
+    var rwd = expand("%:p:h")
     if has("win32")
-        let rwd = substitute(rwd, '\\', '/', 'g')
+        rwd = substitute(rwd, '\\', '/', 'g')
     endif
     return rwd
-endfunction
+enddef
 
-function IsSendCmdToRFake()
-    if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
-        let qcmd = "\\rq"
-        let nkblist = execute("nmap")
-        let nkbls = split(nkblist, "\n")
+def g:IsSendCmdToRFake(): number
+    if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
+        var qcmd = "\\rq"
+        var nkblist = execute("nmap")
+        var nkbls = split(nkblist, "\n")
         for nkb in nkbls
             if stridx(nkb, "RQuit('nosave')") > 0
-                let qls = split(nkb, " ")
-                let qcmd = qls[1]
+                var qls = split(nkb, " ")
+                qcmd = qls[1]
                 break
             endif
         endfor
-        call RWarningMsg("As far as I know, R is already running. If it is not running, did you quit it from within ". v:progname . " (command " . qcmd . ")?")
+        g:RWarningMsg("As far as I know, R is already running. If it is not running, did you quit it from within " .. v:progname .. " (command " .. qcmd .. ")?")
         return 1
     endif
     return 0
-endfunction
+enddef
 
-function SendCmdToR_NotYet(...)
-    call RWarningMsg("Not ready yet")
+def g:SendCmdToR_NotYet(...args: list<any>): number
+    g:RWarningMsg("Not ready yet")
     return 0
-endfunction
+enddef
 
-" This function is called by vimrserver when its server binds to a specific port.
-let s:waiting_to_start_r = ''
-function RSetMyPort(p)
-    let g:rplugin.myport = a:p
-    let $VIMR_PORT = a:p
-    if s:waiting_to_start_r != ''
-        call StartR(s:waiting_to_start_r)
-        let s:waiting_to_start_r = ''
+# This function is called by vimrserver when its server binds to a specific port.
+var waiting_to_start_r = ''
+def g:RSetMyPort(p: string)
+    g:rplugin.myport = p
+    $VIMR_PORT = p
+    if waiting_to_start_r != ''
+        g:StartR(waiting_to_start_r)
+        waiting_to_start_r = ''
     endif
-endfunction
+enddef
 
-function StartR(whatr)
-    let g:rplugin.debug_info['Time']['start_R'] = reltime()
-    call ReallyStartR(a:whatr)
-endfunction
+def g:StartR(whatr: string)
+    g:rplugin.debug_info['Time']['start_R'] = reltime()
+    g:ReallyStartR(whatr)
+enddef
 
-" Start R
-function ReallyStartR(whatr)
-    let s:wait_vimcom = 1
+# Start R
+def g:ReallyStartR(whatr: string)
+    wait_vimcom = 1
 
     if g:rplugin.myport == 0
-        if IsJobRunning("Server") == 0
-            call RWarningMsg("Cannot start R: vimrserver not running")
+        if g:IsJobRunning("Server") == 0
+            g:RWarningMsg("Cannot start R: vimrserver not running")
             return
         endif
         if g:rplugin.nrs_running == 0
-            call RWarningMsg("vimrserver not ready yet")
+            g:RWarningMsg("vimrserver not ready yet")
             return
         endif
-        let s:waiting_to_start_r = a:whatr
-        call JobStdin(g:rplugin.jobs["Server"], "1\n") " Start the TCP server
+        waiting_to_start_r = whatr
+        g:JobStdin(g:rplugin.jobs["Server"], "1\n") # Start the TCP server
         return
     endif
 
     if (type(g:R_external_term) == v:t_number && g:R_external_term == 1) || type(g:R_external_term) == v:t_string
-        let g:R_objbr_place = substitute(g:R_objbr_place, 'console', 'script', '')
+        g:R_objbr_place = substitute(g:R_objbr_place, 'console', 'script', '')
     endif
 
-    " https://github.com/jalvesaq/Vim-R/issues/157
+    # https://github.com/jalvesaq/Vim-R/issues/157
     if !exists("*FunHiOtherBf")
-        exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/functions.vim"
+        exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/functions.vim"
     endif
 
-    if a:whatr =~ "custom"
-        call inputsave()
-        let r_args = input('Enter parameters for R: ')
-        call inputrestore()
-        let g:rplugin.r_args = split(r_args)
+    if whatr =~ "custom"
+        inputsave()
+        var r_args = input('Enter parameters for R: ')
+        inputrestore()
+        g:rplugin.r_args = split(r_args)
     else
         if exists("g:R_args")
-            let g:rplugin.r_args = g:R_args
+            g:rplugin.r_args = g:R_args
         else
-            let g:rplugin.r_args = []
+            g:rplugin.r_args = []
         endif
     endif
 
-    call writefile([], g:rplugin.localtmpdir . "/globenv_" . $VIMR_ID)
-    call writefile([], g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
+    writefile([], g:rplugin.localtmpdir .. "/globenv_" .. $VIMR_ID)
+    writefile([], g:rplugin.localtmpdir .. "/liblist_" .. $VIMR_ID)
 
-    call AddForDeletion(g:rplugin.localtmpdir . "/globenv_" . $VIMR_ID)
-    call AddForDeletion(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
+    g:AddForDeletion(g:rplugin.localtmpdir .. "/globenv_" .. $VIMR_ID)
+    g:AddForDeletion(g:rplugin.localtmpdir .. "/liblist_" .. $VIMR_ID)
 
     if &encoding == "utf-8"
-        call AddForDeletion(g:rplugin.tmpdir . "/start_options_utf8.R")
+        g:AddForDeletion(g:rplugin.tmpdir .. "/start_options_utf8.R")
     else
-        call AddForDeletion(g:rplugin.tmpdir . "/start_options.R")
+        g:AddForDeletion(g:rplugin.tmpdir .. "/start_options.R")
     endif
 
-    " Reset R_DEFAULT_PACKAGES to its original value (see https://github.com/jalvesaq/Vim-R/issues/554):
-    let start_options = ['Sys.setenv("R_DEFAULT_PACKAGES" = "' . s:r_default_pkgs . '")']
+    # Reset R_DEFAULT_PACKAGES to its original value (see https://github.com/jalvesaq/Vim-R/issues/554):
+    var start_options = ['Sys.setenv("R_DEFAULT_PACKAGES" = "' .. r_default_pkgs .. '")']
 
-    let start_options += ['options(vimcom.max_depth = ' . g:R_compl_data.max_depth . ')']
-    let start_options += ['options(vimcom.max_size = '  . g:R_compl_data.max_size . ')']
-    let start_options += ['options(vimcom.max_time = '  . g:R_compl_data.max_time . ')']
+    start_options += ['options(vimcom.max_depth = ' .. g:R_compl_data.max_depth .. ')']
+    start_options += ['options(vimcom.max_size = '  .. g:R_compl_data.max_size .. ')']
+    start_options += ['options(vimcom.max_time = '  .. g:R_compl_data.max_time .. ')']
 
     if g:R_objbr_allnames
-        let start_options += ['options(vimcom.allnames = TRUE)']
+        start_options += ['options(vimcom.allnames = TRUE)']
     else
-        let start_options += ['options(vimcom.allnames = FALSE)']
+        start_options += ['options(vimcom.allnames = FALSE)']
     endif
     if g:R_texerr
-        let start_options += ['options(vimcom.texerrs = TRUE)']
+        start_options += ['options(vimcom.texerrs = TRUE)']
     else
-        let start_options += ['options(vimcom.texerrs = FALSE)']
+        start_options += ['options(vimcom.texerrs = FALSE)']
     endif
     if g:rplugin.update_glbenv
-        let start_options += ['options(vimcom.autoglbenv = TRUE)']
+        start_options += ['options(vimcom.autoglbenv = TRUE)']
     else
-        let start_options += ['options(vimcom.autoglbenv = FALSE)']
+        start_options += ['options(vimcom.autoglbenv = FALSE)']
     endif
     if g:R_debug
-        let start_options += ['options(vimcom.debug_r = TRUE)']
+        start_options += ['options(vimcom.debug_r = TRUE)']
     else
-        let start_options += ['options(vimcom.debug_r = FALSE)']
+        start_options += ['options(vimcom.debug_r = FALSE)']
     endif
     if exists('g:R_setwidth') && g:R_setwidth == 2
-        let start_options += ['options(vimcom.setwidth = TRUE)']
+        start_options += ['options(vimcom.setwidth = TRUE)']
     else
-        let start_options += ['options(vimcom.setwidth = FALSE)']
+        start_options += ['options(vimcom.setwidth = FALSE)']
     endif
     if g:R_vimpager == "no"
-        let start_options += ['options(vimcom.vimpager = FALSE)']
+        start_options += ['options(vimcom.vimpager = FALSE)']
     else
-        let start_options += ['options(vimcom.vimpager = TRUE)']
+        start_options += ['options(vimcom.vimpager = TRUE)']
     endif
     if type(g:R_external_term) == v:t_number && g:R_external_term == 0 && g:R_esc_term
-        let start_options += ['options(editor = vimcom:::vim.edit)']
+        start_options += ['options(editor = vimcom:::vim.edit)']
     endif
     if exists("g:R_csv_delim") && (g:R_csv_delim == "," || g:R_csv_delim == ";")
-        let start_options += ['options(vimcom.delim = "' . g:R_csv_delim. '")']
+        start_options += ['options(vimcom.delim = "' .. g:R_csv_delim .. '")']
     else
-        let start_options += ['options(vimcom.delim = "\t")']
+        start_options += ['options(vimcom.delim = "\t")']
     endif
-    let start_options += ['options(vimcom.source.path = "' . s:Rsource_read . '")']
+    start_options += ['options(vimcom.source.path = "' .. Rsource_read .. '")']
 
-    let rwd = ""
+    var rwd = ""
     if g:R_vim_wd == 0
-        let rwd = s:RGetBufDir()
+        rwd = RGetBufDir()
     elseif g:R_vim_wd == 1
-        let rwd = getcwd()
+        rwd = getcwd()
     endif
     if rwd != "" && !exists("g:R_remote_compldir")
         if has("win32")
-            let rwd = substitute(rwd, '\\', '/', 'g')
+            rwd = substitute(rwd, '\\', '/', 'g')
         endif
 
-        " `rwd` will not be a real directory if editing a file on the internet
-        " with netrw plugin
+        # `rwd` will not be a real directory if editing a file on the internet
+        # with netrw plugin
         if isdirectory(rwd)
-            let start_options += ['setwd("' . rwd . '")']
+            start_options += ['setwd("' .. rwd .. '")']
         endif
     endif
 
     if len(g:R_after_start) > 0
-        let extracmds = deepcopy(g:R_after_start)
-        call filter(extracmds, 'v:val =~ "^R:"')
+        var extracmds = deepcopy(g:R_after_start)
+        filter(extracmds, (_, v) => v =~ "^R:")
         if len(extracmds) > 0
-            call map(extracmds, 'substitute(v:val, "^R:", "", "")')
-            let start_options += extracmds
+            map(extracmds, (_, v) => substitute(v, "^R:", "", ""))
+            start_options += extracmds
         endif
     endif
 
     if &encoding == "utf-8"
-        call writefile(start_options, g:rplugin.tmpdir . "/start_options_utf8.R")
+        writefile(start_options, g:rplugin.tmpdir .. "/start_options_utf8.R")
     else
-        call writefile(start_options, g:rplugin.tmpdir . "/start_options.R")
+        writefile(start_options, g:rplugin.tmpdir .. "/start_options.R")
     endif
 
-    " Required to make R load vimcom without the need of the user including
-    " library(vimcom) in his or her ~/.Rprofile.
+    # Required to make R load vimcom without the need of the user including
+    # library(vimcom) in his or her ~/.Rprofile.
     if $R_DEFAULT_PACKAGES == ""
-        let $R_DEFAULT_PACKAGES = "datasets,utils,grDevices,graphics,stats,methods,vimcom"
+        $R_DEFAULT_PACKAGES = "datasets,utils,grDevices,graphics,stats,methods,vimcom"
     elseif $R_DEFAULT_PACKAGES !~ "vimcom"
-        let $R_DEFAULT_PACKAGES .= ",vimcom"
+        $R_DEFAULT_PACKAGES ..= ",vimcom"
     endif
 
     if exists("g:RStudio_cmd")
-        let $R_DEFAULT_PACKAGES .= ",rstudioapi"
-        call StartRStudio()
+        $R_DEFAULT_PACKAGES ..= ",rstudioapi"
+        g:StartRStudio()
         return
     endif
 
     if type(g:R_external_term) == v:t_number && g:R_external_term == 0
-        call StartR_InBuffer()
+        g:StartR_InBuffer()
         return
     endif
 
     if has("win32")
-        call StartR_Windows()
+        g:StartR_Windows()
         return
     endif
 
-    if IsSendCmdToRFake()
+    if g:IsSendCmdToRFake()
         return
     endif
 
-    let args_str = join(g:rplugin.r_args)
+    var args_str = join(g:rplugin.r_args)
+    var rcmd: string
     if args_str == ""
-        let rcmd = g:rplugin.R
+        rcmd = g:rplugin.R
     else
-        let rcmd = g:rplugin.R . " " . args_str
+        rcmd = g:rplugin.R .. " " .. args_str
     endif
 
-    call StartR_ExternalTerm(rcmd)
-endfunction
+    g:StartR_ExternalTerm(rcmd)
+enddef
 
-" Send SIGINT to R
-function SignalToR(signal)
+# Send SIGINT to R
+def g:SignalToR(signal: string)
     if g:rplugin.R_pid
-        call system('kill -s ' . a:signal . ' ' . g:rplugin.R_pid)
+        system('kill -s ' .. signal .. ' ' .. g:rplugin.R_pid)
     endif
-endfunction
+enddef
 
 
-function CheckIfVimcomIsRunning(...)
-    let s:nseconds = s:nseconds - 1
+def g:CheckIfVimcomIsRunning(...args: list<any>)
+    nseconds = nseconds - 1
     if g:rplugin.R_pid == 0
-        if s:nseconds > 0
-            call timer_start(1000, "CheckIfVimcomIsRunning")
+        if nseconds > 0
+            timer_start(1000, "g:CheckIfVimcomIsRunning")
         else
-            let msg = "The package vimcom wasn't loaded yet. Please, quit R and try again."
-            call RWarningMsg(msg)
+            var msg = "The package vimcom wasn't loaded yet. Please, quit R and try again."
+            g:RWarningMsg(msg)
             sleep 500m
         endif
     endif
-endfunction
+enddef
 
-function WaitVimcomStart()
-    let args_str = join(g:rplugin.r_args)
+def g:WaitVimcomStart()
+    var args_str = join(g:rplugin.r_args)
     if args_str =~ "vanilla"
-        return 0
+        return
     endif
     if g:R_wait < 2
         g:R_wait = 2
     endif
 
-    let s:nseconds = g:R_wait
-    call timer_start(1000, "CheckIfVimcomIsRunning")
-endfunction
+    nseconds = g:R_wait
+    timer_start(1000, "g:CheckIfVimcomIsRunning")
+enddef
 
-function SetVimcomInfo(vimcomversion, rpid, wid, r_info)
-    let g:rplugin.debug_info['Time']['start_R'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['start_R'], reltime()))
-    if filereadable(g:rplugin.home . '/R/vimcom/DESCRIPTION')
-        let ndesc = readfile(g:rplugin.home . '/R/vimcom/DESCRIPTION')
-        let current = substitute(matchstr(ndesc, '^Version: '), 'Version: ', '', '')
-        if a:vimcomversion != current
-            call RWarningMsg('Mismatch in vimcom versions: R (' . a:vimcomversion . ') and Vim (' . current . ')')
+def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: string)
+    g:rplugin.debug_info['Time']['start_R'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['start_R'], reltime()))
+    if filereadable(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
+        var ndesc = readfile(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
+        var current = substitute(matchstr(ndesc, '^Version: '), 'Version: ', '', '')
+        if vimcomversion != current
+            g:RWarningMsg('Mismatch in vimcom versions: R (' .. vimcomversion .. ') and Vim (' .. current .. ')')
             sleep 1
         endif
     endif
 
-    let $R_DEFAULT_PACKAGES = s:r_default_pkgs
+    $R_DEFAULT_PACKAGES = r_default_pkgs
 
-    let g:rplugin.R_pid = a:rpid
-    let $RCONSOLE = a:wid
+    g:rplugin.R_pid = rpid
+    $RCONSOLE = wid
 
-    let Rinfo = split(a:r_info, "\x12")
-    let s:R_version = Rinfo[0]
+    var Rinfo = split(r_info, "\x12")
+    R_version = Rinfo[0]
     if !exists("g:R_OutDec")
-        let g:R_OutDec = Rinfo[1]
+        g:R_OutDec = Rinfo[1]
     endif
     if !exists('g:Rout_prompt_str')
-        let g:Rout_prompt_str = substitute(Rinfo[2], ' $', '', '')
-        let g:Rout_prompt_str = substitute(g:Rout_prompt_str, '.*#N#', '', '')
+        g:Rout_prompt_str = substitute(Rinfo[2], ' $', '', '')
+        g:Rout_prompt_str = substitute(g:Rout_prompt_str, '.*#N#', '', '')
     endif
     if !exists('g:Rout_continue_str')
-        let g:Rout_continue_str = substitute(Rinfo[3], ' $', '', '')
-        let g:Rout_continue_str = substitute(g:Rout_continue_str, '.*#N#', '', '')
+        g:Rout_continue_str = substitute(Rinfo[3], ' $', '', '')
+        g:Rout_continue_str = substitute(g:Rout_continue_str, '.*#N#', '', '')
     endif
 
-    if IsJobRunning("Server")
-        " Set RConsole window ID in vimrserver to ArrangeWindows()
+    if g:IsJobRunning("Server")
+        # Set RConsole window ID in vimrserver to ArrangeWindows()
         if has("win32")
             if $RCONSOLE == "0"
-                call RWarningMsg("vimcom did not save R window ID")
+                g:RWarningMsg("vimcom did not save R window ID")
             endif
         endif
     else
-        call RWarningMsg("vimcom is not running")
+        g:RWarningMsg("vimcom is not running")
     endif
 
     if exists("g:RStudio_cmd")
-        if has("win32") && g:R_arrange_windows && filereadable(g:rplugin.compldir . "/win_pos")
-            " ArrangeWindows
-            call JobStdin(g:rplugin.jobs["Server"], "85" . g:rplugin.compldir . "\n")
+        if has("win32") && g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos")
+            # ArrangeWindows
+            g:JobStdin(g:rplugin.jobs["Server"], "85" .. g:rplugin.compldir .. "\n")
         endif
     elseif has("win32")
-        if g:R_arrange_windows && filereadable(g:rplugin.compldir . "/win_pos")
-            " ArrangeWindows
-            call JobStdin(g:rplugin.jobs["Server"], "85" . g:rplugin.compldir . "\n")
+        if g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos")
+            # ArrangeWindows
+            g:JobStdin(g:rplugin.jobs["Server"], "85" .. g:rplugin.compldir .. "\n")
         endif
     else
-        call delete(g:rplugin.tmpdir . "/initterm_" . $VIMR_ID . ".sh")
-        call delete(g:rplugin.tmpdir . "/openR")
+        delete(g:rplugin.tmpdir .. "/initterm_" .. $VIMR_ID .. ".sh")
+        delete(g:rplugin.tmpdir .. "/openR")
     endif
 
     if type(g:R_after_start) == v:t_list
         for cmd in g:R_after_start
             if cmd =~ '^!'
-                call system(substitute(cmd, '^!', '', ''))
+                system(substitute(cmd, '^!', '', ''))
             elseif cmd =~ '^:'
                 exe substitute(cmd, '^:', '', '')
             elseif cmd !~ '^R:'
-                call RWarningMsg("R_after_start must be a list of strings starting with 'R:', '!', or ':'")
+                g:RWarningMsg("R_after_start must be a list of strings starting with 'R:', '!', or ':'")
             endif
         endfor
     endif
-    call timer_start(1000, "SetSendCmdToR")
+    timer_start(1000, "g:SetSendCmdToR")
     if g:R_objbr_auto_start
-        let s:autosttobjbr = 1
-        call timer_start(1010, "RObjBrowser")
+        autosttobjbr = 1
+        timer_start(1010, "g:RObjBrowser")
     endif
-endfunction
+enddef
 
-function SetSendCmdToR(...)
+def g:SetSendCmdToR(...args: list<any>)
     if exists("g:RStudio_cmd")
-        let g:SendCmdToR = function('SendCmdToRStudio')
+        g:SendCmdToR = function('g:SendCmdToRStudio')
     elseif type(g:R_external_term) == v:t_number && g:R_external_term == 0
-        let g:SendCmdToR = function('SendCmdToR_Buffer')
+        g:SendCmdToR = function('g:SendCmdToR_Buffer')
     elseif has("win32")
-        let g:SendCmdToR = function('SendCmdToR_Windows')
+        g:SendCmdToR = function('g:SendCmdToR_Windows')
     endif
-    let s:wait_vimcom = 0
-endfunction
+    wait_vimcom = 0
+enddef
 
-" Quit R
-function RQuit(how)
+# Quit R
+def g:RQuit(how: string)
+    var qcmd: string
     if exists("b:quit_command")
-        let qcmd = b:quit_command
+        qcmd = b:quit_command
     else
-        if a:how == "save"
-            let qcmd = 'quit(save = "yes")'
+        if how == "save"
+            qcmd = 'quit(save = "yes")'
         else
-            let qcmd = 'quit(save = "no")'
+            qcmd = 'quit(save = "no")'
         endif
     endif
 
     if has("win32")
 	if type(g:R_external_term) == v:t_number && g:R_external_term == 1
-	    " SaveWinPos
-	    call JobStdin(g:rplugin.jobs["Server"], "84" . $VIMR_COMPLDIR . "\n")
+	    # SaveWinPos
+	    g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
 	endif
-	call JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
+	g:JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
     endif
 
     if bufloaded('Object_Browser')
@@ -390,150 +394,150 @@ function RQuit(how)
         sleep 30m
     endif
 
-    call g:SendCmdToR(qcmd)
+    g:SendCmdToR(qcmd)
 
-    if has_key(g:rplugin, "tmux_split") || a:how == 'save'
+    if has_key(g:rplugin, "tmux_split") || how == 'save'
         sleep 200m
     endif
 
     sleep 50m
-    call ClearRInfo()
-endfunction
+    g:ClearRInfo()
+enddef
 
-function RRestart()
-    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
-        call StartR("R")
+def g:RRestart()
+    if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
+        g:StartR("R")
         return
     endif
-    call RQuit('nosave')
-    call timer_start(200, {-> StartR("R")})
-endfunction
+    g:RQuit('nosave')
+    timer_start(200, (_) => g:StartR("R"))
+enddef
 
-" Send quit(save="no") through the pipeline.
-" Called from RVimLeave() when g:R_quit_on_close is set.
-" At this point the pipeline is still alive (before Server teardown).
-function QuitROnClose()
-    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
+# Send quit(save="no") through the pipeline.
+# Called from RVimLeave() when g:R_quit_on_close is set.
+# At this point the pipeline is still alive (before Server teardown).
+def g:QuitROnClose()
+    if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
         return
     endif
-    call g:SendCmdToR('quit(save = "no")')
+    g:SendCmdToR('quit(save = "no")')
     sleep 200m
-endfunction
+enddef
 
-function ClearRInfo()
-    call delete(g:rplugin.tmpdir . "/globenv_" . $VIMR_ID)
-    call delete(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
+def g:ClearRInfo()
+    delete(g:rplugin.tmpdir .. "/globenv_" .. $VIMR_ID)
+    delete(g:rplugin.localtmpdir .. "/liblist_" .. $VIMR_ID)
     for fn in g:rplugin.del_list
-        call delete(fn)
+        delete(fn)
     endfor
-    let g:SendCmdToR = function('SendCmdToR_fake')
-    let g:rplugin.R_pid = 0
+    g:SendCmdToR = function('g:SendCmdToR_fake')
+    g:rplugin.R_pid = 0
 
-    " Legacy support for running R in a Tmux split pane
+    # Legacy support for running R in a Tmux split pane
     if has_key(g:rplugin, "tmux_split") && exists('g:R_tmux_title') && g:rplugin.tmux_split
-                \ && g:R_tmux_title != 'automatic' && g:R_tmux_title != ''
-        call system("tmux set automatic-rename on")
+                && g:R_tmux_title != 'automatic' && g:R_tmux_title != ''
+        system("tmux set automatic-rename on")
     endif
 
-    call JobStdin(g:rplugin.jobs["Server"], "43\n")
-endfunction
+    g:JobStdin(g:rplugin.jobs["Server"], "43\n")
+enddef
 
-let s:wait_vimcom = 0
+var wait_vimcom = 0
 
 
-"==============================================================================
-" Internal communication with R
-"==============================================================================
+# ==============================================================================
+# Internal communication with R
+# ==============================================================================
 
-" Send a message to vimrserver job which will send the message to vimcom
-" through a TCP connection.
-function SendToVimcom(code, attch)
-    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
-        call RWarningMsg("R is not running")
+# Send a message to vimrserver job which will send the message to vimcom
+# through a TCP connection.
+def g:SendToVimcom(code: string, attch: string)
+    if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
+        g:RWarningMsg("R is not running")
         return
     endif
-    if s:wait_vimcom && string(g:SendCmdToR) == "function('g:SendCmdToR_NotYet')"
-        call RWarningMsg("R is not ready yet")
+    if wait_vimcom && string(g:SendCmdToR) == "function('g:SendCmdToR_NotYet')"
+        g:RWarningMsg("R is not ready yet")
         return
     endif
 
-    if !IsJobRunning("Server")
-        call RWarningMsg("Server not running.")
+    if !g:IsJobRunning("Server")
+        g:RWarningMsg("Server not running.")
         return
     endif
-    call JobStdin(g:rplugin.jobs["Server"], "2" . a:code . $VIMR_ID . a:attch . "\n")
-endfunction
+    g:JobStdin(g:rplugin.jobs["Server"], "2" .. code .. $VIMR_ID .. attch .. "\n")
+enddef
 
 
-"==============================================================================
-" Keep syntax highlighting, data for omni completion and object browser up to
-" date
-"==============================================================================
+# ==============================================================================
+# Keep syntax highlighting, data for omni completion and object browser up to
+# date
+# ==============================================================================
 
-" Called by vimrserver. When g:rplugin has the key 'localfun', the function
-" is also called by SourceRFunList() (R/functions.vim)
-function UpdateLocalFunctions(funnames)
-    let g:rplugin.localfun = a:funnames
+# Called by vimrserver. When g:rplugin has the key 'localfun', the function
+# is also called by SourceRFunList() (R/functions.vim)
+def g:UpdateLocalFunctions(funnames: string)
+    g:rplugin.localfun = funnames
     syntax clear rGlobEnvFun
-    let flist = split(a:funnames, " ")
+    var flist = split(funnames, " ")
     for fnm in flist
         if fnm =~ '[\\\[\$@-]'
             continue
         endif
         if !exists('g:R_hi_fun_paren') || g:R_hi_fun_paren == 0
-            exe 'syntax keyword rGlobEnvFun ' . fnm
+            exe 'syntax keyword rGlobEnvFun ' .. fnm
         else
-            exe 'syntax match rGlobEnvFun /\<' . fnm . '\s*\ze(/'
+            exe 'syntax match rGlobEnvFun /\<' .. fnm .. '\s*\ze(/'
         endif
     endfor
-endfunction
+enddef
 
 
 
-"==============================================================================
-"  Functions triggered by vimcom after user action on R Console
-"==============================================================================
+# ==============================================================================
+#  Functions triggered by vimcom after user action on R Console
+# ==============================================================================
 
-function ShowRObj(howto, bname, ftype, txt)
-    let bfnm = substitute(a:bname, '[ [:punct:]]', '_', 'g')
-    call AddForDeletion(g:rplugin.tmpdir . "/" . bfnm)
-    silent exe a:howto . ' ' . substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') . '/' . bfnm
-    silent exe 'set ft=' . a:ftype
-    call setline(1, split(substitute(a:txt, "\x13", "'", "g"), "\x14"))
+def g:ShowRObj(howto: string, bname: string, ftype: string, txt: string)
+    var bfnm = substitute(bname, '[ [:punct:]]', '_', 'g')
+    g:AddForDeletion(g:rplugin.tmpdir .. "/" .. bfnm)
+    silent exe howto .. ' ' .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. '/' .. bfnm
+    silent exe 'set ft=' .. ftype
+    setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     set nomodified
-endfunction
+enddef
 
-" This function is called by vimcom
-function EditRObject(fname)
-    let fcont = readfile(a:fname)
-    exe "tabnew " . substitute($VIMR_TMPDIR . "/edit_" . $VIMR_ID, ' ', '\\ ', 'g')
-    call setline(".", fcont)
+# This function is called by vimcom
+def g:EditRObject(fname: string)
+    var fcont = readfile(fname)
+    exe "tabnew " .. substitute($VIMR_TMPDIR .. "/edit_" .. $VIMR_ID, ' ', '\\ ', 'g')
+    setline(".", fcont)
     set filetype=r
     stopinsert
-    autocmd BufUnload <buffer> call delete($VIMR_TMPDIR . "/edit_" . $VIMR_ID . "_wait") | startinsert
-endfunction
+    autocmd BufUnload <buffer> delete($VIMR_TMPDIR .. "/edit_" .. $VIMR_ID .. "_wait") | startinsert
+enddef
 
 
-"==============================================================================
-"  Object Browser (see also ../ftplugin/rbrowser.vim)
-"==============================================================================
+# ==============================================================================
+#  Object Browser (see also ../ftplugin/rbrowser.vim)
+# ==============================================================================
 
-function StartObjBrowser()
-    " Either open or close the Object Browser
-    let savesb = &switchbuf
+def g:StartObjBrowser()
+    # Either open or close the Object Browser
+    var savesb = &switchbuf
     set switchbuf=useopen,usetab
     if bufloaded('Object_Browser')
-        let curwin = win_getid()
-        let curtab = tabpagenr()
+        var curwin = win_getid()
+        var curtab = tabpagenr()
         exe 'sb Object_Browser'
-        let objbrtab = tabpagenr()
+        var objbrtab = tabpagenr()
         quit
-        call win_gotoid(curwin)
+        win_gotoid(curwin)
         if curtab != objbrtab
-            call StartObjBrowser()
+            g:StartObjBrowser()
         endif
     else
-        let edbuf = bufnr()
+        var edbuf = bufnr()
 
         if g:R_objbr_place =~# 'RIGHT'
             sil exe 'botright vsplit Object_Browser'
@@ -545,9 +549,9 @@ function StartObjBrowser()
             sil exe 'botright split Object_Browser'
         else
             if g:R_objbr_place =~? 'console'
-                sil exe 'sb ' . g:rplugin.R_bufnr
+                sil exe 'sb ' .. g:rplugin.R_bufnr
             else
-                sil exe 'sb ' . g:rplugin.rscript_name
+                sil exe 'sb ' .. g:rplugin.rscript_name
             endif
             if g:R_objbr_place =~# 'right'
                 sil exe 'rightbelow vsplit Object_Browser'
@@ -558,49 +562,49 @@ function StartObjBrowser()
             elseif g:R_objbr_place =~# 'below'
                 sil exe 'belowright split Object_Browser'
             else
-                call RWarningMsg('Invalid value for R_objbr_place: "' . R_objbr_place . '"')
-                exe "set switchbuf=" . savesb
+                g:RWarningMsg('Invalid value for R_objbr_place: "' .. R_objbr_place .. '"')
+                exe "set switchbuf=" .. savesb
                 return
             endif
         endif
         if g:R_objbr_place =~? 'left' || g:R_objbr_place =~? 'right'
-            sil exe 'vertical resize ' . g:R_objbr_w
+            sil exe 'vertical resize ' .. g:R_objbr_w
         else
-            sil exe 'resize ' . g:R_objbr_h
+            sil exe 'resize ' .. g:R_objbr_h
         endif
         sil set filetype=rbrowser
-        let g:rplugin.curview = "GlobalEnv"
-        let g:rplugin.ob_winnr = win_getid()
+        g:rplugin.curview = "GlobalEnv"
+        g:rplugin.ob_winnr = win_getid()
 
-        if exists('s:autosttobjbr') && s:autosttobjbr == 1
-            let s:autosttobjbr = 0
-            exe edbuf . 'sb'
+        if exists('s:autosttobjbr') && autosttobjbr == 1
+            autosttobjbr = 0
+            exe edbuf .. 'sb'
         endif
     endif
-    exe "set switchbuf=" . savesb
-endfunction
+    exe "set switchbuf=" .. savesb
+enddef
 
-" Open an Object Browser window
-function RObjBrowser(...)
-    " Only opens the Object Browser if R is running
-    if string(g:SendCmdToR) == "function('SendCmdToR_fake')"
-        call RWarningMsg("The Object Browser can be opened only if R is running.")
+# Open an Object Browser window
+def g:RObjBrowser(...args: list<any>)
+    # Only opens the Object Browser if R is running
+    if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
+        g:RWarningMsg("The Object Browser can be opened only if R is running.")
         return
     endif
 
-    if s:running_objbr == 1
-        " Called twice due to BufEnter event
+    if running_objbr == 1
+        # Called twice due to BufEnter event
         return
     endif
 
-    let s:running_objbr = 1
+    running_objbr = 1
 
-    " call RealUpdateRGlbEnv(1)
-    call JobStdin(g:rplugin.jobs["Server"], "31\n")
-    call SendToVimcom("A", "RObjBrowser")
+    # call RealUpdateRGlbEnv(1)
+    g:JobStdin(g:rplugin.jobs["Server"], "31\n")
+    g:SendToVimcom("A", "RObjBrowser")
 
-    call StartObjBrowser()
-    let s:running_objbr = 0
+    g:StartObjBrowser()
+    running_objbr = 0
 
     if len(g:R_after_ob_open) > 0
         redraw
@@ -610,27 +614,27 @@ function RObjBrowser(...)
     endif
 
     return
-endfunction
+enddef
 
-function RBrOpenCloseLs(stt)
-    call JobStdin(g:rplugin.jobs["Server"], "34" . a:stt . g:rplugin.curview . "\n")
-endfunction
+def g:RBrOpenCloseLs(stt: string)
+    g:JobStdin(g:rplugin.jobs["Server"], "34" .. stt .. g:rplugin.curview .. "\n")
+enddef
 
 
-"==============================================================================
-" Support for debugging R code
-"==============================================================================
+# ==============================================================================
+# Support for debugging R code
+# ==============================================================================
 
-" No support for break points
-"if synIDattr(synIDtrans(hlID("SignColumn")), "bg") =~ '^#'
-"    exe 'hi def StopSign guifg=red guibg=' . synIDattr(synIDtrans(hlID("SignColumn")), "bg")
-"else
-"    exe 'hi def StopSign ctermfg=red ctermbg=' . synIDattr(synIDtrans(hlID("SignColumn")), "bg")
-"endif
-"call sign_define('stpline', {'text': '●', 'texthl': 'StopSign', 'linehl': 'None', 'numhl': 'None'})
+# No support for break points
+#if synIDattr(synIDtrans(hlID("SignColumn")), "bg") =~ '^#'
+#    exe 'hi def StopSign guifg=red guibg=' .. synIDattr(synIDtrans(hlID("SignColumn")), "bg")
+#else
+#    exe 'hi def StopSign ctermfg=red ctermbg=' .. synIDattr(synIDtrans(hlID("SignColumn")), "bg")
+#endif
+#call sign_define('stpline', {'text': '●', 'texthl': 'StopSign', 'linehl': 'None', 'numhl': 'None'})
 
-" Functions sign_define(), sign_place() and sign_unplace()
-"call sign_define('dbgline', {'text': '▬▶', 'texthl': 'SignColumn', 'linehl': 'QuickFixLine', 'numhl': 'Normal'})
+# Functions sign_define(), sign_place() and sign_unplace()
+#call sign_define('dbgline', {'text': '▬▶', 'texthl': 'SignColumn', 'linehl': 'QuickFixLine', 'numhl': 'Normal'})
 
 if &ambiwidth == "double" || has("win32")
     sign define dbgline text==> texthl=SignColumn linehl=QuickFixLine
@@ -638,115 +642,117 @@ else
     sign define dbgline text=▬▶ texthl=SignColumn linehl=QuickFixLine
 endif
 
-let s:func_offset = -2
-let s:rdebugging = 0
-function StopRDebugging()
-    "call sign_unplace('rdebugcurline')
-    "sign unplace rdebugcurline
+var func_offset = -2
+var rdebugging = 0
+def g:StopRDebugging()
+    #call sign_unplace('rdebugcurline')
+    #sign unplace rdebugcurline
     sign unplace 1
-    let s:func_offset = -2 " Did not seek yet
-    let s:rdebugging = 0
-endfunction
+    func_offset = -2 # Did not seek yet
+    rdebugging = 0
+enddef
 
-function FindDebugFunc(srcref)
+def g:FindDebugFunc(srcref: string)
     if type(g:R_external_term) == v:t_number && g:R_external_term == 0
-        let s:func_offset = -1 " Not found
-        let sbopt = &switchbuf
+        func_offset = -1 # Not found
+        var sbopt = &switchbuf
         set switchbuf=useopen,usetab
-        let curtab = tabpagenr()
-        let isnormal = mode() ==# 'n'
-        let curwin = winnr()
-        exe 'sb ' . g:rplugin.R_bufnr
-        sleep 30m " Time to fill the buffer lines
-        let rlines = getline(1, "$")
-        exe 'sb ' . g:rplugin.rscript_name
-    elseif string(g:SendCmdToR) == "function('SendCmdToR_Term')"
-        let tout = system('tmux -L VimR capture-pane -p -t ' . g:rplugin.tmuxsname)
-        let rlines = split(tout, "\n")
-    elseif string(g:SendCmdToR) == "function('SendCmdToR_TmuxSplit')"
-        let tout = system('tmux capture-pane -p -t ' . g:rplugin.rconsole_pane)
-        let rlines = split(tout, "\n")
+        var curtab = tabpagenr()
+        var isnormal = mode() ==# 'n'
+        var curwin = winnr()
+        exe 'sb ' .. g:rplugin.R_bufnr
+        sleep 30m # Time to fill the buffer lines
+        var rlines = getline(1, "$")
+        exe 'sb ' .. g:rplugin.rscript_name
+    elseif string(g:SendCmdToR) == "function('g:SendCmdToR_Term')"
+        var tout = system('tmux -L VimR capture-pane -p -t ' .. g:rplugin.tmuxsname)
+        var rlines = split(tout, "\n")
+    elseif string(g:SendCmdToR) == "function('g:SendCmdToR_TmuxSplit')"
+        var tout = system('tmux capture-pane -p -t ' .. g:rplugin.rconsole_pane)
+        var rlines = split(tout, "\n")
     else
-        let rlines = []
+        var rlines = []
     endif
 
-    let idx = len(rlines) - 1
+    var idx = len(rlines) - 1
     while idx > 0
         if rlines[idx] =~# '^debugging in: '
-            let funcnm = substitute(rlines[idx], '^debugging in: \(.\{-}\)(.*', '\1', '')
-            let s:func_offset = search('.*\<' . funcnm . '\s*<-\s*function\s*(', 'b')
-            if s:func_offset < 1
-                let s:func_offset = search('.*\<' . funcnm . '\s*=\s*function\s*(', 'b')
+            var funcnm = substitute(rlines[idx], '^debugging in: \(.\{-}\)(.*', '\1', '')
+            func_offset = search('.*\<' .. funcnm .. '\s*<-\s*function\s*(', 'b')
+            if func_offset < 1
+                func_offset = search('.*\<' .. funcnm .. '\s*=\s*function\s*(', 'b')
             endif
-            if s:func_offset < 1
-                let s:func_offset = search('.*\<' . funcnm . '\s*<<-\s*function\s*(', 'b')
+            if func_offset < 1
+                func_offset = search('.*\<' .. funcnm .. '\s*<<-\s*function\s*(', 'b')
             endif
-            if s:func_offset > 0
-                let s:func_offset -= 1
+            if func_offset > 0
+                func_offset -= 1
             endif
-            if a:srcref == '<text>'
+            if srcref == '<text>'
                 if &filetype == 'rmd' || &filetype == 'quarto'
-                    let s:func_offset = search('^\s*```\s*{\s*r', 'nb')
+                    func_offset = search('^\s*```\s*{\s*r', 'nb')
                 elseif &filetype == 'rnoweb'
-                    let s:func_offset = search('^<<', 'nb')
+                    func_offset = search('^<<', 'nb')
                 endif
             endif
             break
         endif
-        let idx -= 1
+        idx -= 1
     endwhile
 
     if type(g:R_external_term) == v:t_number && g:R_external_term == 0
         if tabpagenr() != curtab
-            exe 'normal! ' . curtab . 'gt'
+            exe 'normal! ' .. curtab .. 'gt'
         endif
-        exe curwin . 'wincmd w'
+        exe curwin .. 'wincmd w'
         if isnormal
             stopinsert
         endif
-        exe 'set switchbuf=' . sbopt
+        exe 'set switchbuf=' .. sbopt
     endif
-endfunction
+enddef
 
-function RDebugJump(fnm, lnum)
-    let saved_so = &scrolloff
+def g:RDebugJump(fnm: string, lnum: number)
+    var saved_so = &scrolloff
     if g:R_debug_center == 1
         set so=999
     endif
-    if a:fnm == '' || a:fnm == '<text>'
-        " Functions sent directly to R Console have no associated source file
-        " and functions sourced by knitr have '<text>' as source reference.
-        if s:func_offset == -2
-            call FindDebugFunc(a:fnm)
+    if fnm == '' || fnm == '<text>'
+        # Functions sent directly to R Console have no associated source file
+        # and functions sourced by knitr have '<text>' as source reference.
+        if func_offset == -2
+            g:FindDebugFunc(fnm)
         endif
-        if s:func_offset < 0
+        if func_offset < 0
             return
         endif
     endif
 
-    if s:func_offset >= 0
-        let flnum = a:lnum + s:func_offset
-        let fname = g:rplugin.rscript_name
+    var flnum: number
+    var fname: string
+    if func_offset >= 0
+        flnum = lnum + func_offset
+        fname = g:rplugin.rscript_name
     else
-        let flnum = a:lnum
-        let fname = expand(a:fnm)
+        flnum = lnum
+        fname = expand(fnm)
     endif
 
-    let bname = bufname("%")
+    var bname = bufname("%")
 
     if !bufloaded(fname) && fname != g:rplugin.rscript_name && fname != expand("%") && fname != expand("%:p")
         if filereadable(fname)
-            exe 'sb ' . g:rplugin.rscript_name
+            exe 'sb ' .. g:rplugin.rscript_name
             if &modified
                 split
             endif
-            exe 'edit ' . fname
+            exe 'edit ' .. fname
         elseif glob("*") =~ fname
-            exe 'sb ' . g:rplugin.rscript_name
+            exe 'sb ' .. g:rplugin.rscript_name
             if &modified
                 split
             endif
-            exe 'edit ' . fname
+            exe 'edit ' .. fname
         else
             return
         endif
@@ -754,350 +760,352 @@ function RDebugJump(fnm, lnum)
 
     if bufloaded(fname)
         if fname != expand("%")
-            exe 'sb ' . fname
+            exe 'sb ' .. fname
         endif
-        exe ':' . flnum
+        exe ':' .. flnum
     endif
 
-    " Call sign_place() and sign_unplace() when requiring Vim 8.2 and Neovim 0.5
-    "call sign_unplace('rdebugcurline')
-    "call sign_place(1, 'rdebugcurline', 'dbgline', fname, {'lnum': flnum})
+    # Call sign_place() and sign_unplace() when requiring Vim 8.2 and Neovim 0.5
+    #call sign_unplace('rdebugcurline')
+    #call sign_place(1, 'rdebugcurline', 'dbgline', fname, {'lnum': flnum})
     sign unplace 1
-    exe 'sign place 1 line=' . flnum . ' name=dbgline file=' . fname
-    if g:R_dbg_jump && !s:rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0
-        exe 'sb ' . g:rplugin.R_bufnr
+    exe 'sign place 1 line=' .. flnum .. ' name=dbgline file=' .. fname
+    if g:R_dbg_jump && !rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0
+        exe 'sb ' .. g:rplugin.R_bufnr
         startinsert
     elseif bname != expand("%")
-        exe 'sb ' . bname
+        exe 'sb ' .. bname
     endif
-    let s:rdebugging = 1
-    exe 'set so=' . saved_so
-endfunction
+    rdebugging = 1
+    exe 'set so=' .. saved_so
+enddef
 
 
-"==============================================================================
-" Functions that ask R to help editing the code
-"==============================================================================
+# ==============================================================================
+# Functions that ask R to help editing the code
+# ==============================================================================
 
-function RFormatCode() range
+def g:RFormatCode(line1: number, line2: number)
     if g:rplugin.R_pid == 0
         return
     endif
 
-    let wco = &textwidth
+    var wco = &textwidth
     if wco == 0
-        let wco = 78
+        wco = 78
     elseif wco < 20
-        let wco = 20
+        wco = 20
     elseif wco > 180
-        let wco = 180
+        wco = 180
     endif
 
-    let lns = getline(a:firstline, a:lastline)
-    let txt = substitute(substitute(join(lns, "\x14"), '\\', '\\\\', 'g'), "'", "\x13", "g")
-    call SendToVimcom("E", "vimcom:::vim_format(" . a:firstline . ", " . a:lastline . ", " . wco . ", " . &shiftwidth. ", '" . txt . "')")
-endfunction
+    var lns = getline(line1, line2)
+    var txt = substitute(substitute(join(lns, "\x14"), '\\', '\\\\', 'g'), "'", "\x13", "g")
+    g:SendToVimcom("E", "vimcom:::vim_format(" .. line1 .. ", " .. line2 .. ", " .. wco .. ", " .. &shiftwidth .. ", '" .. txt .. "')")
+enddef
 
-function FinishRFormatCode(lnum1, lnum2, txt)
-    let lns =  split(substitute(a:txt, "\x13", "'", "g"), "\x14")
-    silent exe a:lnum1 . "," . a:lnum2 . "delete"
-    call append(a:lnum1 - 1, lns)
-    echo (a:lnum2 - a:lnum1 + 1) . " lines formatted."
-endfunction
+def g:FinishRFormatCode(lnum1: number, lnum2: number, txt: string)
+    var lns =  split(substitute(txt, "\x13", "'", "g"), "\x14")
+    silent exe lnum1 .. "," .. lnum2 .. "delete"
+    append(lnum1 - 1, lns)
+    echo (lnum2 - lnum1 + 1) .. " lines formatted."
+enddef
 
-function RInsert(cmd, type)
+def g:RInsert(cmd: string, type: string)
     if g:rplugin.R_pid == 0
         return
     endif
-    call SendToVimcom("E", 'vimcom:::vim_insert(' . a:cmd . ', "' . a:type . '")')
-endfunction
+    g:SendToVimcom("E", 'vimcom:::vim_insert(' .. cmd .. ', "' .. type .. '")')
+enddef
 
-function SendLineToRAndInsertOutput()
-    let lin = getline(".")
-    let cleanl = substitute(lin, '".\{-}"', '', 'g')
+def g:SendLineToRAndInsertOutput()
+    var lin = getline(".")
+    var cleanl = substitute(lin, '".\{-}"', '', 'g')
     if cleanl =~ ';'
-        call RWarningMsg('`print(line)` works only if `line` is a single command')
+        g:RWarningMsg('`print(line)` works only if `line` is a single command')
     endif
-    let cleanl = substitute(lin, '\s*#.*', "", "")
-    call RInsert("print(" . cleanl . ")", "comment")
-endfunction
+    cleanl = substitute(lin, '\s*#.*', "", "")
+    g:RInsert("print(" .. cleanl .. ")", "comment")
+enddef
 
-function FinishRInsert(type, txt)
-    let ilines = split(substitute(a:txt, "\x13", "'", "g"), "\x14")
-    if a:type == "comment"
-        call map(ilines, '"# " . v:val')
+def g:FinishRInsert(type: string, txt: string)
+    var ilines = split(substitute(txt, "\x13", "'", "g"), "\x14")
+    if type == "comment"
+        map(ilines, (_, v) => "# " .. v)
     endif
-    call append(line('.'), ilines)
-endfunction
+    append(line('.'), ilines)
+enddef
 
-function GetROutput(fnm, txt)
-    if a:fnm == "NewtabInsert"
-        let tnum = 1
-        while bufexists("so" . tnum)
-            let tnum += 1
+def g:GetROutput(fnm: string, txt: string)
+    if fnm == "NewtabInsert"
+        var tnum = 1
+        while bufexists("so" .. tnum)
+            tnum += 1
         endwhile
-        exe 'tabnew so' . tnum
-        call setline(1, split(substitute(a:txt, "\x13", "'", "g"), "\x14"))
+        exe 'tabnew so' .. tnum
+        setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
         set filetype=rout
         setlocal buftype=nofile
         setlocal noswapfile
     else
-        exe 'tabnew ' a:fnm
-        call setline(1, split(substitute(a:txt, "\x13", "'", "g"), "\x14"))
+        exe 'tabnew ' .. fnm
+        setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     endif
     normal! gT
     redraw
-endfunction
+enddef
 
 
-function RViewDF(oname, howto, txt)
+def g:RViewDF(oname: string, howto: string, txt: string)
     if exists('g:R_csv_app')
-        let tsvnm = g:rplugin.tmpdir . '/' . a:oname . '.tsv'
-        call writefile(split(substitute(a:txt, "\x13", "'", "g"), "\x14"), tsvnm)
-        call AddForDeletion(tsvnm)
+        var tsvnm = g:rplugin.tmpdir .. '/' .. oname .. '.tsv'
+        writefile(split(substitute(txt, "\x13", "'", "g"), "\x14"), tsvnm)
+        g:AddForDeletion(tsvnm)
 
+        var cmd: string
         if g:R_csv_app =~ '%s'
-            let cmd = printf(g:R_csv_app, tsvnm)
+            cmd = printf(g:R_csv_app, tsvnm)
         else
-            let cmd = g:R_csv_app . ' ' . tsvnm
+            cmd = g:R_csv_app .. ' ' .. tsvnm
         endif
 
         if g:R_csv_app =~# '^:'
             exe cmd
             return
         elseif g:R_csv_app =~# '^terminal:'
-            let cmd = substitute(cmd, '^terminal:', '', '')
+            cmd = substitute(cmd, '^terminal:', '', '')
             tabnew
-            exe 'terminal ' . cmd
+            exe 'terminal ' .. cmd
             startinsert
             return
         endif
 
         normal! :<Esc>
         if has("win32")
-            silent exe '!start "' . g:R_csv_app . '" "' . tsvnm . '"'
+            silent exe '!start "' .. g:R_csv_app .. '" "' .. tsvnm .. '"'
         else
-            call system(cmd . ' >' . s:null . ' 2>' . s:null . ' &')
+            system(cmd .. ' >' .. null .. ' 2>' .. null .. ' &')
         endif
         return
     endif
 
-    let location = a:howto
-    silent exe location . ' ' . a:oname
-    " silent 1,$d
-    call setline(1, split(substitute(a:txt, "\x13", "'", "g"), "\x14"))
+    var location = howto
+    silent exe location .. ' ' .. oname
+    # silent 1,$d
+    setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal filetype=csv
     setlocal nomodified
     setlocal bufhidden=wipe
     setlocal noswapfile
     set buftype=nofile
     redraw
-endfunction
+enddef
 
 
-"==============================================================================
-" Show R documentation
-"==============================================================================
+# ==============================================================================
+# Show R documentation
+# ==============================================================================
 
-function SetRTextWidth(rkeyword)
+def g:SetRTextWidth(rkeyword: string)
     if g:R_vimpager == "tabnew"
-        let s:rdoctitle = a:rkeyword
+        rdoctitle = rkeyword
     else
-        let s:tnr = tabpagenr()
-        if g:R_vimpager != "tab" && s:tnr > 1
-            let s:rdoctitle = "R_doc" . s:tnr
+        var tnr = tabpagenr()
+        if g:R_vimpager != "tab" && tnr > 1
+            rdoctitle = "R_doc" .. tnr
         else
-            let s:rdoctitle = "R_doc"
+            rdoctitle = "R_doc"
         endif
-        unlet s:tnr
     endif
-    if !bufloaded(s:rdoctitle) || g:R_newsize == 1
-        let g:R_newsize = 0
+    if !bufloaded(rdoctitle) || g:R_newsize == 1
+        g:R_newsize = 0
 
-        " s:vimpager is used to calculate the width of the R help documentation
-        " and to decide whether to obey R_vimpager = 'vertical'
-        let s:vimpager = g:R_vimpager
+        # vimpager_local is used to calculate the width of the R help documentation
+        # and to decide whether to obey R_vimpager = 'vertical'
+        vimpager_local = g:R_vimpager
 
-        let wwidth = winwidth(0)
+        var wwidth = winwidth(0)
 
-        " Not enough room to split vertically
+        # Not enough room to split vertically
         if g:R_vimpager == "vertical" && wwidth <= (g:R_help_w + g:R_editor_w)
-            let s:vimpager = "horizontal"
+            vimpager_local = "horizontal"
         endif
 
-        if s:vimpager == "horizontal"
-            " Use the window width (at most 80 columns)
-            let htwf = (wwidth > 80) ? 88.1 : ((wwidth - 1) / 0.9)
+        var htwf: float
+        if vimpager_local == "horizontal"
+            # Use the window width (at most 80 columns)
+            htwf = (wwidth > 80) ? 88.1 : ((wwidth - 1) / 0.9)
         elseif g:R_vimpager == "tab" || g:R_vimpager == "tabnew"
-            let wwidth = &columns
-            let htwf = (wwidth > 80) ? 88.1 : ((wwidth - 1) / 0.9)
+            wwidth = &columns
+            htwf = (wwidth > 80) ? 88.1 : ((wwidth - 1) / 0.9)
         else
-            let min_e = (g:R_editor_w > 80) ? g:R_editor_w : 80
-            let min_h = (g:R_help_w > 73) ? g:R_help_w : 73
+            var min_e = (g:R_editor_w > 80) ? g:R_editor_w : 80
+            var min_h = (g:R_help_w > 73) ? g:R_help_w : 73
 
             if wwidth > (min_e + min_h)
-                " The editor window is large enough to be split
-                let s:hwidth = min_h
+                # The editor window is large enough to be split
+                hwidth = min_h
             elseif wwidth > (min_e + g:R_help_w)
-                " The help window must have less than min_h columns
-                let s:hwidth = wwidth - min_e
+                # The help window must have less than min_h columns
+                hwidth = wwidth - min_e
             else
-                " The help window must have the minimum value
-                let s:hwidth = g:R_help_w
+                # The help window must have the minimum value
+                hwidth = g:R_help_w
             endif
-            let htwf = (s:hwidth - 1) / 0.9
+            htwf = (hwidth - 1) / 0.9
         endif
-        let s:htw = float2nr(htwf)
-        let s:htw = s:htw - (&number || &relativenumber) * &numberwidth
+        htw = float2nr(htwf)
+        htw = htw - (&number || &relativenumber) * &numberwidth
     endif
-endfunction
+enddef
 
-function RAskHelp(...)
-    if a:1 == ""
-        call g:SendCmdToR("help.start()")
+def g:RAskHelp(...args: list<any>)
+    if args[0] == ""
+        g:SendCmdToR("help.start()")
         return
     endif
     if g:R_vimpager == "no"
-        call g:SendCmdToR("help(" . a:1. ")")
+        g:SendCmdToR("help(" .. args[0] .. ")")
     else
-        call AskRDoc(a:1, "", 0)
+        g:AskRDoc(args[0], "", 0)
     endif
-endfunction
+enddef
 
-" Show R's help doc in Vim's buffer
-" (based  on pydoc plugin)
-function AskRDoc(rkeyword, package, getclass)
-    let firstobj = ""
+# Show R's help doc in Vim's buffer
+# (based  on pydoc plugin)
+def g:AskRDoc(rkeyword: string, package: string, getclass: number)
+    var firstobj = ""
     if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
-        let savesb = &switchbuf
+        var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " . g:rplugin.rscript_name
-        exe "set switchbuf=" . savesb
+        exe "sb " .. g:rplugin.rscript_name
+        exe "set switchbuf=" .. savesb
     else
-        if a:getclass
-            let firstobj = RGetFirstObj(a:rkeyword)[0]
+        if getclass
+            firstobj = g:RGetFirstObj(rkeyword)[0]
         endif
     endif
 
-    call SetRTextWidth(a:rkeyword)
+    g:SetRTextWidth(rkeyword)
 
-    if firstobj == "" && a:package == ""
-        let rcmd = 'vimcom:::vim.help("' . a:rkeyword . '", ' . s:htw . 'L)'
-    elseif a:package != ""
-        let rcmd = 'vimcom:::vim.help("' . a:rkeyword . '", ' . s:htw . 'L, package="' . a:package  . '")'
+    var rcmd: string
+    if firstobj == "" && package == ""
+        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L)'
+    elseif package != ""
+        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L, package="' .. package  .. '")'
     else
-        let rcmd = 'vimcom:::vim.help("' . a:rkeyword . '", ' . s:htw . 'L, "' . firstobj . '")'
+        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L, "' .. firstobj .. '")'
     endif
 
-    call SendToVimcom("E", rcmd)
-endfunction
+    g:SendToVimcom("E", rcmd)
+enddef
 
-" Function called by vimcom
-function ShowRDoc(rkeyword, txt)
-    let rkeyw = a:rkeyword
-    if a:rkeyword =~ "^MULTILIB"
-        let topic = split(a:rkeyword)[1]
-        let libs = split(a:txt)
-        let msg = "The topic '" . topic . "' was found in more than one library:\n"
+# Function called by vimcom
+def g:ShowRDoc(rkeyword: string, txt: string = '')
+    var rkeyw = rkeyword
+    if rkeyword =~ "^MULTILIB"
+        var topic = split(rkeyword)[1]
+        var libs = split(txt)
+        var msg = "The topic '" .. topic .. "' was found in more than one library:\n"
         for idx in range(0, len(libs) - 1)
-            let msg .= idx + 1 . " : " . libs[idx] . "\n"
+            msg ..= idx + 1 .. " : " .. libs[idx] .. "\n"
         endfor
         redraw
-        let chn = input(msg . "Please, select one of them: ")
+        var chn = input(msg .. "Please, select one of them: ")
         if chn > 0 && chn <= len(libs)
-            call SendToVimcom("E", 'vimcom:::vim.help("' . topic . '", ' . s:htw . 'L, package="' . libs[chn - 1] . '")')
+            g:SendToVimcom("E", 'vimcom:::vim.help("' .. topic .. '", ' .. htw .. 'L, package="' .. libs[chn - 1] .. '")')
         endif
         return
     endif
 
     if has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr
-        " Exit Terminal mode and go to Normal mode
+        # Exit Terminal mode and go to Normal mode
         stopinsert
     endif
 
-    " Legacy support for running R in a Tmux split pane.
-    " If the help command was triggered in the R Console, jump to Vim pane:
-    if has_key(g:rplugin, "tmux_split") && g:rplugin.tmux_split && !s:running_rhelp
-        let slog = system("tmux select-pane -t " . g:rplugin.editor_pane)
+    # Legacy support for running R in a Tmux split pane.
+    # If the help command was triggered in the R Console, jump to Vim pane:
+    if has_key(g:rplugin, "tmux_split") && g:rplugin.tmux_split && !running_rhelp
+        var slog = system("tmux select-pane -t " .. g:rplugin.editor_pane)
         if v:shell_error
-            call RWarningMsg(slog)
+            g:RWarningMsg(slog)
         endif
     endif
-    let s:running_rhelp = 0
+    running_rhelp = 0
 
     if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
-        let savesb = &switchbuf
+        var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " . g:rplugin.rscript_name
-        exe "set switchbuf=" . savesb
+        exe "sb " .. g:rplugin.rscript_name
+        exe "set switchbuf=" .. savesb
     endif
-    call SetRTextWidth(a:rkeyword)
+    g:SetRTextWidth(rkeyword)
 
-    let rdoccaption = substitute(s:rdoctitle, '\', '', "g")
-    if a:rkeyword =~ "R History"
-        let rdoccaption = "R_History"
-        let s:rdoctitle = "R_History"
+    var rdoccaption = substitute(rdoctitle, '\', '', "g")
+    if rkeyword =~ "R History"
+        rdoccaption = "R_History"
+        rdoctitle = "R_History"
     endif
     if bufloaded(rdoccaption)
-        let curtabnr = tabpagenr()
-        let savesb = &switchbuf
+        var curtabnr = tabpagenr()
+        var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb ". s:rdoctitle
-        exe "set switchbuf=" . savesb
+        exe "sb " .. rdoctitle
+        exe "set switchbuf=" .. savesb
         if g:R_vimpager == "tabnew"
-            exe "tabmove " . curtabnr
+            exe "tabmove " .. curtabnr
         endif
     else
         if g:R_vimpager == "tab" || g:R_vimpager == "tabnew"
-            exe 'tabnew ' . s:rdoctitle
-        elseif s:vimpager == "vertical"
-            let splr = &splitright
+            exe 'tabnew ' .. rdoctitle
+        elseif vimpager_local == "vertical"
+            var splr = &splitright
             set splitright
-            exe s:hwidth . 'vsplit ' . s:rdoctitle
-            let &splitright = splr
-        elseif s:vimpager == "horizontal"
-            exe 'split ' . s:rdoctitle
+            exe hwidth .. 'vsplit ' .. rdoctitle
+            &splitright = splr
+        elseif vimpager_local == "horizontal"
+            exe 'split ' .. rdoctitle
             if winheight(0) < 20
                 resize 20
             endif
-        elseif s:vimpager == "no"
-            " The only way of ShowRDoc() being called when R_vimpager=="no"
-            " is the user setting the value of R_vimpager to 'no' after
-            " Vim startup. It should be set in the vimrc.
+        elseif vimpager_local == "no"
+            # The only way of ShowRDoc() being called when R_vimpager=="no"
+            # is the user setting the value of R_vimpager to 'no' after
+            # Vim startup. It should be set in the vimrc.
             if type(g:R_external_term) == v:t_number && g:R_external_term == 0
-                let g:R_vimpager = "vertical"
+                g:R_vimpager = "vertical"
             else
-                let g:R_vimpager = "tab"
+                g:R_vimpager = "tab"
             endif
-            call ShowRDoc(a:rkeyword)
+            g:ShowRDoc(rkeyword)
             return
         else
             echohl WarningMsg
-            echomsg 'Invalid R_vimpager value: "' . g:R_vimpager . '". Valid values are: "tab", "vertical", "horizontal", "tabnew" and "no".'
+            echomsg 'Invalid R_vimpager value: "' .. g:R_vimpager .. '". Valid values are: "tab", "vertical", "horizontal", "tabnew" and "no".'
             echohl None
             return
         endif
     endif
 
     setlocal modifiable
-    let g:rplugin.curbuf = bufname("%")
+    g:rplugin.curbuf = bufname("%")
 
-    let save_unnamed_reg = @@
+    var save_unnamed_reg = @@
     set modifiable
     sil normal! ggdG
-    let fcntt = split(substitute(a:txt, "\x13", "'", "g"), "\x14")
-    call setline(1, fcntt)
-    if a:rkeyword =~ "R History"
+    var fcntt = split(substitute(txt, "\x13", "'", "g"), "\x14")
+    setline(1, fcntt)
+    if rkeyword =~ "R History"
         set filetype=r
-        call cursor(1, 1)
-    elseif a:rkeyword =~ '(help)' || search("\x08", "nw") > 0
+        cursor(1, 1)
+    elseif rkeyword =~ '(help)' || search("\x08", "nw") > 0
         set filetype=rdoc
-        call cursor(1, 1)
-    elseif a:rkeyword =~? '\.Rd$'
-        " Called by devtools::load_all().
-        " See https://github.com/jalvesaq/Vim-R/issues/482
+        cursor(1, 1)
+    elseif rkeyword =~? '\.Rd$'
+        # Called by devtools::load_all().
+        # See https://github.com/jalvesaq/Vim-R/issues/482
         set filetype=rhelp
-        call cursor(1, 1)
+        cursor(1, 1)
     else
         set filetype=rout
         setlocal bufhidden=wipe
@@ -1105,1026 +1113,1055 @@ function ShowRDoc(rkeyword, txt)
         setlocal noswapfile
         set buftype=nofile
         nnoremap <buffer><silent> q :q<CR>
-        call cursor(1, 1)
+        cursor(1, 1)
     endif
-    let @@ = save_unnamed_reg
+    @@ = save_unnamed_reg
     setlocal nomodified
     stopinsert
     redraw
-endfunction
+enddef
 
 
-"==============================================================================
-" Functions to send code directly to R Console
-"==============================================================================
+# ==============================================================================
+# Functions to send code directly to R Console
+# ==============================================================================
 
-function GetSourceArgs(e)
-    let sargs = ""
+def g:GetSourceArgs(e: string): string
+    var sargs = ""
     if g:R_source_args != ""
-        let sargs = ", " . g:R_source_args
+        sargs = ", " .. g:R_source_args
     endif
-    if a:e == "echo"
-        let sargs .= ', echo=TRUE'
+    if e == "echo"
+        sargs ..= ', echo=TRUE'
     endif
     return sargs
-endfunction
+enddef
 
-" Send sources to R
-function RSourceLines(...)
-    let lines = a:1
+# Send sources to R
+def g:RSourceLines(...args: list<any>): number
+    var lines = args[0]
     if &filetype == "rrst"
-        let lines = map(copy(lines), 'substitute(v:val, "^\\.\\. \\?", "", "")')
+        lines = map(copy(lines), (_, v) => substitute(v, "^\\.\\. \\?", "", ""))
     endif
     if &filetype == "rmd" || &filetype == "quarto"
-        let lines = map(copy(lines), 'substitute(v:val, "^(\\`\\`)\\?", "", "")')
+        lines = map(copy(lines), (_, v) => substitute(v, "^(\\`\\`)\\?", "", ""))
     endif
 
-    if a:0 == 3 && a:3 == "NewtabInsert"
-        call writefile(lines, s:Rsource_write)
-        call SendToVimcom("E", 'vimcom:::vim_capture_source_output("' . s:Rsource_read . '", "NewtabInsert")')
+    if len(args) == 3 && args[2] == "NewtabInsert"
+        writefile(lines, Rsource_write)
+        g:SendToVimcom("E", 'vimcom:::vim_capture_source_output("' .. Rsource_read .. '", "NewtabInsert")')
         return 1
     endif
 
-    " The "brackted paste" option is not documented because it is not well
-    " tested and source() have always worked flawlessly.
+    # The "brackted paste" option is not documented because it is not well
+    # tested and source() have always worked flawlessly.
+    var rcmd: string
     if g:R_source_args == "bracketed paste"
-        let rcmd = "\x1b[200~" . join(lines, "\n") . "\x1b[201~"
+        rcmd = "\x1b[200~" .. join(lines, "\n") .. "\x1b[201~"
     else
-        call writefile(lines, s:Rsource_write)
-        let sargs = substitute(GetSourceArgs(a:2), '^, ', '', '')
-        if a:0 == 3
-            let rcmd = 'VimR.' . a:3 . '(' . sargs . ')'
+        writefile(lines, Rsource_write)
+        var sargs = substitute(g:GetSourceArgs(args[1]), '^, ', '', '')
+        if len(args) == 3
+            rcmd = 'VimR.' .. args[2] .. '(' .. sargs .. ')'
         else
-            let rcmd = 'VimR.source(' . sargs . ')'
+            rcmd = 'VimR.source(' .. sargs .. ')'
         endif
     endif
 
-    if a:0 == 3 && a:3 == "PythonCode"
-        let rcmd = 'reticulate::py_run_file("' . s:Rsource_read . '")'
+    if len(args) == 3 && args[2] == "PythonCode"
+        rcmd = 'reticulate::py_run_file("' .. Rsource_read .. '")'
     endif
 
-    let ok = g:SendCmdToR(rcmd)
+    var ok = g:SendCmdToR(rcmd)
     return ok
-endfunction
+enddef
 
-function CleanOxygenLine(line)
-    let cline = a:line
+def g:CleanOxygenLine(line: string): string
+    var cline = line
     if cline =~ "^\s*#\\{1,2}'"
-        let synName = synIDattr(synID(line("."), col("."), 1), "name")
+        var synName = synIDattr(synID(line("."), col("."), 1), "name")
         if synName == "rOExamples"
-            let cline = substitute(cline, "^\s*#\\{1,2}'", "", "")
+            cline = substitute(cline, "^\s*#\\{1,2}'", "", "")
         endif
     endif
     return cline
-endfunction
+enddef
 
-function CleanCurrentLine()
-    let curline = substitute(getline("."), '^\s*', "", "")
+def g:CleanCurrentLine(): string
+    var curline = substitute(getline("."), '^\s*', "", "")
     if &filetype == "r"
-        let curline = CleanOxygenLine(curline)
+        curline = g:CleanOxygenLine(curline)
     endif
     return curline
-endfunction
+enddef
 
-" Skip empty lines and lines whose first non blank char is '#'
-function GoDown()
+# Skip empty lines and lines whose first non blank char is '#'
+def g:GoDown()
     if &filetype == "rnoweb"
-        let curline = getline(".")
+        var curline = getline(".")
         if curline[0] == '@'
-            call RnwNextChunk()
+            g:RnwNextChunk()
             return
         endif
     elseif &filetype == "rmd" || &filetype == "quarto"
-        let curline = getline(".")
+        var curline = getline(".")
         if curline =~ '^```$'
-            call RmdNextChunk()
+            g:RmdNextChunk()
             return
         endif
     elseif &filetype == "rrst"
-        let curline = getline(".")
+        var curline = getline(".")
         if curline =~ '^\.\. \.\.$'
-            call RrstNextChunk()
+            g:RrstNextChunk()
             return
         endif
     endif
 
-    let i = line(".") + 1
-    call cursor(i, 1)
-    let curline = CleanCurrentLine()
-    let lastLine = line("$")
+    var i = line(".") + 1
+    cursor(i, 1)
+    var curline = g:CleanCurrentLine()
+    var lastLine = line("$")
     while i < lastLine && (curline[0] == '#' || strlen(curline) == 0)
-        let i = i + 1
-        call cursor(i, 1)
-        let curline = CleanCurrentLine()
+        i = i + 1
+        cursor(i, 1)
+        curline = g:CleanCurrentLine()
     endwhile
-endfunction
+enddef
 
-" Send motion to R
-function SendMotionToR(type)
-    let lstart = line("'[")
-    let lend = line("']")
+# Send motion to R
+def g:SendMotionToR(type: string)
+    var lstart = line("'[")
+    var lend = line("']")
     if lstart == lend
-        call SendLineToR("stay", lstart)
+        g:SendLineToR("stay", lstart)
     else
-        let lines = getline(lstart, lend)
-        call RSourceLines(lines, "", "block")
+        var lines = getline(lstart, lend)
+        g:RSourceLines(lines, "", "block")
     endif
-endfunction
+enddef
 
-" Send file to R
-function SendFileToR(e)
-    let fpath = expand("%:p") . ".tmp.R"
+# Send file to R
+def g:SendFileToR(e: string)
+    var fpath = expand("%:p") .. ".tmp.R"
 
     if filereadable(fpath)
-        call RWarningMsg('Error: cannot create "' . fpath . '" because it already exists. Please, delete it.')
+        g:RWarningMsg('Error: cannot create "' .. fpath .. '" because it already exists. Please, delete it.')
         return
     endif
 
     if has("win32")
-        let fpath = substitute(fpath, "\\", "/", "g")
+        fpath = substitute(fpath, "\\", "/", "g")
     endif
-    call writefile(getline(1, "$"), fpath)
-    call AddForDeletion(fpath)
-    let sargs = GetSourceArgs(a:e)
-    let ok = g:SendCmdToR('vimcom:::source.and.clean("' . fpath .  '"' . sargs . ')')
+    writefile(getline(1, "$"), fpath)
+    g:AddForDeletion(fpath)
+    var sargs = g:GetSourceArgs(e)
+    var ok = g:SendCmdToR('vimcom:::source.and.clean("' .. fpath ..  '"' .. sargs .. ')')
     if !ok
-        call delete(fpath)
+        delete(fpath)
     endif
-endfunction
+enddef
 
-" Send block to R
-" Adapted from marksbrowser plugin
-" Function to get the marks which the cursor is between
-function SendMBlockToR(e, m)
+# Send block to R
+# Adapted from marksbrowser plugin
+# Function to get the marks which the cursor is between
+def g:SendMBlockToR(e: string, m: string)
     if &filetype != "r" && b:IsInRCode(1) != 1
         return
     endif
 
-    let curline = line(".")
-    let lineA = 1
-    let lineB = line("$")
-    let maxmarks = strlen(s:all_marks)
-    let n = 0
+    var curline = line(".")
+    var lineA = 1
+    var lineB = line("$")
+    var maxmarks = strlen(all_marks)
+    var n = 0
     while n < maxmarks
-        let c = strpart(s:all_marks, n, 1)
-        let lnum = line("'" . c)
+        var c = strpart(all_marks, n, 1)
+        var lnum = line("'" .. c)
         if lnum != 0
             if lnum <= curline && lnum > lineA
-                let lineA = lnum
+                lineA = lnum
             elseif lnum > curline && lnum < lineB
-                let lineB = lnum
+                lineB = lnum
             endif
         endif
-        let n = n + 1
+        n = n + 1
     endwhile
     if lineA == 1 && lineB == (line("$"))
-        call RWarningMsg("The file has no mark!")
+        g:RWarningMsg("The file has no mark!")
         return
     endif
     if lineB < line("$")
-        let lineB -= 1
+        lineB -= 1
     endif
-    let lines = getline(lineA, lineB)
-    let ok = RSourceLines(lines, a:e, "block")
+    var lines = getline(lineA, lineB)
+    var ok = g:RSourceLines(lines, e, "block")
     if ok == 0
         return
     endif
-    if a:m == "down" && lineB != line("$")
-        call cursor(lineB, 1)
-        call GoDown()
+    if m == "down" && lineB != line("$")
+        cursor(lineB, 1)
+        g:GoDown()
     endif
-endfunction
+enddef
 
-" Count braces
-function CountBraces(line)
-    let line2 = substitute(a:line, "{", "", "g")
-    let line3 = substitute(a:line, "}", "", "g")
-    let result = strlen(line3) - strlen(line2)
+# Count braces
+def g:CountBraces(line: string): number
+    var line2 = substitute(line, "{", "", "g")
+    var line3 = substitute(line, "}", "", "g")
+    var result = strlen(line3) - strlen(line2)
     return result
-endfunction
+enddef
 
-" Send functions to R
-function SendFunctionToR(e, m)
+# Send functions to R
+def g:SendFunctionToR(e: string, m: string)
     if &filetype != "r" && b:IsInRCode(1) != 1
         return
     endif
 
-    let startline = line(".")
-    let save_cursor = getpos(".")
-    let line = SanitizeRLine(getline("."))
-    let i = line(".")
+    var startline = line(".")
+    var save_cursor = getpos(".")
+    var line = g:SanitizeRLine(getline("."))
+    var i = line(".")
     while i > 0 && line !~ "function"
-        let i -= 1
-        let line = SanitizeRLine(getline(i))
+        i -= 1
+        line = g:SanitizeRLine(getline(i))
     endwhile
     if i == 0
-        call RWarningMsg("Begin of function not found.")
+        g:RWarningMsg("Begin of function not found.")
         return
     endif
-    let functionline = i
+    var functionline = i
     while i > 0 && line !~ '\(<-\|=\)[[:space:]]*\($\|function\)'
-        let i -= 1
-        let line = SanitizeRLine(getline(i))
+        i -= 1
+        line = g:SanitizeRLine(getline(i))
     endwhile
     if i == 0
-        call RWarningMsg("The function assign operator  <-  was not found.")
+        g:RWarningMsg("The function assign operator  <-  was not found.")
         return
     endif
-    let firstline = i
-    let i = functionline
-    let line = SanitizeRLine(getline(i))
-    let tt = line("$")
+    var firstline = i
+    i = functionline
+    line = g:SanitizeRLine(getline(i))
+    var tt = line("$")
     while i < tt && line !~ "{"
-        let i += 1
-        let line = SanitizeRLine(getline(i))
+        i += 1
+        line = g:SanitizeRLine(getline(i))
     endwhile
     if i == tt
-        call RWarningMsg("The function opening brace was not found.")
+        g:RWarningMsg("The function opening brace was not found.")
         return
     endif
-    let nb = CountBraces(line)
+    var nb = g:CountBraces(line)
     while i < tt && nb > 0
-        let i += 1
-        let line = SanitizeRLine(getline(i))
-        let nb += CountBraces(line)
+        i += 1
+        line = g:SanitizeRLine(getline(i))
+        nb += g:CountBraces(line)
     endwhile
     if nb != 0
-        call RWarningMsg("The function closing brace was not found.")
+        g:RWarningMsg("The function closing brace was not found.")
         return
     endif
-    let lastline = i
+    var lastline = i
 
     if startline > lastline
-        call setpos(".", [0, firstline - 1, 1])
-        call SendFunctionToR(a:e, a:m)
-        call setpos(".", save_cursor)
+        setpos(".", [0, firstline - 1, 1])
+        g:SendFunctionToR(e, m)
+        setpos(".", save_cursor)
         return
     endif
 
-    let lines = getline(firstline, lastline)
-    let ok = RSourceLines(lines, a:e, "function")
+    var lines = getline(firstline, lastline)
+    var ok = g:RSourceLines(lines, e, "function")
     if  ok == 0
         return
     endif
-    if a:m == "down"
-        call cursor(lastline, 1)
-        call GoDown()
+    if m == "down"
+        cursor(lastline, 1)
+        g:GoDown()
     endif
-endfunction
+enddef
 
-" Send all lines above to R
-function SendAboveLinesToR()
-    let lines = getline(1, line(".") - 1)
-    call RSourceLines(lines, "")
-endfunction
+# Send all lines above to R
+def g:SendAboveLinesToR()
+    var lines = getline(1, line(".") - 1)
+    g:RSourceLines(lines, "")
+enddef
 
-" Send selection to R
-function SendSelectionToR(...)
-    let ispy = 0
+# Send selection to R
+def g:SendSelectionToR(...args: list<any>)
+    var ispy = 0
     if &filetype != "r"
-        if (&filetype == 'rmd' || &filetype == 'quarto') && RmdIsInPythonCode(0)
-            let ispy = 1
+        if (&filetype == 'rmd' || &filetype == 'quarto') && g:RmdIsInPythonCode(0)
+            ispy = 1
         elseif b:IsInRCode(0) != 1
             if (&filetype == "rnoweb" && getline(".") !~ "\\Sexpr{") || ((&filetype == "rmd" || &filetype == "quarto") && getline(".") !~ "`r ") || (&filetype == "rrst" && getline(".") !~ ":r:`")
-                call RWarningMsg("Not inside an R code chunk.")
+                g:RWarningMsg("Not inside an R code chunk.")
                 return
             endif
         endif
     endif
 
     if line("'<") == line("'>")
-        let i = col("'<") - 1
-        let j = col("'>") - i
-        let l = getline("'<")
-        let line = strpart(l, i, j)
+        var i = col("'<") - 1
+        var j = col("'>") - i
+        var l = getline("'<")
+        var line = strpart(l, i, j)
         if &filetype == "r"
-            let line = CleanOxygenLine(line)
+            line = g:CleanOxygenLine(line)
         endif
-        let ok = g:SendCmdToR(line)
-        if ok && a:2 =~ "down"
-            call GoDown()
+        var ok = g:SendCmdToR(line)
+        if ok && args[1] =~ "down"
+            g:GoDown()
         endif
         return
     endif
 
-    let lines = getline("'<", "'>")
+    var lines = getline("'<", "'>")
 
     if visualmode() == "\<C-V>"
-        let lj = line("'<")
-        let cj = col("'<")
-        let lk = line("'>")
-        let ck = col("'>")
+        var lj = line("'<")
+        var cj = col("'<")
+        var lk = line("'>")
+        var ck = col("'>")
+        var bb: number
+        var ee: number
         if cj > ck
-            let bb = ck - 1
-            let ee = cj - ck + 1
+            bb = ck - 1
+            ee = cj - ck + 1
         else
-            let bb = cj - 1
-            let ee = ck - cj + 1
+            bb = cj - 1
+            ee = ck - cj + 1
         endif
         if cj > len(getline(lj)) || ck > len(getline(lk))
             for idx in range(0, len(lines) - 1)
-                let lines[idx] = strpart(lines[idx], bb)
+                lines[idx] = strpart(lines[idx], bb)
             endfor
         else
             for idx in range(0, len(lines) - 1)
-                let lines[idx] = strpart(lines[idx], bb, ee)
+                lines[idx] = strpart(lines[idx], bb, ee)
             endfor
         endif
     else
-        let i = col("'<") - 1
-        let j = col("'>")
-        let lines[0] = strpart(lines[0], i)
-        let llen = len(lines) - 1
-        let lines[llen] = strpart(lines[llen], 0, j)
+        var i = col("'<") - 1
+        var j = col("'>")
+        lines[0] = strpart(lines[0], i)
+        var llen = len(lines) - 1
+        lines[llen] = strpart(lines[llen], 0, j)
     endif
 
-    let curpos = getpos(".")
-    let curline = line("'<")
+    var curpos = getpos(".")
+    var curline = line("'<")
     for idx in range(0, len(lines) - 1)
-        call setpos(".", [0, curline, 1, 0])
+        setpos(".", [0, curline, 1, 0])
         if &filetype == "r"
-            let lines[idx] = CleanOxygenLine(lines[idx])
+            lines[idx] = g:CleanOxygenLine(lines[idx])
         endif
-        let curline += 1
+        curline += 1
     endfor
-    call setpos(".", curpos)
+    setpos(".", curpos)
 
-    if a:0 == 3 && a:3 == "NewtabInsert"
-        let ok = RSourceLines(lines, a:1, "NewtabInsert")
+    var ok: number
+    if len(args) == 3 && args[2] == "NewtabInsert"
+        ok = g:RSourceLines(lines, args[0], "NewtabInsert")
     elseif ispy
-        let ok = RSourceLines(lines, a:1, 'PythonCode')
+        ok = g:RSourceLines(lines, args[0], 'PythonCode')
     else
-        let ok = RSourceLines(lines, a:1, 'selection')
+        ok = g:RSourceLines(lines, args[0], 'selection')
     endif
 
     if ok == 0
         return
     endif
 
-    if a:2 == "down"
-        call GoDown()
+    if args[1] == "down"
+        g:GoDown()
     else
-        if a:0 < 3 || (a:0 == 3 && a:3 != "normal")
+        if len(args) < 3 || (len(args) == 3 && args[2] != "normal")
             normal! gv
         endif
     endif
-endfunction
+enddef
 
-" Send paragraph to R
-function SendParagraphToR(e, m)
+# Send paragraph to R
+def g:SendParagraphToR(e: string, m: string)
     if &filetype != "r" && b:IsInRCode(1) != 1
         return
     endif
 
-    let o = line(".")
-    let c = col(".")
-    let i = o
+    var o = line(".")
+    var c = col(".")
+    var i = o
     if g:R_paragraph_begin && getline(i) !~ '^\s*$'
-        let line = getline(i-1)
+        var line = getline(i - 1)
         while i > 1 && !(line =~ '^\s*$' ||
-                    \ (&filetype == "rnoweb" && line =~ "^<<") ||
-                    \ ((&filetype == "rmd" || &filetype == "quarto") && line =~ "^[ \t]*```{\\(r\\|python\\)"))
-            let i -= 1
-            let line = getline(i-1)
+                    (&filetype == "rnoweb" && line =~ "^<<") ||
+                    ((&filetype == "rmd" || &filetype == "quarto") && line =~ "^[ \t]*```{\\(r\\|python\\)"))
+            i -= 1
+            line = getline(i - 1)
         endwhile
     endif
-    let max = line("$")
-    let j = i
-    let gotempty = 0
+    var max = line("$")
+    var j = i
+    var gotempty = 0
     while j < max
-        let line = getline(j+1)
+        var line = getline(j + 1)
         if line =~ '^\s*$' ||
-                    \ (&filetype == "rnoweb" && line =~ "^@$") ||
-                    \ ((&filetype == "rmd" || &filetype == "quarto") && line =~ "^[ \t]*```$")
+                    (&filetype == "rnoweb" && line =~ "^@$") ||
+                    ((&filetype == "rmd" || &filetype == "quarto") && line =~ "^[ \t]*```$")
             break
         endif
-        let j += 1
+        j += 1
     endwhile
-    let lines = getline(i, j)
-    let ok = RSourceLines(lines, a:e, "paragraph")
+    var lines = getline(i, j)
+    var ok = g:RSourceLines(lines, e, "paragraph")
     if ok == 0
         return
     endif
     if j < max
-        call cursor(j, 1)
+        cursor(j, 1)
     else
-        call cursor(max, 1)
+        cursor(max, 1)
     endif
-    if a:m == "down"
-        call GoDown()
+    if m == "down"
+        g:GoDown()
     else
-        call cursor(o, c)
+        cursor(o, c)
     endif
-endfunction
+enddef
 
-" Send R code from the first chunk up to current line
-function SendFHChunkToR()
+# Send R code from the first chunk up to current line
+def g:SendFHChunkToR()
+    var begchk: string
+    var endchk: string
+    var chdchk: string
     if &filetype == "rnoweb"
-        let begchk = "^<<.*>>=\$"
-        let endchk = "^@"
-        let chdchk = "^<<.*child *= *"
+        begchk = "^<<.*>>=\$"
+        endchk = "^@"
+        chdchk = "^<<.*child *= *"
     elseif &filetype == "rmd" || &filetype == "quarto"
-        let begchk = "^[ \t]*```[ ]*{r"
-        let endchk = "^[ \t]*```$"
-        let chdchk = "^```.*child *= *"
+        begchk = "^[ \t]*```[ ]*{r"
+        endchk = "^[ \t]*```$"
+        chdchk = "^```.*child *= *"
     elseif &filetype == "rrst"
-        let begchk = "^\\.\\. {r"
-        let endchk = "^\\.\\. \\.\\."
-        let chdchk = "^\.\. {r.*child *= *"
+        begchk = "^\\.\\. {r"
+        endchk = "^\\.\\. \\.\\."
+        chdchk = "^\.\. {r.*child *= *"
     else
-        " Should never happen
-        call RWarningMsg('Strange filetype (SendFHChunkToR): "' . &filetype . '"')
+        # Should never happen
+        g:RWarningMsg('Strange filetype (SendFHChunkToR): "' .. &filetype .. '"')
     endif
 
-    let codelines = []
-    let here = line(".")
-    let curbuf = getline(1, "$")
-    let idx = 0
+    var codelines: list<string> = []
+    var here = line(".")
+    var curbuf = getline(1, "$")
+    var idx = 0
     while idx < here
         if curbuf[idx] =~ begchk && curbuf[idx] !~ '\<eval\s*=\s*F'
-            " Child R chunk
+            # Child R chunk
             if curbuf[idx] =~ chdchk
-                " First run everything up to child chunk and reset buffer
-                call RSourceLines(codelines, "silent", "chunk")
-                let codelines = []
+                # First run everything up to child chunk and reset buffer
+                g:RSourceLines(codelines, "silent", "chunk")
+                codelines = []
 
-                " Next run child chunk and continue
-                call KnitChild(curbuf[idx], 'stay')
-                let idx += 1
-                " Regular R chunk
+                # Next run child chunk and continue
+                g:KnitChild(curbuf[idx], 'stay')
+                idx += 1
+                # Regular R chunk
             else
-                let idx += 1
+                idx += 1
                 while curbuf[idx] !~ endchk && idx < here
-                    let codelines += [curbuf[idx]]
-                    let idx += 1
+                    codelines += [curbuf[idx]]
+                    idx += 1
                 endwhile
             endif
         else
-            let idx += 1
+            idx += 1
         endif
     endwhile
-    call RSourceLines(codelines, "silent", "chunk")
-endfunction
+    g:RSourceLines(codelines, "silent", "chunk")
+enddef
 
-function KnitChild(line, godown)
-    let nline = substitute(a:line, '.*child *= *', "", "")
-    let cfile = substitute(nline, nline[0], "", "")
-    let cfile = substitute(cfile, nline[0] . '.*', "", "")
+def g:KnitChild(line: string, godown: string)
+    var nline = substitute(line, '.*child *= *', "", "")
+    var cfile = substitute(nline, nline[0], "", "")
+    cfile = substitute(cfile, nline[0] .. '.*', "", "")
     if filereadable(cfile)
-        let ok = g:SendCmdToR("require(knitr); knit('" . cfile . "', output=" . s:null . ")")
-        if a:godown =~ "down"
-            call cursor(line(".")+1, 1)
-            call GoDown()
+        var ok = g:SendCmdToR("require(knitr); knit('" .. cfile .. "', output=" .. null .. ")")
+        if godown =~ "down"
+            cursor(line(".") + 1, 1)
+            g:GoDown()
         endif
     else
-        call RWarningMsg("File not found: '" . cfile . "'")
+        g:RWarningMsg("File not found: '" .. cfile .. "'")
     endif
-endfunction
+enddef
 
-function RParenDiff(str)
-    let clnln = substitute(a:str, '\\"',  "", "g")
-    let clnln = substitute(clnln, "\\\\'",  "", "g")
-    let clnln = substitute(clnln, '".\{-}"',  '', 'g')
-    let clnln = substitute(clnln, "'.\\{-}'",  "", "g")
-    let clnln = substitute(clnln, "#.*", "", "g")
-    let llen1 = strlen(substitute(clnln, '[{(\[]', '', 'g'))
-    let llen2 = strlen(substitute(clnln, '[})\]]', '', 'g'))
+def g:RParenDiff(str: string): number
+    var clnln = substitute(str, '\\"',  "", "g")
+    clnln = substitute(clnln, "\\\\'",  "", "g")
+    clnln = substitute(clnln, '".\{-}"',  '', 'g')
+    clnln = substitute(clnln, "'.\\{-}'",  "", "g")
+    clnln = substitute(clnln, "#.*", "", "g")
+    var llen1 = strlen(substitute(clnln, '[{(\[]', '', 'g'))
+    var llen2 = strlen(substitute(clnln, '[})\]]', '', 'g'))
     return llen1 - llen2
-endfunction
+enddef
 
 if exists('g:r_indent_op_pattern')
-    let g:rplugin.op_pattern = g:r_indent_op_pattern
+    g:rplugin.op_pattern = g:r_indent_op_pattern
 else
-    let g:rplugin.op_pattern = '\(&\||\|+\|-\|\*\|/\|=\|\~\|%\|->\||>\)\s*$'
+    g:rplugin.op_pattern = '\(&\||\|+\|-\|\*\|/\|=\|\~\|%\|->\||>\)\s*$'
 endif
 
-" Send current line to R.
-function SendLineToR(godown, ...)
-    let lnum = get(a:, 1, ".")
-    let line = getline(lnum)
+# Send current line to R.
+def g:SendLineToR(godown: string, ...args: list<any>)
+    var lnum = get(args, 0, ".")
+    var line = getline(lnum)
     if strlen(line) == 0
-        if a:godown =~ "down"
-            call GoDown()
+        if godown =~ "down"
+            g:GoDown()
         endif
         return
     endif
 
     if &filetype == "rnoweb"
         if line == "@"
-            if a:godown =~ "down"
-                call GoDown()
+            if godown =~ "down"
+                g:GoDown()
             endif
             return
         endif
         if line =~ "^<<.*child *= *"
-            call KnitChild(line, a:godown)
+            g:KnitChild(line, godown)
             return
         endif
-        if RnwIsInRCode(1) != 1
+        if g:RnwIsInRCode(1) != 1
             return
         endif
     endif
 
     if &filetype == "rmd" || &filetype == "quarto"
         if line == "```"
-            if a:godown =~ "down"
-                call GoDown()
+            if godown =~ "down"
+                g:GoDown()
             endif
             return
         endif
         if line =~ "^```.*child *= *"
-            call KnitChild(line, a:godown)
+            g:KnitChild(line, godown)
             return
         endif
-        let line = substitute(line, "^(\\`\\`)\\?", "", "")
-        if RmdIsInRCode(0) != 1
-            if RmdIsInPythonCode(0) == 0
-                call RWarningMsg("Not inside an R code chunk.")
+        line = substitute(line, "^(\\`\\`)\\?", "", "")
+        if g:RmdIsInRCode(0) != 1
+            if g:RmdIsInPythonCode(0) == 0
+                g:RWarningMsg("Not inside an R code chunk.")
                 return
             else
-                let line = 'reticulate::py_run_string("' . substitute(line, '"', '\\"', 'g') . '")'
+                line = 'reticulate::py_run_string("' .. substitute(line, '"', '\\"', 'g') .. '")'
             endif
         endif
     endif
 
     if &filetype == "rrst"
         if line == ".. .."
-            if a:godown =~ "down"
-                call GoDown()
+            if godown =~ "down"
+                g:GoDown()
             endif
             return
         endif
         if line =~ "^\.\. {r.*child *= *"
-            call KnitChild(line, a:godown)
+            g:KnitChild(line, godown)
             return
         endif
-        let line = substitute(line, "^\\.\\. \\?", "", "")
-        if RrstIsInRCode(1) != 1
+        line = substitute(line, "^\\.\\. \\?", "", "")
+        if g:RrstIsInRCode(1) != 1
             return
         endif
     endif
 
     if &filetype == "rdoc"
         if getline(1) =~ '^The topic'
-            let topic = substitute(line, '.*::', '', "")
-            let package = substitute(line, '::.*', '', "")
-            call AskRDoc(topic, package, 1)
+            var topic = substitute(line, '.*::', '', "")
+            var package = substitute(line, '::.*', '', "")
+            g:AskRDoc(topic, package, 1)
             return
         endif
-        if RdocIsInRCode(1) != 1
+        if g:RdocIsInRCode(1) != 1
             return
         endif
     endif
 
-    if &filetype == "rhelp" && RhelpIsInRCode(1) != 1
+    if &filetype == "rhelp" && g:RhelpIsInRCode(1) != 1
         return
     endif
 
     if &filetype == "r"
-        let line = CleanOxygenLine(line)
+        line = g:CleanOxygenLine(line)
     endif
 
-    let block = 0
+    var block = 0
+    var has_op = false
+    var ok = 0
     if g:R_parenblock
-        let chunkend = ""
+        var chunkend = ""
         if &filetype == "rmd" || &filetype == "quarto"
-            let chunkend = "```"
+            chunkend = "```"
         elseif &filetype == "rnoweb"
-            let chunkend = "@"
+            chunkend = "@"
         elseif &filetype == "rrst"
-            let chunkend = ".. .."
+            chunkend = ".. .."
         endif
-        let rpd = RParenDiff(line)
-        let has_op = substitute(line, '#.*', '', '') =~ g:rplugin.op_pattern
+        var rpd = g:RParenDiff(line)
+        has_op = substitute(line, '#.*', '', '') =~ g:rplugin.op_pattern
         if rpd < 0
-            let line1 = line(".")
-            let cline = line1 + 1
+            var line1 = line(".")
+            var cline = line1 + 1
             while cline <= line("$")
-                let txt = getline(cline)
+                var txt = getline(cline)
                 if chunkend != "" && txt == chunkend
                     break
                 endif
-                let rpd += RParenDiff(txt)
+                rpd += g:RParenDiff(txt)
                 if rpd == 0
-                    let has_op = substitute(getline(cline), '#.*', '', '') =~ g:rplugin.op_pattern
-                    for lnum in range(line1, cline)
+                    has_op = substitute(getline(cline), '#.*', '', '') =~ g:rplugin.op_pattern
+                    for lnum2 in range(line1, cline)
                         if g:R_bracketed_paste
-                            if lnum == line1 && lnum == cline
-                                let ok = g:SendCmdToR("\x1b[200~" . getline(lnum) . "\x1b[201~\n", 0)
-                            elseif lnum == line1
-                                let ok = g:SendCmdToR("\x1b[200~" . getline(lnum))
-                            elseif lnum == cline
-                                let ok = g:SendCmdToR(getline(lnum) . "\x1b[201~\n", 0)
+                            if lnum2 == line1 && lnum2 == cline
+                                ok = g:SendCmdToR("\x1b[200~" .. getline(lnum2) .. "\x1b[201~\n", 0)
+                            elseif lnum2 == line1
+                                ok = g:SendCmdToR("\x1b[200~" .. getline(lnum2))
+                            elseif lnum2 == cline
+                                ok = g:SendCmdToR(getline(lnum2) .. "\x1b[201~\n", 0)
                             else
-                                let ok = g:SendCmdToR(getline(lnum))
+                                ok = g:SendCmdToR(getline(lnum2))
                             endif
                         else
-                            let ok = g:SendCmdToR(getline(lnum))
-                        end
+                            ok = g:SendCmdToR(getline(lnum2))
+                        endif
                         if !ok
-                            " always close bracketed mode upon failure
+                            # always close bracketed mode upon failure
                             if g:R_bracketed_paste
-                                call g:SendCmdToR("\x1b[201~\n", 0)
-                            end
+                                g:SendCmdToR("\x1b[201~\n", 0)
+                            endif
                             return
                         endif
                     endfor
-                    call cursor(cline, 1)
-                    let block = 1
+                    cursor(cline, 1)
+                    block = 1
                     break
                 endif
-                let cline += 1
+                cline += 1
             endwhile
         endif
     endif
 
     if !block
         if g:R_bracketed_paste
-            let ok = g:SendCmdToR("\x1b[200~" . line . "\x1b[201~\n", 0)
+            ok = g:SendCmdToR("\x1b[200~" .. line .. "\x1b[201~\n", 0)
         else
-            let ok = g:SendCmdToR(line)
-        end
+            ok = g:SendCmdToR(line)
+        endif
     endif
 
     if ok
-        if a:godown =~ "down"
-            call GoDown()
-            if exists('has_op') && has_op
-                call SendLineToR(a:godown)
+        if godown =~ "down"
+            g:GoDown()
+            if has_op
+                g:SendLineToR(godown)
             endif
         else
-            if a:godown == "newline"
+            if godown == "newline"
                 normal! o
             endif
         endif
     endif
-endfunction
+enddef
 
-function RSendPartOfLine(direction, correctpos)
-    let lin = getline(".")
-    let idx = col(".") - 1
-    if a:correctpos
-        call cursor(line("."), idx)
+def g:RSendPartOfLine(direction: string, correctpos: number)
+    var lin = getline(".")
+    var idx = col(".") - 1
+    if correctpos
+        cursor(line("."), idx)
     endif
-    if a:direction == "right"
-        let rcmd = strpart(lin, idx)
+    var rcmd: string
+    if direction == "right"
+        rcmd = strpart(lin, idx)
     else
-        let rcmd = strpart(lin, 0, idx + 1)
+        rcmd = strpart(lin, 0, idx + 1)
     endif
-    call g:SendCmdToR(rcmd)
-endfunction
+    g:SendCmdToR(rcmd)
+enddef
 
-" Clear the console screen
-function RClearConsole()
+# Clear the console screen
+def g:RClearConsole()
     if g:R_clear_console == 0
         return
     endif
     if has("win32") && type(g:R_external_term) == v:t_number && g:R_external_term == 1
-        call JobStdin(g:rplugin.jobs["Server"], "86\n")
+        g:JobStdin(g:rplugin.jobs["Server"], "86\n")
         sleep 50m
-        call JobStdin(g:rplugin.jobs["Server"], "87\n")
+        g:JobStdin(g:rplugin.jobs["Server"], "87\n")
     else
-        call g:SendCmdToR("\014", 0)
+        g:SendCmdToR("\014", 0)
     endif
-endfunction
+enddef
 
-" Remove all objects
-function RClearAll()
+# Remove all objects
+def g:RClearAll()
     if g:R_rmhidden
-        call g:SendCmdToR("rm(list=ls(all.names = TRUE))")
+        g:SendCmdToR("rm(list=ls(all.names = TRUE))")
     else
-        call g:SendCmdToR("rm(list=ls())")
+        g:SendCmdToR("rm(list=ls())")
     endif
     sleep 500m
-    call RClearConsole()
-endfunction
+    g:RClearConsole()
+enddef
 
-" Set working directory to the path of current buffer
-function RSetWD()
-    let wdcmd = 'setwd("' . s:RGetBufDir() . '")'
+# Set working directory to the path of current buffer
+def g:RSetWD()
+    var wdcmd = 'setwd("' .. RGetBufDir() .. '")'
     if has("win32")
-        let wdcmd = substitute(wdcmd, "\\", "/", "g")
+        wdcmd = substitute(wdcmd, "\\", "/", "g")
     endif
-    call g:SendCmdToR(wdcmd)
+    g:SendCmdToR(wdcmd)
     sleep 100m
-endfunction
+enddef
 
-" knit the current buffer content
-function RKnit()
+# knit the current buffer content
+def g:RKnit()
     update
-    call g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' . s:RGetBufDir() . '"); knit("' . expand("%:t") . '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
-endfunction
+    g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' .. RGetBufDir() .. '"); knit("' .. expand("%:t") .. '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
+enddef
 
-function StartTxtBrowser(brwsr, url)
-    exe 'terminal ++curwin ++close ' . a:brwsr . ' "' . a:url . '"'
-endfunction
+def g:StartTxtBrowser(brwsr: string, url: string)
+    exe 'terminal ++curwin ++close ' .. brwsr .. ' "' .. url .. '"'
+enddef
 
-function RSourceDirectory(...)
+def g:RSourceDirectory(...args: list<any>)
+    var dir: string
     if has("win32")
-        let dir = substitute(a:1, '\\', '/', "g")
+        dir = substitute(args[0], '\\', '/', "g")
     else
-        let dir = a:1
+        dir = args[0]
     endif
     if dir == ""
-        call g:SendCmdToR("vim.srcdir()")
+        g:SendCmdToR("vim.srcdir()")
     else
-        call g:SendCmdToR("vim.srcdir('" . dir . "')")
+        g:SendCmdToR("vim.srcdir('" .. dir .. "')")
     endif
-endfunction
+enddef
 
-function PrintRObject(rkeyword)
+def g:PrintRObject(rkeyword: string)
+    var firstobj: string
     if bufname("%") =~ "Object_Browser"
-        let firstobj = ""
+        firstobj = ""
     else
-        let firstobj = RGetFirstObj(a:rkeyword)[0]
+        firstobj = g:RGetFirstObj(rkeyword)[0]
     endif
     if firstobj == ""
-        call g:SendCmdToR("print(" . a:rkeyword . ")")
+        g:SendCmdToR("print(" .. rkeyword .. ")")
     else
-        call g:SendCmdToR('vim.print("' . a:rkeyword . '", "' . firstobj . '")')
+        g:SendCmdToR('vim.print("' .. rkeyword .. '", "' .. firstobj .. '")')
     endif
-endfunction
+enddef
 
-function OpenRExample()
-    if bufloaded(g:rplugin.tmpdir . "/example.R")
-        exe "bunload! " . substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g')
+def g:OpenRExample()
+    if bufloaded(g:rplugin.tmpdir .. "/example.R")
+        exe "bunload! " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g')
     endif
     if g:R_vimpager == "tabnew" || g:R_vimpager == "tab"
-        exe "tabnew " . substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') . "/example.R"
+        exe "tabnew " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
     else
-        let vimpager = g:R_vimpager
+        var vimpager = g:R_vimpager
         if g:R_vimpager == "vertical"
-            let wwidth = winwidth(0)
-            let min_e = (g:R_editor_w > 78) ? g:R_editor_w : 78
-            let min_h = (g:R_help_w > 78) ? g:R_help_w : 78
+            var wwidth = winwidth(0)
+            var min_e = (g:R_editor_w > 78) ? g:R_editor_w : 78
+            var min_h = (g:R_help_w > 78) ? g:R_help_w : 78
             if wwidth < (min_e + min_h)
-                let vimpager = "horizontal"
+                vimpager = "horizontal"
             endif
         endif
         if vimpager == "vertical"
-            exe "belowright vsplit " . substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') . "/example.R"
+            exe "belowright vsplit " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
         else
-            exe "belowright split " . substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') . "/example.R"
+            exe "belowright split " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
         endif
     endif
     nnoremap <buffer><silent> q :q<CR>
     setlocal bufhidden=wipe
     setlocal noswapfile
     set buftype=nofile
-    call delete(g:rplugin.tmpdir . "/example.R")
-endfunction
+    delete(g:rplugin.tmpdir .. "/example.R")
+enddef
 
-" Call R functions for the word under cursor
-function RAction(rcmd, ...)
+# Call R functions for the word under cursor
+def g:RAction(rcmd: string, ...args: list<any>)
+    var rkeyword: string
     if &filetype == "rdoc"
-        let rkeyword = expand('<cword>')
+        rkeyword = expand('<cword>')
     elseif &filetype == "rbrowser"
-        let rkeyword = RBrowserGetName()
-    elseif a:0 == 1 && a:1 == "v" && line("'<") == line("'>")
-        let rkeyword = strpart(getline("'>"), col("'<") - 1, col("'>") - col("'<") + 1)
-    elseif a:0 == 1 && a:1 != "v" && a:1 !~ '^,'
-        let rkeyword = RGetKeyword()
+        rkeyword = g:RBrowserGetName()
+    elseif len(args) == 1 && args[0] == "v" && line("'<") == line("'>")
+        rkeyword = strpart(getline("'>"), col("'<") - 1, col("'>") - col("'<") + 1)
+    elseif len(args) == 1 && args[0] != "v" && args[0] !~ '^,'
+        rkeyword = g:RGetKeyword()
     else
-        let rkeyword = RGetKeyword()
+        rkeyword = g:RGetKeyword()
     endif
     if strlen(rkeyword) > 0
-        if a:rcmd == "help"
+        if rcmd == "help"
+            var rhelppkg: string
+            var rhelptopic: string
             if rkeyword =~ "::"
-                let rhelplist = split(rkeyword, "::")
-                let rhelppkg = rhelplist[0]
-                let rhelptopic = rhelplist[1]
+                var rhelplist = split(rkeyword, "::")
+                rhelppkg = rhelplist[0]
+                rhelptopic = rhelplist[1]
             else
-                let rhelppkg = ""
-                let rhelptopic = rkeyword
+                rhelppkg = ""
+                rhelptopic = rkeyword
             endif
-            let s:running_rhelp = 1
+            running_rhelp = 1
             if g:R_vimpager == "no"
-                call g:SendCmdToR("help(" . rkeyword . ")")
+                g:SendCmdToR("help(" .. rkeyword .. ")")
             else
                 if bufname("%") =~ "Object_Browser"
                     if g:rplugin.curview == "libraries"
-                        let pkg = RBGetPkgName()
+                        var pkg = g:RBGetPkgName()
                     else
-                        let pkg = ""
+                        var pkg = ""
                     endif
                 endif
-                call AskRDoc(rhelptopic, rhelppkg, 1)
+                g:AskRDoc(rhelptopic, rhelppkg, 1)
             endif
             return
         endif
-        if a:rcmd == "print"
-            call PrintRObject(rkeyword)
+        if rcmd == "print"
+            g:PrintRObject(rkeyword)
             return
         endif
-        let rfun = a:rcmd
-        if a:rcmd == "args"
+        var rfun = rcmd
+        if rcmd == "args"
             if g:R_listmethods == 1 && rkeyword !~ '::'
-                call g:SendCmdToR('vim.list.args("' . rkeyword . '")')
+                g:SendCmdToR('vim.list.args("' .. rkeyword .. '")')
             else
-                call g:SendCmdToR('args(' . rkeyword . ')')
+                g:SendCmdToR('args(' .. rkeyword .. ')')
             endif
             return
         endif
-        if a:rcmd == "plot" && g:R_specialplot == 1
-            let rfun = "vim.plot"
+        if rcmd == "plot" && g:R_specialplot == 1
+            rfun = "vim.plot"
         endif
-        if a:rcmd == "plotsumm"
+        if rcmd == "plotsumm"
+            var raction: string
             if g:R_specialplot == 1
-                let raction = "vim.plot(" . rkeyword . "); summary(" . rkeyword . ")"
+                raction = "vim.plot(" .. rkeyword .. "); summary(" .. rkeyword .. ")"
             else
-                let raction = "plot(" . rkeyword . "); summary(" . rkeyword . ")"
+                raction = "plot(" .. rkeyword .. "); summary(" .. rkeyword .. ")"
             endif
-            call g:SendCmdToR(raction)
+            g:SendCmdToR(raction)
             return
         endif
 
-        if g:R_open_example && a:rcmd == "example"
-            call SendToVimcom("E", 'vimcom:::vim.example("' . rkeyword . '")')
+        if g:R_open_example && rcmd == "example"
+            g:SendToVimcom("E", 'vimcom:::vim.example("' .. rkeyword .. '")')
             return
         endif
 
-        if a:0 == 1 && a:1 =~ '^,'
-            let argmnts = a:1
-        elseif a:0 == 2 && a:2 =~ '^,'
-            let argmnts = a:2
+        var argmnts: string
+        if len(args) == 1 && args[0] =~ '^,'
+            argmnts = args[0]
+        elseif len(args) == 2 && args[1] =~ '^,'
+            argmnts = args[1]
         else
-            let argmnts = ''
+            argmnts = ''
         endif
 
-        if a:rcmd == "viewobj" || a:rcmd == "dputtab"
-            if a:rcmd == "viewobj"
+        if rcmd == "viewobj" || rcmd == "dputtab"
+            if rcmd == "viewobj"
                 if exists("g:R_df_viewer")
-                    let argmnts .= ', R_df_viewer = "' . g:R_df_viewer . '"'
+                    argmnts ..= ', R_df_viewer = "' .. g:R_df_viewer .. '"'
                 endif
                 if rkeyword =~ '::'
-                    call SendToVimcom("E",
-                                \'vimcom:::vim_viewobj(' . rkeyword . argmnts . ')')
+                    g:SendToVimcom("E",
+                                'vimcom:::vim_viewobj(' .. rkeyword .. argmnts .. ')')
                 else
                     if has("win32") && &encoding == "utf-8"
-                        call SendToVimcom("E",
-                                    \'vimcom:::vim_viewobj("' . rkeyword . '"' . argmnts .
-                                    \', fenc="UTF-8"' . ')')
+                        g:SendToVimcom("E",
+                                    'vimcom:::vim_viewobj("' .. rkeyword .. '"' .. argmnts ..
+                                    ', fenc="UTF-8"' .. ')')
                     else
-                        call SendToVimcom("E",
-                                    \'vimcom:::vim_viewobj("' . rkeyword . '"' . argmnts . ')')
+                        g:SendToVimcom("E",
+                                    'vimcom:::vim_viewobj("' .. rkeyword .. '"' .. argmnts .. ')')
                     endif
                 endif
             else
-                call SendToVimcom("E",
-                            \'vimcom:::vim_dput("' . rkeyword . '"' . argmnts . ')')
+                g:SendToVimcom("E",
+                            'vimcom:::vim_dput("' .. rkeyword .. '"' .. argmnts .. ')')
             endif
             return
         endif
 
-        let raction = rfun . '(' . rkeyword . argmnts . ')'
-        call g:SendCmdToR(raction)
+        var raction = rfun .. '(' .. rkeyword .. argmnts .. ')'
+        g:SendCmdToR(raction)
     endif
-endfunction
+enddef
 
-function RLoadHTML(fullpath, browser)
+def g:RLoadHTML(fullpath: string, browser: string)
     if g:R_openhtml == 0
         return
     endif
 
-    if a:browser == ''
+    var cmd: list<string>
+    if browser == ''
         if has('win32')
-            let cmd = ['open', a:fullpath]
+            cmd = ['open', fullpath]
         else
-            let cmd = ['xdg-open', a:fullpath]
+            cmd = ['xdg-open', fullpath]
         endif
     else
-        let cmd = split(a:browser) + [a:fullpath]
+        cmd = split(browser) + [fullpath]
     endif
 
-    call job_start(cmd)
-endfunction
+    job_start(cmd)
+enddef
 
-function ROpenDoc(fullpath, browser)
-    if a:fullpath == ""
+def g:ROpenDoc(fullpath: string, browser: string)
+    if fullpath == ""
         return
     endif
-    if !filereadable(a:fullpath)
-        call RWarningMsg('The file "' . a:fullpath . '" does not exist.')
+    if !filereadable(fullpath)
+        g:RWarningMsg('The file "' .. fullpath .. '" does not exist.')
         return
     endif
-    if a:fullpath =~ '.odt$' || a:fullpath =~ '.docx$'
-        call system('lowriter ' . a:fullpath . ' &')
-    elseif a:fullpath =~ '.pdf$'
-        call ROpenPDF(a:fullpath)
-    elseif a:fullpath =~ '.html$'
-        call RLoadHTML(a:fullpath, a:browser)
+    if fullpath =~ '.odt$' || fullpath =~ '.docx$'
+        system('lowriter ' .. fullpath .. ' &')
+    elseif fullpath =~ '.pdf$'
+        g:ROpenPDF(fullpath)
+    elseif fullpath =~ '.html$'
+        g:RLoadHTML(fullpath, browser)
     else
-        call RWarningMsg("Unknown file type from vim.interlace: " . a:fullpath)
+        g:RWarningMsg("Unknown file type from vim.interlace: " .. fullpath)
     endif
-endfunction
+enddef
 
-" render a document with rmarkdown
-function RMakeRmd(t)
+# render a document with rmarkdown
+def g:RMakeRmd(t: string)
     if !has_key(g:rplugin, "pdfviewer")
-        call RSetPDFViewer()
+        g:RSetPDFViewer()
     endif
 
     update
 
-    let rmddir = s:RGetBufDir()
-    if a:t == "default"
-        let rcmd = 'vim.interlace.rmd("' . expand("%:t") . '", rmddir = "' . rmddir . '"'
+    var rmddir = RGetBufDir()
+    var rcmd: string
+    if t == "default"
+        rcmd = 'vim.interlace.rmd("' .. expand("%:t") .. '", rmddir = "' .. rmddir .. '"'
     else
-        let rcmd = 'vim.interlace.rmd("' . expand("%:t") . '", outform = "' . a:t .'", rmddir = "' . rmddir . '"'
+        rcmd = 'vim.interlace.rmd("' .. expand("%:t") .. '", outform = "' .. t .. '", rmddir = "' .. rmddir .. '"'
     endif
 
     if g:R_rmarkdown_args == ''
-        let rcmd = rcmd . ', envir = ' . g:R_rmd_environment . ')'
+        rcmd = rcmd .. ', envir = ' .. g:R_rmd_environment .. ')'
     else
-        let rcmd = rcmd . ', envir = ' . g:R_rmd_environment . ', ' . substitute(g:R_rmarkdown_args, "'", '"', 'g') . ')'
+        rcmd = rcmd .. ', envir = ' .. g:R_rmd_environment .. ', ' .. substitute(g:R_rmarkdown_args, "'", '"', 'g') .. ')'
     endif
-    call g:SendCmdToR(rcmd)
-endfunction
+    g:SendCmdToR(rcmd)
+enddef
 
-function RBuildTags()
+def g:RBuildTags()
     if filereadable("etags")
-        call RWarningMsg('The file "etags" exists. Please, delete it and try again.')
+        g:RWarningMsg('The file "etags" exists. Please, delete it and try again.')
         return
     endif
-    call g:SendCmdToR('rtags(ofile = "etags"); etags2ctags("etags", "tags"); unlink("etags")')
-endfunction
+    g:SendCmdToR('rtags(ofile = "etags"); etags2ctags("etags", "tags"); unlink("etags")')
+enddef
 
 
-"==============================================================================
-" Set variables
-"==============================================================================
+# ==============================================================================
+# Set variables
+# ==============================================================================
 
-let g:R_rmhidden          = get(g:, "R_rmhidden",           0)
-let g:R_paragraph_begin   = get(g:, "R_paragraph_begin",    1)
-let g:R_after_ob_open     = get(g:, "R_after_ob_open",     [])
-let g:R_min_editor_width  = get(g:, "R_min_editor_width",  80)
-let g:R_rconsole_width    = get(g:, "R_rconsole_width",    80)
-let g:R_rconsole_height   = get(g:, "R_rconsole_height",   15)
-let g:R_after_start       = get(g:, "R_after_start",       [])
-let g:R_listmethods       = get(g:, "R_listmethods",        0)
-let g:R_specialplot       = get(g:, "R_specialplot",        0)
-let g:R_notmuxconf        = get(g:, "R_notmuxconf",         0)
-let g:R_editor_w          = get(g:, "R_editor_w",          66)
-let g:R_help_w            = get(g:, "R_help_w",            46)
-let g:R_esc_term          = get(g:, "R_esc_term",           1)
-let g:R_close_term        = get(g:, "R_close_term",         1)
-let g:R_buffer_opts       = get(g:, "R_buffer_opts", "winfixwidth winfixheight nobuflisted")
-let g:R_debug             = get(g:, "R_debug",              1)
-let g:R_debug_center      = get(g:, "R_debug_center",       0)
-let g:R_dbg_jump          = get(g:, "R_dbg_jump",           1)
-let g:R_wait              = get(g:, "R_wait",              60)
-let g:R_wait_reply        = get(g:, "R_wait_reply",         2)
-let g:R_open_example      = get(g:, "R_open_example",       1)
-let g:R_bracketed_paste   = get(g:, "R_bracketed_paste",    0)
-let g:R_clear_console     = get(g:, "R_clear_console",      1)
-let g:R_objbr_auto_start  = get(g:, "R_objbr_auto_start",   0)
-let g:R_compl_data        = get(g:, "R_compl_data", {'max_depth': 12, 'max_size': 1000000, 'max_time': 100})
+g:R_rmhidden          = get(g:, "R_rmhidden",           0)
+g:R_paragraph_begin   = get(g:, "R_paragraph_begin",    1)
+g:R_after_ob_open     = get(g:, "R_after_ob_open",     [])
+g:R_min_editor_width  = get(g:, "R_min_editor_width",  80)
+g:R_rconsole_width    = get(g:, "R_rconsole_width",    80)
+g:R_rconsole_height   = get(g:, "R_rconsole_height",   15)
+g:R_after_start       = get(g:, "R_after_start",       [])
+g:R_listmethods       = get(g:, "R_listmethods",        0)
+g:R_specialplot       = get(g:, "R_specialplot",        0)
+g:R_notmuxconf        = get(g:, "R_notmuxconf",         0)
+g:R_editor_w          = get(g:, "R_editor_w",          66)
+g:R_help_w            = get(g:, "R_help_w",            46)
+g:R_esc_term          = get(g:, "R_esc_term",           1)
+g:R_close_term        = get(g:, "R_close_term",         1)
+g:R_buffer_opts       = get(g:, "R_buffer_opts", "winfixwidth winfixheight nobuflisted")
+g:R_debug             = get(g:, "R_debug",              1)
+g:R_debug_center      = get(g:, "R_debug_center",       0)
+g:R_dbg_jump          = get(g:, "R_dbg_jump",           1)
+g:R_wait              = get(g:, "R_wait",              60)
+g:R_wait_reply        = get(g:, "R_wait_reply",         2)
+g:R_open_example      = get(g:, "R_open_example",       1)
+g:R_bracketed_paste   = get(g:, "R_bracketed_paste",    0)
+g:R_clear_console     = get(g:, "R_clear_console",      1)
+g:R_objbr_auto_start  = get(g:, "R_objbr_auto_start",   0)
+g:R_compl_data        = get(g:, "R_compl_data", {'max_depth': 12, 'max_size': 1000000, 'max_time': 100})
 
-" ^K (\013) cleans from cursor to the right and ^U (\025) cleans from cursor
-" to the left. However, ^U causes a beep if there is nothing to clean. The
-" solution is to use ^A (\001) to move the cursor to the beginning of the line
-" before sending ^K. But the control characters may cause problems in some
-" circumstances.
-let g:R_clear_line = get(g:, "R_clear_line", 0)
+# ^K (\013) cleans from cursor to the right and ^U (\025) cleans from cursor
+# to the left. However, ^U causes a beep if there is nothing to clean. The
+# solution is to use ^A (\001) to move the cursor to the beginning of the line
+# before sending ^K. But the control characters may cause problems in some
+# circumstances.
+g:R_clear_line = get(g:, "R_clear_line", 0)
 
-let s:r_default_pkgs  = $R_DEFAULT_PACKAGES
+var r_default_pkgs  = $R_DEFAULT_PACKAGES
 
-" Avoid problems if either R_rconsole_width or R_rconsole_height is a float
-" number (https://github.com/jalvesaq/Vim-R/issues/751#issuecomment-1742784447).
+# Avoid problems if either R_rconsole_width or R_rconsole_height is a float
+# number (https://github.com/jalvesaq/Vim-R/issues/751#issuecomment-1742784447).
 if type(g:R_rconsole_width) == v:t_float
-    let R_rconsole_width = float2nr(g:R_rconsole_width)
+    g:R_rconsole_width = float2nr(g:R_rconsole_width)
 endif
 if type(g:R_rconsole_height) == v:t_float
-    let R_rconsole_height = float2nr(g:R_rconsole_height)
+    g:R_rconsole_height = float2nr(g:R_rconsole_height)
 endif
 
 
 if type(g:R_after_start) != v:t_list
-    call RWarningMsg('R_after_start must be a list of strings')
+    g:RWarningMsg('R_after_start must be a list of strings')
     sleep 1
-    let g:R_after_start = []
+    g:R_after_start = []
 endif
 
-" Make the file name of files to be sourced
+# Make the file name of files to be sourced
+var Rsource_read: string
 if exists("g:R_remote_compldir")
-    let s:Rsource_read = g:R_remote_compldir . "/tmp/Rsource-" . getpid()
+    Rsource_read = g:R_remote_compldir .. "/tmp/Rsource-" .. getpid()
 else
-    let s:Rsource_read = g:rplugin.tmpdir . "/Rsource-" . getpid()
+    Rsource_read = g:rplugin.tmpdir .. "/Rsource-" .. getpid()
 endif
-let s:Rsource_write = g:rplugin.tmpdir . "/Rsource-" . getpid()
-call AddForDeletion(s:Rsource_write)
+var Rsource_write = g:rplugin.tmpdir .. "/Rsource-" .. getpid()
+g:AddForDeletion(Rsource_write)
 
-let s:running_objbr = 0
-let s:running_rhelp = 0
-let g:rplugin.R_pid = 0
+var running_objbr = 0
+var running_rhelp = 0
+g:rplugin.R_pid = 0
 
-" List of marks that the plugin seeks to find the block to be sent to R
-let s:all_marks = "abcdefghijklmnopqrstuvwxyz"
+# List of marks that the plugin seeks to find the block to be sent to R
+var all_marks = "abcdefghijklmnopqrstuvwxyz"
 
+var null: string
 if filewritable('/dev/null')
-    let s:null = "'/dev/null'"
+    null = "'/dev/null'"
 elseif has("win32") && filewritable('NUL')
-    let s:null = "'NUL'"
+    null = "'NUL'"
 else
-    let s:null = 'tempfile()'
+    null = 'tempfile()'
 endif
+
+var nseconds: number
+var autosttobjbr: number
+var R_version: string
+var rdoctitle: string
+var vimpager_local: string
+var htw: number
+var hwidth: number

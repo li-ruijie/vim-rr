@@ -1,8 +1,9 @@
+vim9script
+scriptencoding utf-8
 
 if exists("b:current_syntax")
     finish
 endif
-scriptencoding utf-8
 
 setlocal iskeyword=@,48-57,_,.
 
@@ -35,8 +36,8 @@ if &encoding != "utf-8"
 endif
 
 syn match rbrowserTab contained "\t"
-syn match rbrowserLen " \[[0-9]\+, [0-9]\+\]$" contains=rbrowserEspSpc
-syn match rbrowserLen " \[[0-9]\+\]$" contains=rbrowserEspSpc
+syn match rbrowserLen " \[[0-9]\+, [0-9]\+\]$" contains=rbrowserEspSpc
+syn match rbrowserLen " \[[0-9]\+\]$" contains=rbrowserEspSpc
 syn match rbrowserErr /Error: label isn't "character"./
 syn match rbrowserDelim contained /!#\|\~#\|(#\|\$#\|\[#\|{#\|%#\|##\|<#\|:#\|;#\|&#\|\*#/ conceal
 
@@ -62,4 +63,4 @@ hi def link rbrowserDelim	Ignore
 hi def link rbrowserTab		Ignore
 hi def link rbrowserLen		Comment
 
-" vim: ts=8 sw=4
+# vim: ts=8 sw=4

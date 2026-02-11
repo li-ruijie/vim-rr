@@ -1,301 +1,296 @@
-" This file contains code used only if has("gui_running")
+vim9script
+
+# This file contains code used only if has("gui_running")
 
 if exists("g:did_vimr_gui_running")
     finish
 endif
-let g:did_vimr_gui_running = 1
+g:did_vimr_gui_running = 1
 
-if exists('g:maplocalleader')
-    let s:tll = '<Tab>' . g:maplocalleader
-else
-    let s:tll = '<Tab>\\'
-endif
+var tll = exists('g:maplocalleader') ? '<Tab>' .. g:maplocalleader : '<Tab>\\'
 
-let s:ikblist = execute("imap")
-let s:nkblist = execute("nmap")
-let s:vkblist = execute("vmap")
-let s:iskblist = split(s:ikblist, "\n")
-let s:nskblist = split(s:nkblist, "\n")
-let s:vskblist = split(s:vkblist, "\n")
-let s:imaplist = []
-let s:vmaplist = []
-let s:nmaplist = []
-for i in s:iskblist
-    let si = split(i)
+var ikblist = execute("imap")
+var nkblist = execute("nmap")
+var vkblist = execute("vmap")
+var iskblist = split(ikblist, "\n")
+var nskblist = split(nkblist, "\n")
+var vskblist = split(vkblist, "\n")
+var imaplist: list<list<string>> = []
+var vmaplist: list<list<string>> = []
+var nmaplist: list<list<string>> = []
+for i in iskblist
+    var si = split(i)
     if len(si) == 3 && si[2] =~ "<Plug>R"
-        call add(s:imaplist, [si[1], si[2]])
+        add(imaplist, [si[1], si[2]])
     endif
 endfor
-for i in s:nskblist
-    let si = split(i)
+for i in nskblist
+    var si = split(i)
     if len(si) == 3 && si[2] =~ "<Plug>R"
-        call add(s:nmaplist, [si[1], si[2]])
+        add(nmaplist, [si[1], si[2]])
     endif
 endfor
-for i in s:vskblist
-    let si = split(i)
+for i in vskblist
+    var si = split(i)
     if len(si) == 3 && si[2] =~ "<Plug>R"
-        call add(s:vmaplist, [si[1], si[2]])
+        add(vmaplist, [si[1], si[2]])
     endif
 endfor
-unlet s:ikblist
-unlet s:nkblist
-unlet s:vkblist
-unlet s:iskblist
-unlet s:nskblist
-unlet s:vskblist
-unlet i
-unlet si
 
-function RNMapCmd(plug)
-    for [el1, el2] in s:nmaplist
-        if el2 == a:plug
+def g:RNMapCmd(plug: string): string
+    for [el1, el2] in nmaplist
+        if el2 == plug
             return el1
         endif
     endfor
-endfunction
+    return ''
+enddef
 
-function RIMapCmd(plug)
-    for [el1, el2] in s:imaplist
-        if el2 == a:plug
+def g:RIMapCmd(plug: string): string
+    for [el1, el2] in imaplist
+        if el2 == plug
             return el1
         endif
     endfor
-endfunction
+    return ''
+enddef
 
-function RVMapCmd(plug)
-    for [el1, el2] in s:vmaplist
-        if el2 == a:plug
+def g:RVMapCmd(plug: string): string
+    for [el1, el2] in vmaplist
+        if el2 == plug
             return el1
         endif
     endfor
-endfunction
+    return ''
+enddef
 
-function RCreateMenuItem(type, label, plug, combo, target)
-    if index(g:R_disable_cmds, a:plug) > -1
+def g:RCreateMenuItem(type: string, label: string, plug: string, combo: string, target: string)
+    if index(g:R_disable_cmds, plug) > -1
         return
     endif
-    if a:type =~ '0'
-        let tg = a:target . '<CR>0'
-        let il = 'i'
+    var tg: string
+    var il: string
+    if type =~ '0'
+        tg = target .. '<CR>0'
+        il = 'i'
     else
-        let tg = a:target . '<CR>'
-        let il = 'a'
+        tg = target .. '<CR>'
+        il = 'a'
     endif
-    if a:type =~ "n"
-        if hasmapto('<Plug>' . a:plug, "n")
-            let boundkey = RNMapCmd('<Plug>' . a:plug)
-            exec 'nmenu <silent> &R.' . a:label . '<Tab>' . boundkey . ' ' . tg
+    if type =~ "n"
+        if hasmapto('<Plug>' .. plug, "n")
+            var boundkey = g:RNMapCmd('<Plug>' .. plug)
+            execute 'nmenu <silent> &R.' .. label .. '<Tab>' .. boundkey .. ' ' .. tg
         else
-            exec 'nmenu <silent> &R.' . a:label . s:tll . a:combo . ' ' . tg
+            execute 'nmenu <silent> &R.' .. label .. tll .. combo .. ' ' .. tg
         endif
     endif
-    if a:type =~ "v"
-        if hasmapto('<Plug>' . a:plug, "v")
-            let boundkey = RVMapCmd('<Plug>' . a:plug)
-            exec 'vmenu <silent> &R.' . a:label . '<Tab>' . boundkey . ' ' . '<Esc>' . tg
+    if type =~ "v"
+        if hasmapto('<Plug>' .. plug, "v")
+            var boundkey = g:RVMapCmd('<Plug>' .. plug)
+            execute 'vmenu <silent> &R.' .. label .. '<Tab>' .. boundkey .. ' ' .. '<Esc>' .. tg
         else
-            exec 'vmenu <silent> &R.' . a:label . s:tll . a:combo . ' ' . '<Esc>' . tg
+            execute 'vmenu <silent> &R.' .. label .. tll .. combo .. ' ' .. '<Esc>' .. tg
         endif
     endif
-    if a:type =~ "i"
-        if hasmapto('<Plug>' . a:plug, "i")
-            let boundkey = RIMapCmd('<Plug>' . a:plug)
-            exec 'imenu <silent> &R.' . a:label . '<Tab>' . boundkey . ' ' . '<Esc>' . tg . il
+    if type =~ "i"
+        if hasmapto('<Plug>' .. plug, "i")
+            var boundkey = g:RIMapCmd('<Plug>' .. plug)
+            execute 'imenu <silent> &R.' .. label .. '<Tab>' .. boundkey .. ' ' .. '<Esc>' .. tg .. il
         else
-            exec 'imenu <silent> &R.' . a:label . s:tll . a:combo . ' ' . '<Esc>' . tg . il
+            execute 'imenu <silent> &R.' .. label .. tll .. combo .. ' ' .. '<Esc>' .. tg .. il
         endif
     endif
-endfunction
+enddef
 
-function RBrowserMenu()
-    call RCreateMenuItem('nvi', 'Object\ browser.Open/Close', 'RUpdateObjBrowser', 'ro', ':call RObjBrowser()')
-    call RCreateMenuItem('nvi', 'Object\ browser.Expand\ (all\ lists)', 'ROpenLists', 'r=', ':call RBrOpenCloseLs(1)')
-    call RCreateMenuItem('nvi', 'Object\ browser.Collapse\ (all\ lists)', 'RCloseLists', 'r-', ':call RBrOpenCloseLs(0)')
+def g:RBrowserMenu()
+    g:RCreateMenuItem('nvi', 'Object\ browser.Open/Close', 'RUpdateObjBrowser', 'ro', ':call g:RObjBrowser()')
+    g:RCreateMenuItem('nvi', 'Object\ browser.Expand\ (all\ lists)', 'ROpenLists', 'r=', ':call g:RBrOpenCloseLs(1)')
+    g:RCreateMenuItem('nvi', 'Object\ browser.Collapse\ (all\ lists)', 'RCloseLists', 'r-', ':call g:RBrOpenCloseLs(0)')
     if &filetype == "rbrowser"
-        imenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter <Esc>:call RBrowserDoubleClick()<CR>
-        nmenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter :call RBrowserDoubleClick()<CR>
+        imenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter <Esc>:call g:RBrowserDoubleClick()<CR>
+        nmenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter :call g:RBrowserDoubleClick()<CR>
     endif
-    let g:rplugin.hasmenu = 1
-endfunction
+    g:rplugin.hasmenu = 1
+enddef
 
-function RControlMenu()
-    call RCreateMenuItem('nvi', 'Command.List\ space', 'RListSpace', 'rl', ':call g:SendCmdToR("ls()")')
-    call RCreateMenuItem('nvi', 'Command.Clear\ console\ screen', 'RClearConsole', 'rr', ':call RClearConsole()')
-    call RCreateMenuItem('nvi', 'Command.Clear\ all', 'RClearAll', 'rm', ':call RClearAll()')
+def g:RControlMenu()
+    g:RCreateMenuItem('nvi', 'Command.List\ space', 'RListSpace', 'rl', ':call g:SendCmdToR("ls()")')
+    g:RCreateMenuItem('nvi', 'Command.Clear\ console\ screen', 'RClearConsole', 'rr', ':call g:RClearConsole()')
+    g:RCreateMenuItem('nvi', 'Command.Clear\ all', 'RClearAll', 'rm', ':call g:RClearAll()')
     "-------------------------------
     menu R.Command.-Sep01- <nul>
-    call RCreateMenuItem('nvi', 'Command.Print\ (cur)', 'RObjectPr', 'rp', ':call RAction("print")')
-    call RCreateMenuItem('nvi', 'Command.Names\ (cur)', 'RObjectNames', 'rn', ':call RAction("vim.names")')
-    call RCreateMenuItem('nvi', 'Command.Structure\ (cur)', 'RObjectStr', 'rt', ':call RAction("str")')
-    call RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)', 'RViewDF', 'rv', ':call RAction("viewobj")')
-    call RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)\ in\ horizontal\ split', 'RViewDF', 'vs', ':call RAction("viewobj", ", howto=''split''")')
-    call RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)\ in\ vertical\ split', 'RViewDF', 'vv', ':call RAction("viewobj", ", howto=''vsplit''")')
-    call RCreateMenuItem('nvi', 'Command.View\ head(data\.frame)\ (cur)\ in\ horizontal\ split', 'RViewDF', 'vh', ':call RAction("viewobj", ", howto=''above 7split'', nrows=6")')
-    call RCreateMenuItem('nvi', 'Command.Run\ dput(cur)\ and\ show\ output\ in\ new\ tab', 'RDputObj', 'td', ':call RAction("dputtab")')
+    g:RCreateMenuItem('nvi', 'Command.Print\ (cur)', 'RObjectPr', 'rp', ':call g:RAction("print")')
+    g:RCreateMenuItem('nvi', 'Command.Names\ (cur)', 'RObjectNames', 'rn', ':call g:RAction("vim.names")')
+    g:RCreateMenuItem('nvi', 'Command.Structure\ (cur)', 'RObjectStr', 'rt', ':call g:RAction("str")')
+    g:RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)', 'RViewDF', 'rv', ':call g:RAction("viewobj")')
+    g:RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)\ in\ horizontal\ split', 'RViewDF', 'vs', ':call g:RAction("viewobj", ", howto=''split''")')
+    g:RCreateMenuItem('nvi', 'Command.View\ data\.frame\ (cur)\ in\ vertical\ split', 'RViewDF', 'vv', ':call g:RAction("viewobj", ", howto=''vsplit''")')
+    g:RCreateMenuItem('nvi', 'Command.View\ head(data\.frame)\ (cur)\ in\ horizontal\ split', 'RViewDF', 'vh', ':call g:RAction("viewobj", ", howto=''above 7split'', nrows=6")')
+    g:RCreateMenuItem('nvi', 'Command.Run\ dput(cur)\ and\ show\ output\ in\ new\ tab', 'RDputObj', 'td', ':call g:RAction("dputtab")')
     "-------------------------------
     menu R.Command.-Sep02- <nul>
-    call RCreateMenuItem('nvi', 'Command.Arguments\ (cur)', 'RShowArgs', 'ra', ':call RAction("args")')
-    call RCreateMenuItem('nvi', 'Command.Example\ (cur)', 'RShowEx', 're', ':call RAction("example")')
-    call RCreateMenuItem('nvi', 'Command.Help\ (cur)', 'RHelp', 'rh', ':call RAction("help")')
+    g:RCreateMenuItem('nvi', 'Command.Arguments\ (cur)', 'RShowArgs', 'ra', ':call g:RAction("args")')
+    g:RCreateMenuItem('nvi', 'Command.Example\ (cur)', 'RShowEx', 're', ':call g:RAction("example")')
+    g:RCreateMenuItem('nvi', 'Command.Help\ (cur)', 'RHelp', 'rh', ':call g:RAction("help")')
     "-------------------------------
     menu R.Command.-Sep03- <nul>
-    call RCreateMenuItem('nvi', 'Command.Summary\ (cur)', 'RSummary', 'rs', ':call RAction("summary")')
-    call RCreateMenuItem('nvi', 'Command.Plot\ (cur)', 'RPlot', 'rg', ':call RAction("plot")')
-    call RCreateMenuItem('nvi', 'Command.Plot\ and\ summary\ (cur)', 'RSPlot', 'rb', ':call RAction("plotsumm")')
-    let g:rplugin.hasmenu = 1
-endfunction
+    g:RCreateMenuItem('nvi', 'Command.Summary\ (cur)', 'RSummary', 'rs', ':call g:RAction("summary")')
+    g:RCreateMenuItem('nvi', 'Command.Plot\ (cur)', 'RPlot', 'rg', ':call g:RAction("plot")')
+    g:RCreateMenuItem('nvi', 'Command.Plot\ and\ summary\ (cur)', 'RSPlot', 'rb', ':call g:RAction("plotsumm")')
+    g:rplugin.hasmenu = 1
+enddef
 
-function MakeRMenu()
+def g:MakeRMenu()
     if g:rplugin.hasmenu == 1
         return
     endif
 
-    " Do not translate "File":
+    # Do not translate "File":
     menutranslate clear
 
-    "----------------------------------------------------------------------------
-    " Start/Close
-    "----------------------------------------------------------------------------
-    call RCreateMenuItem('nvi', 'Start/Close.Start\ R\ (default)', 'RStart', 'rf', ':call StartR("R")')
-    call RCreateMenuItem('nvi', 'Start/Close.Start\ R\ (custom)', 'RCustomStart', 'rc', ':call StartR("custom")')
+    #---------------------------------------------------------------------------
+    # Start/Close
+    #---------------------------------------------------------------------------
+    g:RCreateMenuItem('nvi', 'Start/Close.Start\ R\ (default)', 'RStart', 'rf', ':call g:StartR("R")')
+    g:RCreateMenuItem('nvi', 'Start/Close.Start\ R\ (custom)', 'RCustomStart', 'rc', ':call g:StartR("custom")')
     "-------------------------------
     menu R.Start/Close.-Sep1- <nul>
-    call RCreateMenuItem('nvi', 'Start/Close.Close\ R\ (no\ save)', 'RClose', 'rq', ":call RQuit('no')")
+    g:RCreateMenuItem('nvi', 'Start/Close.Close\ R\ (no\ save)', 'RClose', 'rq', ":call g:RQuit('no')")
     menu R.Start/Close.-Sep2- <nul>
 
     nmenu <silent> R.Start/Close.Stop\ R<Tab>:RStop :RStop<CR>
 
-    "----------------------------------------------------------------------------
-    " Send
-    "----------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+    # Send
+    #---------------------------------------------------------------------------
     if &filetype == "r" || g:R_never_unmake_menu
-        call RCreateMenuItem('ni', 'Send.File', 'RSendFile', 'aa', ':call SendFileToR("silent")')
-        call RCreateMenuItem('ni', 'Send.File\ (echo)', 'RESendFile', 'ae', ':call SendFileToR("echo")')
-        call RCreateMenuItem('ni', 'Send.File\ (open\ \.Rout)', 'RShowRout', 'ao', ':call ShowRout()')
+        g:RCreateMenuItem('ni', 'Send.File', 'RSendFile', 'aa', ':call g:SendFileToR("silent")')
+        g:RCreateMenuItem('ni', 'Send.File\ (echo)', 'RESendFile', 'ae', ':call g:SendFileToR("echo")')
+        g:RCreateMenuItem('ni', 'Send.File\ (open\ \.Rout)', 'RShowRout', 'ao', ':call g:ShowRout()')
     endif
     "-------------------------------
     menu R.Send.-Sep3- <nul>
-    call RCreateMenuItem('ni', 'Send.Block\ (cur)', 'RSendMBlock', 'bb', ':call SendMBlockToR("silent", "stay")')
-    call RCreateMenuItem('ni', 'Send.Block\ (cur,\ echo)', 'RESendMBlock', 'be', ':call SendMBlockToR("echo", "stay")')
-    call RCreateMenuItem('ni', 'Send.Block\ (cur,\ down)', 'RDSendMBlock', 'bd', ':call SendMBlockToR("silent", "down")')
-    call RCreateMenuItem('ni', 'Send.Block\ (cur,\ echo\ and\ down)', 'REDSendMBlock', 'ba', ':call SendMBlockToR("echo", "down")')
+    g:RCreateMenuItem('ni', 'Send.Block\ (cur)', 'RSendMBlock', 'bb', ':call g:SendMBlockToR("silent", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Block\ (cur,\ echo)', 'RESendMBlock', 'be', ':call g:SendMBlockToR("echo", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Block\ (cur,\ down)', 'RDSendMBlock', 'bd', ':call g:SendMBlockToR("silent", "down")')
+    g:RCreateMenuItem('ni', 'Send.Block\ (cur,\ echo\ and\ down)', 'REDSendMBlock', 'ba', ':call g:SendMBlockToR("echo", "down")')
     "-------------------------------
     if &filetype == "rnoweb" || &filetype == "rmd" || &filetype == "quarto" || &filetype == "rrst" || g:R_never_unmake_menu
         menu R.Send.-Sep4- <nul>
-        call RCreateMenuItem('ni', 'Send.Chunk\ (cur)', 'RSendChunk', 'cc', ':call b:SendChunkToR("silent", "stay")')
-        call RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ echo)', 'RESendChunk', 'ce', ':call b:SendChunkToR("echo", "stay")')
-        call RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ down)', 'RDSendChunk', 'cd', ':call b:SendChunkToR("silent", "down")')
-        call RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ echo\ and\ down)', 'REDSendChunk', 'ca', ':call b:SendChunkToR("echo", "down")')
-        call RCreateMenuItem('ni', 'Send.Chunk\ (from\ first\ to\ here)', 'RSendChunkFH', 'ch', ':call SendFHChunkToR()')
+        g:RCreateMenuItem('ni', 'Send.Chunk\ (cur)', 'RSendChunk', 'cc', ':call b:SendChunkToR("silent", "stay")')
+        g:RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ echo)', 'RESendChunk', 'ce', ':call b:SendChunkToR("echo", "stay")')
+        g:RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ down)', 'RDSendChunk', 'cd', ':call b:SendChunkToR("silent", "down")')
+        g:RCreateMenuItem('ni', 'Send.Chunk\ (cur,\ echo\ and\ down)', 'REDSendChunk', 'ca', ':call b:SendChunkToR("echo", "down")')
+        g:RCreateMenuItem('ni', 'Send.Chunk\ (from\ first\ to\ here)', 'RSendChunkFH', 'ch', ':call g:SendFHChunkToR()')
     endif
     "-------------------------------
     if &filetype == "quarto"
         menu R.Send.-Sep5- <nul>
-        call RCreateMenuItem('ni', 'Send.Quarto\ render\ (cur\ file)', 'RQuartoRender', 'qr', ':call RQuarto("render")')
-        call RCreateMenuItem('ni', 'Send.Quarto\ preview\ (cur\ file)', 'RQuartoPreview', 'qp', ':call RQuarto("preview")')
-        call RCreateMenuItem('ni', 'Send.Quarto\ stop\ preview\ (all\ files)', 'RQuartoStop', 'qs', ':call RQuarto("stop")')
+        g:RCreateMenuItem('ni', 'Send.Quarto\ render\ (cur\ file)', 'RQuartoRender', 'qr', ':call g:RQuarto("render")')
+        g:RCreateMenuItem('ni', 'Send.Quarto\ preview\ (cur\ file)', 'RQuartoPreview', 'qp', ':call g:RQuarto("preview")')
+        g:RCreateMenuItem('ni', 'Send.Quarto\ stop\ preview\ (all\ files)', 'RQuartoStop', 'qs', ':call g:RQuarto("stop")')
     endif
     "-------------------------------
     menu R.Send.-Sep6- <nul>
-    call RCreateMenuItem('ni', 'Send.Function\ (cur)', 'RSendFunction', 'ff', ':call SendFunctionToR("silent", "stay")')
-    call RCreateMenuItem('ni', 'Send.Function\ (cur,\ echo)', 'RESendFunction', 'fe', ':call SendFunctionToR("echo", "stay")')
-    call RCreateMenuItem('ni', 'Send.Function\ (cur\ and\ down)', 'RDSendFunction', 'fd', ':call SendFunctionToR("silent", "down")')
-    call RCreateMenuItem('ni', 'Send.Function\ (cur,\ echo\ and\ down)', 'REDSendFunction', 'fa', ':call SendFunctionToR("echo", "down")')
+    g:RCreateMenuItem('ni', 'Send.Function\ (cur)', 'RSendFunction', 'ff', ':call g:SendFunctionToR("silent", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Function\ (cur,\ echo)', 'RESendFunction', 'fe', ':call g:SendFunctionToR("echo", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Function\ (cur\ and\ down)', 'RDSendFunction', 'fd', ':call g:SendFunctionToR("silent", "down")')
+    g:RCreateMenuItem('ni', 'Send.Function\ (cur,\ echo\ and\ down)', 'REDSendFunction', 'fa', ':call g:SendFunctionToR("echo", "down")')
     "-------------------------------
     menu R.Send.-Sep7- <nul>
-    call RCreateMenuItem('v', 'Send.Selection', 'RSendSelection', 'ss', ':call SendSelectionToR("silent", "stay")')
-    call RCreateMenuItem('v', 'Send.Selection\ (echo)', 'RESendSelection', 'se', ':call SendSelectionToR("echo", "stay")')
-    call RCreateMenuItem('v', 'Send.Selection\ (and\ down)', 'RDSendSelection', 'sd', ':call SendSelectionToR("silent", "down")')
-    call RCreateMenuItem('v', 'Send.Selection\ (echo\ and\ down)', 'REDSendSelection', 'sa', ':call SendSelectionToR("echo", "down")')
-    call RCreateMenuItem('v', 'Send.Selection\ (and\ insert\ output)', 'RSendSelAndInsertOutput', 'so', ':call SendSelectionToR("echo", "stay", "NewtabInsert")')
+    g:RCreateMenuItem('v', 'Send.Selection', 'RSendSelection', 'ss', ':call g:SendSelectionToR("silent", "stay")')
+    g:RCreateMenuItem('v', 'Send.Selection\ (echo)', 'RESendSelection', 'se', ':call g:SendSelectionToR("echo", "stay")')
+    g:RCreateMenuItem('v', 'Send.Selection\ (and\ down)', 'RDSendSelection', 'sd', ':call g:SendSelectionToR("silent", "down")')
+    g:RCreateMenuItem('v', 'Send.Selection\ (echo\ and\ down)', 'REDSendSelection', 'sa', ':call g:SendSelectionToR("echo", "down")')
+    g:RCreateMenuItem('v', 'Send.Selection\ (and\ insert\ output)', 'RSendSelAndInsertOutput', 'so', ':call g:SendSelectionToR("echo", "stay", "NewtabInsert")')
     "-------------------------------
     menu R.Send.-Sep8- <nul>
-    call RCreateMenuItem('ni', 'Send.Paragraph', 'RSendParagraph', 'pp', ':call SendParagraphToR("silent", "stay")')
-    call RCreateMenuItem('ni', 'Send.Paragraph\ (echo)', 'RESendParagraph', 'pe', ':call SendParagraphToR("echo", "stay")')
-    call RCreateMenuItem('ni', 'Send.Paragraph\ (and\ down)', 'RDSendParagraph', 'pd', ':call SendParagraphToR("silent", "down")')
-    call RCreateMenuItem('ni', 'Send.Paragraph\ (echo\ and\ down)', 'REDSendParagraph', 'pa', ':call SendParagraphToR("echo", "down")')
+    g:RCreateMenuItem('ni', 'Send.Paragraph', 'RSendParagraph', 'pp', ':call g:SendParagraphToR("silent", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Paragraph\ (echo)', 'RESendParagraph', 'pe', ':call g:SendParagraphToR("echo", "stay")')
+    g:RCreateMenuItem('ni', 'Send.Paragraph\ (and\ down)', 'RDSendParagraph', 'pd', ':call g:SendParagraphToR("silent", "down")')
+    g:RCreateMenuItem('ni', 'Send.Paragraph\ (echo\ and\ down)', 'REDSendParagraph', 'pa', ':call g:SendParagraphToR("echo", "down")')
     "-------------------------------
     menu R.Send.-Sep9- <nul>
-    call RCreateMenuItem('ni0', 'Send.Line', 'RSendLine', 'l', ':call SendLineToR("stay")')
-    call RCreateMenuItem('ni0', 'Send.Line\ (and\ down)', 'RDSendLine', 'd', ':call SendLineToR("down")')
-    call RCreateMenuItem('ni0', 'Send.Line\ (and\ insert\ output)', 'RDSendLineAndInsertOutput', 'o', ':call SendLineToRAndInsertOutput()')
-    call RCreateMenuItem('i', 'Send.Line\ (and\ new\ one)', 'RSendLAndOpenNewOne', 'q', ':call SendLineToR("newline")')
-    call RCreateMenuItem('n', 'Send.Left\ part\ of\ line\ (cur)', 'RNLeftPart', 'r<Left>', ':call RSendPartOfLine("left", 0)')
-    call RCreateMenuItem('n', 'Send.Right\ part\ of\ line\ (cur)', 'RNRightPart', 'r<Right>', ':call RSendPartOfLine("right", 0)')
-    call RCreateMenuItem('i', 'Send.Left\ part\ of\ line\ (cur)', 'RILeftPart', 'r<Left>', 'l:call RSendPartOfLine("left", 1)')
-    call RCreateMenuItem('i', 'Send.Right\ part\ of\ line\ (cur)', 'RIRightPart', 'r<Right>', 'l:call RSendPartOfLine("right", 1)')
+    g:RCreateMenuItem('ni0', 'Send.Line', 'RSendLine', 'l', ':call g:SendLineToR("stay")')
+    g:RCreateMenuItem('ni0', 'Send.Line\ (and\ down)', 'RDSendLine', 'd', ':call g:SendLineToR("down")')
+    g:RCreateMenuItem('ni0', 'Send.Line\ (and\ insert\ output)', 'RDSendLineAndInsertOutput', 'o', ':call g:SendLineToRAndInsertOutput()')
+    g:RCreateMenuItem('i', 'Send.Line\ (and\ new\ one)', 'RSendLAndOpenNewOne', 'q', ':call g:SendLineToR("newline")')
+    g:RCreateMenuItem('n', 'Send.Left\ part\ of\ line\ (cur)', 'RNLeftPart', 'r<Left>', ':call g:RSendPartOfLine("left", 0)')
+    g:RCreateMenuItem('n', 'Send.Right\ part\ of\ line\ (cur)', 'RNRightPart', 'r<Right>', ':call g:RSendPartOfLine("right", 0)')
+    g:RCreateMenuItem('i', 'Send.Left\ part\ of\ line\ (cur)', 'RILeftPart', 'r<Left>', 'l:call g:RSendPartOfLine("left", 1)')
+    g:RCreateMenuItem('i', 'Send.Right\ part\ of\ line\ (cur)', 'RIRightPart', 'r<Right>', 'l:call g:RSendPartOfLine("right", 1)')
     if &filetype == "r"
-        call RCreateMenuItem('ni', 'Send.Line \(above\ ones)', 'RSendAboveLines', 'su', ':call SendAboveLinesToR()')
+        g:RCreateMenuItem('ni', 'Send.Line \(above\ ones)', 'RSendAboveLines', 'su', ':call g:SendAboveLinesToR()')
     endif
 
-    "----------------------------------------------------------------------------
-    " Control
-    "----------------------------------------------------------------------------
-    call RControlMenu()
+    #---------------------------------------------------------------------------
+    # Control
+    #---------------------------------------------------------------------------
+    g:RControlMenu()
     "-------------------------------
     menu R.Command.-Sep31- <nul>
     if &filetype != "rdoc"
-        call RCreateMenuItem('nvi', 'Command.Set\ working\ directory\ (cur\ file\ path)', 'RSetwd', 'rd', ':call RSetWD()')
+        g:RCreateMenuItem('nvi', 'Command.Set\ working\ directory\ (cur\ file\ path)', 'RSetwd', 'rd', ':call g:RSetWD()')
     endif
     "-------------------------------
     if &filetype == "rnoweb" || g:R_never_unmake_menu
         menu R.Command.-Sep32- <nul>
-        call RCreateMenuItem('nvi', 'Command.Sweave\ (cur\ file)', 'RSweave', 'sw', ':call RWeave("nobib", 0, 0)')
-        call RCreateMenuItem('nvi', 'Command.Sweave\ and\ PDF\ (cur\ file)', 'RMakePDF', 'sp', ':call RWeave("nobib", 0, 1)')
-        call RCreateMenuItem('nvi', 'Command.Sweave,\ BibTeX\ and\ PDF\ (cur\ file)', 'RBibTeX', 'sb', ':call RWeave("bibtex", 0, 1)')
+        g:RCreateMenuItem('nvi', 'Command.Sweave\ (cur\ file)', 'RSweave', 'sw', ':call g:RWeave("nobib", 0, 0)')
+        g:RCreateMenuItem('nvi', 'Command.Sweave\ and\ PDF\ (cur\ file)', 'RMakePDF', 'sp', ':call g:RWeave("nobib", 0, 1)')
+        g:RCreateMenuItem('nvi', 'Command.Sweave,\ BibTeX\ and\ PDF\ (cur\ file)', 'RBibTeX', 'sb', ':call g:RWeave("bibtex", 0, 1)')
     endif
     menu R.Command.-Sep33- <nul>
     if &filetype == "rnoweb"
-        call RCreateMenuItem('nvi', 'Command.Knit\ (cur\ file)', 'RKnit', 'kn', ':call RWeave("nobib", 1, 0)')
-        call RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call RWeave("nobib", 1, 1)')
-        call RCreateMenuItem('nvi', 'Command.Knit,\ BibTeX\ and\ PDF\ (cur\ file)', 'RBibTeXK', 'kb', ':call RWeave("bibtex", 1, 1)')
+        g:RCreateMenuItem('nvi', 'Command.Knit\ (cur\ file)', 'RKnit', 'kn', ':call g:RWeave("nobib", 1, 0)')
+        g:RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call g:RWeave("nobib", 1, 1)')
+        g:RCreateMenuItem('nvi', 'Command.Knit,\ BibTeX\ and\ PDF\ (cur\ file)', 'RBibTeXK', 'kb', ':call g:RWeave("bibtex", 1, 1)')
     else
-        call RCreateMenuItem('nvi', 'Command.Knit\ (cur\ file)', 'RKnit', 'kn', ':call RKnit()')
-        call RCreateMenuItem('nvi', 'Command.Markdown\ render\ (cur\ file)', 'RMakeRmd', 'kr', ':call RMakeRmd("default")')
+        g:RCreateMenuItem('nvi', 'Command.Knit\ (cur\ file)', 'RKnit', 'kn', ':call g:RKnit()')
+        g:RCreateMenuItem('nvi', 'Command.Markdown\ render\ (cur\ file)', 'RMakeRmd', 'kr', ':call g:RMakeRmd("default")')
         if &filetype == "quarto"
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call RMakeRmd("pdf")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ Beamer\ PDF\ (cur\ file)', 'RMakePDFKb', 'kl', ':call RMakeRmd("beamer")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ HTML\ (cur\ file)', 'RMakeHTML', 'kh', ':call RMakeRmd("html")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ ODT\ (cur\ file)', 'RMakeODT', 'ko', ':call RMakeRmd("odt")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ Word\ Document\ (cur\ file)', 'RMakeWord', 'kw', ':call RMakeRmd("docx")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call g:RMakeRmd("pdf")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ Beamer\ PDF\ (cur\ file)', 'RMakePDFKb', 'kl', ':call g:RMakeRmd("beamer")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ HTML\ (cur\ file)', 'RMakeHTML', 'kh', ':call g:RMakeRmd("html")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ ODT\ (cur\ file)', 'RMakeODT', 'ko', ':call g:RMakeRmd("odt")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ Word\ Document\ (cur\ file)', 'RMakeWord', 'kw', ':call g:RMakeRmd("docx")')
         else
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call RMakeRmd("pdf_document")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ Beamer\ PDF\ (cur\ file)', 'RMakePDFKb', 'kl', ':call RMakeRmd("beamer_presentation")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ HTML\ (cur\ file)', 'RMakeHTML', 'kh', ':call RMakeRmd("html_document")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ ODT\ (cur\ file)', 'RMakeODT', 'ko', ':call RMakeRmd("odt_document")')
-            call RCreateMenuItem('nvi', 'Command.Knit\ and\ Word\ Document\ (cur\ file)', 'RMakeWord', 'kw', ':call RMakeRmd("word_document")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ PDF\ (cur\ file)', 'RMakePDFK', 'kp', ':call g:RMakeRmd("pdf_document")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ Beamer\ PDF\ (cur\ file)', 'RMakePDFKb', 'kl', ':call g:RMakeRmd("beamer_presentation")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ HTML\ (cur\ file)', 'RMakeHTML', 'kh', ':call g:RMakeRmd("html_document")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ ODT\ (cur\ file)', 'RMakeODT', 'ko', ':call g:RMakeRmd("odt_document")')
+            g:RCreateMenuItem('nvi', 'Command.Knit\ and\ Word\ Document\ (cur\ file)', 'RMakeWord', 'kw', ':call g:RMakeRmd("word_document")')
         endif
-        call RCreateMenuItem('nvi', 'Command.Markdown\ render\ [all\ in\ YAML]\ (cur\ file)', 'RMakeRmd', 'ka', ':call RMakeRmd("all")')
+        g:RCreateMenuItem('nvi', 'Command.Markdown\ render\ [all\ in\ YAML]\ (cur\ file)', 'RMakeRmd', 'ka', ':call g:RMakeRmd("all")')
     endif
     if &filetype == "r" || g:R_never_unmake_menu
-        call RCreateMenuItem('nvi', 'Command.Spin\ (cur\ file)', 'RSpin', 'ks', ':call RSpin()')
+        g:RCreateMenuItem('nvi', 'Command.Spin\ (cur\ file)', 'RSpin', 'ks', ':call g:RSpin()')
     endif
     if ($DISPLAY != "" && g:R_synctex && &filetype == "rnoweb") || g:R_never_unmake_menu
         menu R.Command.-Sep34- <nul>
-        call RCreateMenuItem('nvi', 'Command.Open\ PDF\ (cur\ file)', 'ROpenPDF', 'op', ':call ROpenPDF("Get Master")')
-        call RCreateMenuItem('nvi', 'Command.Search\ forward\ (SyncTeX)', 'RSyncFor', 'gp', ':call SyncTeX_forward()')
-        call RCreateMenuItem('nvi', 'Command.Go\ to\ LaTeX\ (SyncTeX)', 'RSyncTex', 'gt', ':call SyncTeX_forward(1)')
+        g:RCreateMenuItem('nvi', 'Command.Open\ PDF\ (cur\ file)', 'ROpenPDF', 'op', ':call g:ROpenPDF("Get Master")')
+        g:RCreateMenuItem('nvi', 'Command.Search\ forward\ (SyncTeX)', 'RSyncFor', 'gp', ':call g:SyncTeX_forward()')
+        g:RCreateMenuItem('nvi', 'Command.Go\ to\ LaTeX\ (SyncTeX)', 'RSyncTex', 'gt', ':call g:SyncTeX_forward(1)')
     endif
     "-------------------------------
     menu R.Command.-Sep35- <nul>
-    call RCreateMenuItem('n', 'Command.Debug\ (function)', 'RDebug', 'bg', ':call RAction("debug")')
-    call RCreateMenuItem('n', 'Command.Undebug\ (function)', 'RUndebug', 'ud', ':call RAction("undebug")')
+    g:RCreateMenuItem('n', 'Command.Debug\ (function)', 'RDebug', 'bg', ':call g:RAction("debug")')
+    g:RCreateMenuItem('n', 'Command.Undebug\ (function)', 'RUndebug', 'ud', ':call g:RAction("undebug")')
     "-------------------------------
     if &filetype == "r" || &filetype == "rnoweb" || g:R_never_unmake_menu
         menu R.Command.-Sep36- <nul>
-        nmenu <silent> R.Command.Build\ tags\ file\ (cur\ dir)<Tab>:RBuildTags :call RBuildTags()<CR>
-        imenu <silent> R.Command.Build\ tags\ file\ (cur\ dir)<Tab>:RBuildTags <Esc>:call RBuildTags()<CR>a
+        nmenu <silent> R.Command.Build\ tags\ file\ (cur\ dir)<Tab>:RBuildTags :call g:RBuildTags()<CR>
+        imenu <silent> R.Command.Build\ tags\ file\ (cur\ dir)<Tab>:RBuildTags <Esc>:call g:RBuildTags()<CR>a
     endif
 
     menu R.-Sep37- <nul>
 
-    "----------------------------------------------------------------------------
-    " Edit
-    "----------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+    # Edit
+    #---------------------------------------------------------------------------
     if &filetype == "r" || &filetype == "rnoweb" || &filetype == "rrst" || &filetype == "rhelp" || g:R_never_unmake_menu
         if g:R_assign == 1 || g:R_assign == 2
-            silent exe 'imenu <silent> R.Edit.Insert\ \"\ <-\ \"<Tab>' . g:R_assign_map . ' <Esc>:call ReplaceUnderS()<CR>a'
+            silent execute 'imenu <silent> R.Edit.Insert\ \"\ <-\ \"<Tab>' .. g:R_assign_map .. ' <Esc>:call g:ReplaceUnderS()<CR>a'
         endif
         imenu <silent> R.Edit.Complete\ object\ name<Tab>^X^O <C-X><C-O>
         menu R.Edit.-Sep41- <nul>
@@ -304,30 +299,30 @@ function MakeRMenu()
         nmenu <silent> R.Edit.Indent\ (whole\ buffer)<Tab>gg=G gg=G
         menu R.Edit.-Sep42- <nul>
         if g:R_enable_comment
-            call RCreateMenuItem('ni', 'Edit.Toggle\ comment\ (line/sel)', 'RToggleComment', 'xx', ':call RComment("normal")')
-            call RCreateMenuItem('v',  'Edit.Toggle\ comment\ (line/sel)', 'RToggleComment', 'xx', ':call RComment("selection")')
-            call RCreateMenuItem('ni', 'Edit.Comment\ (line/sel)', 'RSimpleComment', 'xc', ':call RSimpleCommentLine("normal", "c")')
-            call RCreateMenuItem('v',  'Edit.Comment\ (line/sel)', 'RSimpleComment', 'xc', ':call RSimpleCommentLine("selection", "c")')
-            call RCreateMenuItem('ni', 'Edit.Uncomment\ (line/sel)', 'RSimpleUnComment', 'xu', ':call RSimpleCommentLine("normal", "u")')
-            call RCreateMenuItem('v',  'Edit.Uncomment\ (line/sel)', 'RSimpleUnComment', 'xu', ':call RSimpleCommentLine("selection", "u")')
-            call RCreateMenuItem('ni', 'Edit.Add/Align\ right\ comment\ (line,\ sel)', 'RRightComment', ';', ':call MovePosRCodeComment("normal")')
-            call RCreateMenuItem('v',  'Edit.Add/Align\ right\ comment\ (line,\ sel)', 'RRightComment', ';', ':call MovePosRCodeComment("selection")')
+            g:RCreateMenuItem('ni', 'Edit.Toggle\ comment\ (line/sel)', 'RToggleComment', 'xx', ':call g:RComment("normal")')
+            g:RCreateMenuItem('v',  'Edit.Toggle\ comment\ (line/sel)', 'RToggleComment', 'xx', ':call g:RComment("selection")')
+            g:RCreateMenuItem('ni', 'Edit.Comment\ (line/sel)', 'RSimpleComment', 'xc', ':call g:RSimpleCommentLine("normal", "c")')
+            g:RCreateMenuItem('v',  'Edit.Comment\ (line/sel)', 'RSimpleComment', 'xc', ':call g:RSimpleCommentLine("selection", "c")')
+            g:RCreateMenuItem('ni', 'Edit.Uncomment\ (line/sel)', 'RSimpleUnComment', 'xu', ':call g:RSimpleCommentLine("normal", "u")')
+            g:RCreateMenuItem('v',  'Edit.Uncomment\ (line/sel)', 'RSimpleUnComment', 'xu', ':call g:RSimpleCommentLine("selection", "u")')
+            g:RCreateMenuItem('ni', 'Edit.Add/Align\ right\ comment\ (line,\ sel)', 'RRightComment', ';', ':call g:MovePosRCodeComment("normal")')
+            g:RCreateMenuItem('v',  'Edit.Add/Align\ right\ comment\ (line,\ sel)', 'RRightComment', ';', ':call g:MovePosRCodeComment("selection")')
         endif
         if &filetype == "rnoweb" || &filetype == "rrst" || &filetype == "rmd" || &filetype == "quarto" || g:R_never_unmake_menu
             menu R.Edit.-Sep43- <nul>
-            call RCreateMenuItem('n', 'Edit.Go\ (next\ R\ chunk)', 'RNextRChunk', 'gn', ':call b:NextRChunk()')
-            call RCreateMenuItem('n', 'Edit.Go\ (previous\ R\ chunk)', '', 'gN', ':call b:PreviousRChunk()')
+            g:RCreateMenuItem('n', 'Edit.Go\ (next\ R\ chunk)', 'RNextRChunk', 'gn', ':call b:NextRChunk()')
+            g:RCreateMenuItem('n', 'Edit.Go\ (previous\ R\ chunk)', '', 'gN', ':call b:PreviousRChunk()')
         endif
     endif
 
-    "----------------------------------------------------------------------------
-    " Object Browser
-    "----------------------------------------------------------------------------
-    call RBrowserMenu()
+    #---------------------------------------------------------------------------
+    # Object Browser
+    #---------------------------------------------------------------------------
+    g:RBrowserMenu()
 
-    "----------------------------------------------------------------------------
-    " Help
-    "----------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+    # Help
+    #---------------------------------------------------------------------------
     menu R.-Sep51- <nul>
     amenu R.Help\ (plugin).Overview :help vim-r-overview<CR>
     amenu R.Help\ (plugin).Main\ features :help vim-r-features<CR>
@@ -349,24 +344,23 @@ function MakeRMenu()
     amenu R.Help\ (plugin).News :help vim-r-news<CR>
 
     amenu R.Help\ (R)<Tab>:Rhelp :call g:SendCmdToR("help.start()")<CR>
-    let g:rplugin.hasmenu = 1
-endfunction
+    g:rplugin.hasmenu = 1
+enddef
 
-function UnMakeRMenu()
+def g:UnMakeRMenu()
     if g:rplugin.hasmenu == 0 || g:R_never_unmake_menu == 1 || &previewwindow || (&buftype == "nofile" && &filetype != "rbrowser")
         return
     endif
     aunmenu R
-    let g:rplugin.hasmenu = 0
-endfunction
+    g:rplugin.hasmenu = 0
+enddef
 
-function MakeRBrowserMenu()
-    let g:rplugin.curbuf = bufname("%")
+def g:MakeRBrowserMenu()
+    g:rplugin.curbuf = bufname("%")
     if g:rplugin.hasmenu == 1
         return
     endif
     menutranslate clear
-    call RControlMenu()
-    call RBrowserMenu()
-endfunction
-
+    g:RControlMenu()
+    g:RBrowserMenu()
+enddef

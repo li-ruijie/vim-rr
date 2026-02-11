@@ -71,12 +71,21 @@ enddef
 def DefGWithFinishGuard(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
-  # Detect the re-source guard pattern
+  # Detect the re-source guard pattern: exists('*Name') followed by finish
+  # before the matching endif.  A bare exists('*...) without finish (e.g.
+  # checking whether another plugin is installed) is not a guard.
   var has_resource_guard = false
+  var in_exists_block = false
   for line in lines
     if line =~ 'exists(''\*' || line =~ "exists(\"\\*"
+      in_exists_block = true
+    endif
+    if in_exists_block && line =~ '^\s*finish\>'
       has_resource_guard = true
       break
+    endif
+    if in_exists_block && line =~ '^\s*endif\>'
+      in_exists_block = false
     endif
   endfor
   if !has_resource_guard

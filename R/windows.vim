@@ -109,7 +109,7 @@ def g:UnsetRHome()
 enddef
 
 def g:StartR_Windows()
-    if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
+    if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
         g:JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
         return
     endif

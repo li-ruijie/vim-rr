@@ -1,7 +1,7 @@
 vim9script
 
 def g:StartRStudio()
-    if string(g:SendCmdToR) != "function('SendCmdToR_fake')"
+    if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
         return
     endif
 
