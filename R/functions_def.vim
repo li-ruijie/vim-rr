@@ -21,6 +21,9 @@ def g:SourceRFunList(lib: string)
     else
         var lines = readfile(fnm)
         for line in lines
+            if line !~ '^syn keyword rFunction '
+                continue
+            endif
             var newline = substitute(line, '\.', '\\.', 'g')
             if substitute(line, 'syn keyword rFunction ', '', '') =~ "[ ']"
                 newline = substitute(newline, 'keyword rFunction ', 'match rSpaceFun /`\\zs', '')
