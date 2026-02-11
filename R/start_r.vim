@@ -889,7 +889,7 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         if has("win32")
             silent exe '!start "' .. g:R_csv_app .. '" "' .. tsvnm .. '"'
         else
-            system(cmd .. ' >' .. null .. ' 2>' .. null .. ' &')
+            system(cmd .. ' >' .. devnull .. ' 2>' .. devnull .. ' &')
         endif
         return
     endif
@@ -1591,7 +1591,7 @@ def g:KnitChild(line: string, godown: string)
     var cfile = substitute(nline, nline[0], "", "")
     cfile = substitute(cfile, nline[0] .. '.*', "", "")
     if filereadable(cfile)
-        var ok = g:SendCmdToR("require(knitr); knit('" .. cfile .. "', output=" .. null .. ")")
+        var ok = g:SendCmdToR("require(knitr); knit('" .. cfile .. "', output=" .. devnull .. ")")
         if godown =~ "down"
             cursor(line(".") + 1, 1)
             g:GoDown()
@@ -2154,13 +2154,13 @@ g:rplugin.R_pid = 0
 # List of marks that the plugin seeks to find the block to be sent to R
 var all_marks = "abcdefghijklmnopqrstuvwxyz"
 
-var null: string
+var devnull: string
 if filewritable('/dev/null')
-    null = "'/dev/null'"
+    devnull = "'/dev/null'"
 elseif has("win32") && filewritable('NUL')
-    null = "'NUL'"
+    devnull = "'NUL'"
 else
-    null = 'tempfile()'
+    devnull = 'tempfile()'
 endif
 
 var nseconds: number
