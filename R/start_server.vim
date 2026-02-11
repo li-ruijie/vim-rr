@@ -64,7 +64,7 @@ var RBerr: list<string> = []
 var RWarn: list<string> = []
 
 def g:RInitStdout(...args: list<any>)
-    var rcmd = substitute(args[1], '\r', '', 'g')
+    var rcmd = substitute(args[1], '[\r\n]', '', 'g')
     if RoutLine != ''
         rcmd = RoutLine .. rcmd
         if rcmd !~ "\x14"
@@ -85,13 +85,22 @@ def g:RInitStdout(...args: list<any>)
         var rcmdl = split(rcmd, "\x14", 0)
         for rcmd_item in rcmdl
             var cmd = rcmd_item
+            if cmd == ''
+                continue
+            endif
             if cmd =~ '^RWarn: '
                 RWarn += [substitute(cmd, '^RWarn: ', '', '')]
+            elseif cmd =~ '^let ' || cmd =~ '^echo ' || cmd =~ '^call '
+                try
+                    legacy execute cmd
+                catch
+                    g:RWarningMsg("[Init R] " .. v:exception .. ": " .. cmd)
+                endtry
+                if cmd =~ '^echo'
+                    redraw
+                endif
             else
-                legacy execute cmd
-            endif
-            if cmd =~ '^echo'
-                redraw
+                RBout += [cmd]
             endif
         endfor
     else
