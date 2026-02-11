@@ -1,141 +1,121 @@
-" g:rplugin.home should be the directory where the plugin files are.
-" For users installing the plugin from the Vimball it will be at
-" either ~/.vim or ~/vimfiles.
-let g:rplugin.home = expand("<sfile>:h:h")
+vim9script
 
-" g:rplugin.uservimfiles must be a writable directory. It will be g:rplugin.home
-" unless it's not writable. Then it wil be ~/.vim or ~/vimfiles.
-if filewritable(g:rplugin.home) == 2
-    let g:rplugin.uservimfiles = g:rplugin.home
-else
-    let g:rplugin.uservimfiles = split(&runtimepath, ",")[0]
+# g:rplugin.home should be the directory where the plugin files are.
+# For users installing the plugin from the Vimball it will be at
+# either ~/.vim or ~/vimfiles.
+g:rplugin.home = expand("<sfile>:h:h")
+
+# g:rplugin.uservimfiles must be a writable directory. It will be g:rplugin.home
+# unless it's not writable. Then it will be ~/.vim or ~/vimfiles.
+g:rplugin.uservimfiles = filewritable(g:rplugin.home) == 2
+    ? g:rplugin.home
+    : split(&runtimepath, ",")[0]
+
+# From changelog.vim, with bug fixed by "Si" ("i5ivem")
+# Windows logins can include domain, e.g: 'DOMAIN\Username', need to remove
+# the backslash from this as otherwise cause file path problems.
+g:rplugin.userlogin = [$LOGNAME, $USER, $USERNAME]
+    ->filter((_, v) => v != '')
+    ->get(0, '')
+if g:rplugin.userlogin == '' && $HOME != ''
+    g:rplugin.userlogin = substitute($HOME, '.*/', '', '')
+elseif g:rplugin.userlogin == '' && executable("whoami")
+    g:rplugin.userlogin = system('whoami')
 endif
 
-" From changelog.vim, with bug fixed by "Si" ("i5ivem")
-" Windows logins can include domain, e.g: 'DOMAIN\Username', need to remove
-" the backslash from this as otherwise cause file path problems.
-if $LOGNAME != ""
-    let g:rplugin.userlogin = $LOGNAME
-elseif $USER != ""
-    let g:rplugin.userlogin = $USER
-elseif $USERNAME != ""
-    let g:rplugin.userlogin = $USERNAME
-elseif $HOME != ""
-    let g:rplugin.userlogin = substitute($HOME, '.*/', '', '')
-elseif executable("whoami")
-    silent let g:rplugin.userlogin = system('whoami')
-else
-    call RWarningMsg("Could not determine user name.")
-    let g:rplugin.failed = 1
-    finish
-endif
-let g:rplugin.userlogin = substitute(substitute(g:rplugin.userlogin, '.*\\', '', ''), '\W', '', 'g')
+g:rplugin.userlogin = substitute(
+    substitute(g:rplugin.userlogin, '.*\\', '', ''), '\W', '', 'g')
 if g:rplugin.userlogin == ""
-    call RWarningMsg("Could not determine user name.")
-    let g:rplugin.failed = 1
+    g:RWarningMsg("Could not determine user name.")
+    g:rplugin.failed = 1
     finish
 endif
 
 if has("win32")
-    let g:rplugin.home = substitute(g:rplugin.home, "\\", "/", "g")
-    let g:rplugin.uservimfiles = substitute(g:rplugin.uservimfiles, "\\", "/", "g")
+    g:rplugin.home = substitute(g:rplugin.home, '\\', '/', 'g')
+    g:rplugin.uservimfiles = substitute(g:rplugin.uservimfiles, '\\', '/', 'g')
 endif
 
 if exists("g:R_compldir")
-    let g:rplugin.compldir = expand(g:R_compldir)
+    g:rplugin.compldir = expand(g:R_compldir)
 elseif has("win32") && $APPDATA != "" && isdirectory($APPDATA)
-    let g:rplugin.compldir = $APPDATA . "\\Vim-R"
+    g:rplugin.compldir = $APPDATA .. "\\Vim-R"
 elseif $XDG_CACHE_HOME != "" && isdirectory($XDG_CACHE_HOME)
-    let g:rplugin.compldir = $XDG_CACHE_HOME . "/Vim-R"
+    g:rplugin.compldir = $XDG_CACHE_HOME .. "/Vim-R"
 elseif isdirectory(expand("~/.cache"))
-    let g:rplugin.compldir = expand("~/.cache/Vim-R")
+    g:rplugin.compldir = expand("~/.cache/Vim-R")
 elseif isdirectory(expand("~/Library/Caches"))
-    let g:rplugin.compldir = expand("~/Library/Caches/Vim-R")
+    g:rplugin.compldir = expand("~/Library/Caches/Vim-R")
 else
-    let g:rplugin.compldir = g:rplugin.uservimfiles . "/R/objlist/"
+    g:rplugin.compldir = g:rplugin.uservimfiles .. "/R/objlist/"
 endif
 
-" Create the directory if it doesn't exist yet
 if !isdirectory(g:rplugin.compldir)
-    call mkdir(g:rplugin.compldir, "p")
+    mkdir(g:rplugin.compldir, "p")
 endif
 
-" Create or update the README (omnils_ files will be regenerated if older than
-" the README).
-let s:need_readme = 0
-let s:first_line = 'Last change in this file: 2024-08-15'
-if !filereadable(g:rplugin.compldir . "/README")
-    let s:need_readme = 1
-else
-    if readfile(g:rplugin.compldir . "/README")[0] != s:first_line
-        let s:need_readme = 1
-    endif
+# Create or update the README (omnils_ files will be regenerated if older than
+# the README).
+var first_line = 'Last change in this file: 2024-08-15'
+var readme_path = g:rplugin.compldir .. "/README"
+var need_readme = !filereadable(readme_path)
+    || readfile(readme_path)[0] != first_line
+
+if need_readme
+    delete(g:rplugin.compldir .. "/vimcom_info")
+    delete(g:rplugin.compldir .. "/pack_descriptions")
+    delete(g:rplugin.compldir .. "/path_to_vimcom")
+
+    ['fun_*', 'omnils_*', 'args_*']
+        ->mapnew((_, p) => glob(g:rplugin.compldir .. '/' .. p, false, true))
+        ->flattennew()
+        ->mapnew((_, f) => delete(f))
+
+    writefile([first_line,
+        '',
+        'The files in this directory were generated by Vim-R automatically:',
+        'The omnils_ and args_ are used for omni completion, the fun_ files for ',
+        'syntax highlighting, and the inst_libs for library description in the ',
+        'Object Browser. If you delete them, they will be regenerated.',
+        '',
+        'When you load a new version of a library, their files are replaced.',
+        '',
+        'Files corresponding to uninstalled libraries are not automatically deleted.',
+        'You should manually delete them if you want to save disk space.',
+        '',
+        'If you delete this README file, all omnils_, args_ and fun_ files will be ',
+        'regenerated.',
+        '',
+        'All lines in the omnils_ files have 7 fields with information on the object',
+        'separated by the byte \006:',
+        '',
+        '  1. Name.',
+        '',
+        '  2. Single character representing the Type (look at the function',
+        '     vimcom_glbnv_line at R/vimcom/src/vimcom.c to know the meaning of the',
+        '     characters).',
+        '',
+        '  3. Class.',
+        '',
+        '  4. Either package or environment of the object.',
+        '',
+        '  5. If the object is a function, the list of arguments using Vim syntax for',
+        '     lists (which is the same as Python syntax).',
+        '',
+        '  6. Short description.',
+        '',
+        '  7. Long description.',
+        '',
+        'Notes:',
+        '',
+        '  - There is a final \006 at the end of the line.',
+        '',
+        '  - All single quotes are replaced with the byte \x13.',
+        '',
+        '  - All \x12 will later be replaced with single quotes.',
+        '',
+        '  - Line breaks are indicated by \x14.'],
+        readme_path)
 endif
-if s:need_readme
-    call delete(g:rplugin.compldir . "/vimcom_info")
-    call delete(g:rplugin.compldir . "/pack_descriptions")
-    call delete(g:rplugin.compldir . "/path_to_vimcom")
-    let s:flist = split(glob(g:rplugin.compldir . '/fun_*'), "\n")
-    let s:flist += split(glob(g:rplugin.compldir . '/omnils_*'), "\n")
-    let s:flist += split(glob(g:rplugin.compldir . '/args_*'), "\n")
 
-    if len(s:flist)
-        for s:f in s:flist
-            call delete(s:f)
-        endfor
-        unlet s:f
-    endif
-    unlet s:flist
-    let s:readme = [s:first_line,
-                \ '',
-                \ 'The files in this directory were generated by Vim-R automatically:',
-                \ 'The omnils_ and args_ are used for omni completion, the fun_ files for ',
-                \ 'syntax highlighting, and the inst_libs for library description in the ',
-                \ 'Object Browser. If you delete them, they will be regenerated.',
-                \ '',
-                \ 'When you load a new version of a library, their files are replaced.',
-                \ '',
-                \ 'Files corresponding to uninstalled libraries are not automatically deleted.',
-                \ 'You should manually delete them if you want to save disk space.',
-                \ '',
-                \ 'If you delete this README file, all omnils_, args_ and fun_ files will be ',
-                \ 'regenerated.',
-                \ '',
-                \ 'All lines in the omnils_ files have 7 fields with information on the object',
-                \ 'separated by the byte \006:',
-                \ '',
-                \ '  1. Name.',
-                \ '',
-                \ '  2. Single character representing the Type (look at the function',
-                \ '     vimcom_glbnv_line at R/vimcom/src/vimcom.c to know the meaning of the',
-                \ '     characters).',
-                \ '',
-                \ '  3. Class.',
-                \ '',
-                \ '  4. Either package or environment of the object.',
-                \ '',
-                \ '  5. If the object is a function, the list of arguments using Vim syntax for',
-                \ '     lists (which is the same as Python syntax).',
-                \ '',
-                \ '  6. Short description.',
-                \ '',
-                \ '  7. Long description.',
-                \ '',
-                \ 'Notes:',
-                \ '',
-                \ '  - There is a final \006 at the end of the line.',
-                \ '',
-                \ '  - All single quotes are replaced with the byte \x13.',
-                \ '',
-                \ '  - All \x12 will later be replaced with single quotes.',
-                \ '',
-                \ '  - Line breaks are indicated by \x14.']
-
-    call writefile(s:readme, g:rplugin.compldir . "/README")
-    " Useful to force update of omnils_ files after a change in its format.
-    unlet s:readme
-endif
-unlet s:need_readme
-unlet s:first_line
-
-let $VIMR_COMPLDIR = g:rplugin.compldir
+$VIMR_COMPLDIR = g:rplugin.compldir

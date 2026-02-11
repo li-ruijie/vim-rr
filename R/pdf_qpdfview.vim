@@ -1,16 +1,17 @@
+vim9script
 
-function ROpenPDF2(fullpath)
-    call system("env VIMR_PORT=" . g:rplugin.myport .
-                \ " qpdfview --unique '" . a:fullpath . "' 2>/dev/null >/dev/null &")
-    if g:R_synctex && a:fullpath =~ " "
-        call RWarningMsg("Qpdfview does support file names with spaces: SyncTeX backward will not work.")
+def g:ROpenPDF2(fullpath: string)
+    system("env VIMR_PORT=" .. g:rplugin.myport
+        .. " qpdfview --unique '" .. fullpath .. "' 2>/dev/null >/dev/null &")
+    if g:R_synctex && fullpath =~ " "
+        g:RWarningMsg("Qpdfview does support file names with spaces: SyncTeX backward will not work.")
     endif
-endfunction
+enddef
 
-function SyncTeX_forward2(tpath, ppath, texln, tryagain)
-    let texname = substitute(a:tpath, ' ', '\\ ', 'g')
-    let pdfname = substitute(a:ppath, ' ', '\\ ', 'g')
-    call system("VIMR_PORT=" . g:rplugin.myport . " qpdfview --unique " .
-                \ pdfname . "#src:" . texname . ":" . a:texln . ":1 2> /dev/null >/dev/null &")
-    call RRaiseWindow(substitute(substitute(a:ppath, ".*/", "", ""), ".pdf$", "", ""))
-endfunction
+def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: number)
+    var texname = substitute(tpath, ' ', '\\ ', 'g')
+    var pdfname = substitute(ppath, ' ', '\\ ', 'g')
+    system("VIMR_PORT=" .. g:rplugin.myport .. " qpdfview --unique "
+        .. pdfname .. "#src:" .. texname .. ":" .. texln .. ":1 2> /dev/null >/dev/null &")
+    g:RRaiseWindow(substitute(substitute(ppath, ".*/", "", ""), ".pdf$", "", ""))
+enddef
