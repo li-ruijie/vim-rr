@@ -3,7 +3,7 @@ Version: 0.9-170
 Date: 2026-02-11
 Title: Intermediate the Communication Between R and Vim
 Author: Li Ruijie
-Maintainer: Li Ruijie
+Maintainer: Li Ruijie <1547237+li-ruijie@users.noreply.github.com>
 Depends: R (>= 3.0.0)
 Suggests: knitr, rmarkdown, quarto
 Imports: methods, tools
