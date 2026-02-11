@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_rnw_fun")
+    finish
+endif
+g:did_vimr_rnw_fun = 1
+
 def g:RWriteChunk()
     if getline(".") =~ "^\\s*$" && g:RnwIsInRCode(0) == 0
         var curline = line(".")

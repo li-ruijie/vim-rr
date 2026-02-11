@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_sumatra")
+    finish
+endif
+g:did_vimr_pdf_sumatra = 1
+
 var sumatra_in_path = 0
 
 def SumatraInPath(): bool

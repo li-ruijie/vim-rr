@@ -365,10 +365,53 @@ def EnvVarNumericAssign(filepath: string): list<string>
 enddef
 
 # ========================================================================
+# E1073: def g: in vim9script files without re-source guard
+# ========================================================================
+# In vim9script, `def g:Func` raises E1073 if the function already exists,
+# and E1073 aborts the entire sourced script.  Every vim9script file with
+# `def g:` must have a re-source guard: either a variable-based finish
+# guard (exists("g:did_vimr_*") + finish) or a delfunc cleanup loop.
+def DefGWithoutGuard(filepath: string): list<string>
+  var lines = readfile(filepath)
+  # Check if file has any def g: at all
+  var has_defg = false
+  for line in lines
+    if line =~ '^\s*def g:'
+      has_defg = true
+      break
+    endif
+  endfor
+  if !has_defg
+    return []
+  endif
+  # Check for variable-based finish guard: exists("g:did_vimr_*") + finish
+  var has_var_guard = false
+  for line in lines
+    if line =~ 'exists("g:did_vimr_'
+      has_var_guard = true
+      break
+    endif
+  endfor
+  # Check for delfunc guard pattern
+  var has_delfunc_guard = false
+  for line in lines
+    if line =~ 'delfunc g:'
+      has_delfunc_guard = true
+      break
+    endif
+  endfor
+  if has_var_guard || has_delfunc_guard
+    return []
+  endif
+  return [fnamemodify(filepath, ':~:.')]
+enddef
+
+# ========================================================================
 # Run checks on every vim9script file
 # ========================================================================
 var comment_errors: list<string> = []
 var defg_errors: list<string> = []
+var unguarded_errors: list<string> = []
 var funcbang_errors: list<string> = []
 var barecall_errors: list<string> = []
 var baredefg_errors: list<string> = []
@@ -384,6 +427,7 @@ for filepath in vim_files
   if IsVim9(filepath)
     comment_errors += ScriptLevelLegacyComments(filepath)
     defg_errors += DefGWithFinishGuard(filepath)
+    unguarded_errors += DefGWithoutGuard(filepath)
     funcbang_errors += FunctionBangInVim9(filepath)
     barecall_errors += BareCallsInDef(filepath, legacy_names)
     baredefg_errors += BareCallsInDef(filepath, defg_names)
@@ -446,4 +490,10 @@ g:Assert(len(envnum_errors) == 0,
   'E1012: no $ENVVAR = numeric_func() without string() wrap'
   .. (len(envnum_errors) > 0
       ? ' — found in: ' .. join(envnum_errors, ', ')
+      : ''))
+
+g:Assert(len(unguarded_errors) == 0,
+  'E1073: all vim9script files with def g: must have a re-source guard'
+  .. (len(unguarded_errors) > 0
+      ? ' — found in: ' .. join(unguarded_errors, ', ')
       : ''))

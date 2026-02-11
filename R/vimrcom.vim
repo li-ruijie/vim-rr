@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_vimrcom")
+    finish
+endif
+g:did_vimr_vimrcom = 1
+
 def g:JobStdin(jb: any, cmd: string)
     ch_sendraw(job_getchannel(jb), cmd)
 enddef

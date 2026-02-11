@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_vimbuffer")
+    finish
+endif
+g:did_vimr_vimbuffer = 1
+
 # This file contains code used only when R run in a Vim buffer
 
 var R_width = 0

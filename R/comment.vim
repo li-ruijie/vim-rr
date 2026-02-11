@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_comment")
+    finish
+endif
+g:did_vimr_comment = 1
+
 # Get first and last selected lines
 def g:RGetFL(mode: string): list<number>
     var fline: number

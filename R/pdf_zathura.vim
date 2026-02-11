@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_zathura")
+    finish
+endif
+g:did_vimr_pdf_zathura = 1
+
 if !has_key(g:rplugin, 'zathura_pid')
     g:rplugin.zathura_pid = {}
 endif

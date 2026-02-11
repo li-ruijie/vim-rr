@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_qpdfview")
+    finish
+endif
+g:did_vimr_pdf_qpdfview = 1
+
 def g:ROpenPDF2(fullpath: string)
     system("env VIMR_PORT=" .. g:rplugin.myport
         .. " qpdfview --unique '" .. fullpath .. "' 2>/dev/null >/dev/null &")

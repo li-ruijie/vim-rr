@@ -1,8 +1,11 @@
 vim9script
 
+if exists("g:did_vimr_functions_def")
+    finish
+endif
+g:did_vimr_functions_def = 1
+
 # Function definitions for R/functions.vim
-# This file is sourced exactly once (guarded by finish in functions.vim),
-# so def g: will never be recompiled and E127 cannot occur.
 
 def g:SourceRFunList(lib: string)
     if g:R_hi_fun == 0
