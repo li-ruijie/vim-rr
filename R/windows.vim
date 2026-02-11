@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_windows")
+    finish
+endif
+g:did_vimr_windows = 1
+
 # This file contains code used only on Windows
 
 g:R_set_home_env = get(g:, 'R_set_home_env', 1)

@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_evince")
+    finish
+endif
+g:did_vimr_pdf_evince = 1
+
 var py = executable('python3') ? 'python3' : 'python'
 
 if !has_key(g:rplugin, 'evince_list')

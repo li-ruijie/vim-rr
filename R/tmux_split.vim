@@ -1,8 +1,9 @@
 vim9script
 
-if $TMUX == ''
+if exists("g:did_vimr_tmux_split") || $TMUX == ''
     finish
 endif
+g:did_vimr_tmux_split = 1
 
 g:R_external_term = 1
 g:rplugin.tmux_split = 1

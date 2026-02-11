@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_extern_term")
+    finish
+endif
+g:did_vimr_extern_term = 1
+
 # Define a function to retrieve tmux settings
 def g:TmuxOption(option: string, isglobal: string): string
     var result: string

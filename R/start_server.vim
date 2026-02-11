@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_start_server")
+    finish
+endif
+g:did_vimr_start_server = 1
+
 # Functions to start vimrserver or that are called only after the
 # vimrserver is running
 

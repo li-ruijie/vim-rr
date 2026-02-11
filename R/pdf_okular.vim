@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_okular")
+    finish
+endif
+g:did_vimr_pdf_okular = 1
+
 def OkularJobStdout(_ch: channel, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
     if cmd =~ "^call "

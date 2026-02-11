@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_bibcompl")
+    finish
+endif
+g:did_vimr_bibcompl = 1
+
 def g:RCompleteBib(base: string): list<dict<string>>
     if !g:IsJobRunning("BibComplete")
         return []

@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_generic")
+    finish
+endif
+g:did_vimr_pdf_generic = 1
+
 def g:ROpenPDF2(fullpath: string)
     system(g:R_pdfviewer .. " '" .. fullpath .. "' 2>/dev/null >/dev/null &")
 enddef

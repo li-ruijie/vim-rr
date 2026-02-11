@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_rstudio")
+    finish
+endif
+g:did_vimr_rstudio = 1
+
 def g:StartRStudio()
     if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
         return

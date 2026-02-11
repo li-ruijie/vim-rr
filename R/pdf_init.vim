@@ -1,5 +1,10 @@
 vim9script
 
+if exists("g:did_vimr_pdf_init")
+    finish
+endif
+g:did_vimr_pdf_init = 1
+
 g:rplugin.has_wmctrl = 0
 g:rplugin.has_awbt = 0
 
