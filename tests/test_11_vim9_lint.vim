@@ -300,6 +300,71 @@ def ReadfileExecuteGuard(filepath: string): list<string>
 enddef
 
 # ========================================================================
+# E114: legacy " comments inside def blocks
+# ========================================================================
+# In vim9script def bodies, " starts a string literal, not a comment.
+# Legacy " comments (common as section separators like "------) cause E114.
+# Use # for comments inside def blocks.
+def LegacyCommentInDef(filepath: string): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var in_def = false
+  var lnum = 0
+  for line in lines
+    lnum += 1
+    if line =~ '^\s*def\s'
+      in_def = true
+    elseif line =~ '^\s*enddef'
+      in_def = false
+    endif
+    if in_def && line =~ '^\s*"'
+      # Distinguish comments from string literals: strip escaped quotes
+      # then check parity.  Strings have paired " (even count); a lone
+      # leading " with no closing pair (odd count) is a legacy comment.
+      var stripped = substitute(line, '\\"', '', 'g')
+      if count(stripped, '"') % 2 == 1
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+      endif
+    endif
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# E1012: env var assigned numeric function result without string() wrap
+# ========================================================================
+# Environment variables ($VAR) are always strings.  Assigning a numeric
+# function result (rand, len, etc.) without string() causes E1012.
+def EnvVarNumericAssign(filepath: string): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var in_def = false
+  var lnum = 0
+  var numeric_pat = '\$\w\+\s*=\s*\%('
+    .. 'rand\|srand\|len\|strlen\|strchars\|line\|col\|virtcol'
+    .. '\|bufnr\|winnr\|tabpagenr\|char2nr\|str2nr\|str2float'
+    .. '\|float2nr\|getpid\|localtime\|empty\|has\|exists'
+    .. '\|count\|index\|match\|matchend\|stridx\|strridx'
+    .. '\|abs\|max\|min\|and\|or\|xor\|indent\|shiftwidth'
+    .. '\)\s*('
+  for line in lines
+    lnum += 1
+    if line =~ '^\s*def\s'
+      in_def = true
+    elseif line =~ '^\s*enddef'
+      in_def = false
+    endif
+    if !in_def || line =~ '^\s*#'
+      continue
+    endif
+    if line =~ numeric_pat && line !~ '\$\w\+\s*=\s*string\s*('
+      add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+    endif
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run checks on every vim9script file
 # ========================================================================
 var comment_errors: list<string> = []
@@ -309,6 +374,8 @@ var barecall_errors: list<string> = []
 var baredefg_errors: list<string> = []
 var funcref_errors: list<string> = []
 var rfexec_errors: list<string> = []
+var defcomment_errors: list<string> = []
+var envnum_errors: list<string> = []
 
 var legacy_names = CollectLegacyFuncNames(vim_files)
 var defg_names = CollectDefGFuncNames(vim_files)
@@ -322,6 +389,8 @@ for filepath in vim_files
     baredefg_errors += BareCallsInDef(filepath, defg_names)
     funcref_errors += FuncrefInDef(filepath, legacy_names)
     rfexec_errors += ReadfileExecuteGuard(filepath)
+    defcomment_errors += LegacyCommentInDef(filepath)
+    envnum_errors += EnvVarNumericAssign(filepath)
   endif
 endfor
 
@@ -365,4 +434,16 @@ g:Assert(len(rfexec_errors) == 0,
   'E114: readfile loop in def must guard before execute (add continue filter)'
   .. (len(rfexec_errors) > 0
       ? ' — found in: ' .. join(rfexec_errors, ', ')
+      : ''))
+
+g:Assert(len(defcomment_errors) == 0,
+  'E114: no legacy " comments inside def blocks (use # instead)'
+  .. (len(defcomment_errors) > 0
+      ? ' — found in: ' .. join(defcomment_errors, ', ')
+      : ''))
+
+g:Assert(len(envnum_errors) == 0,
+  'E1012: no $ENVVAR = numeric_func() without string() wrap'
+  .. (len(envnum_errors) > 0
+      ? ' — found in: ' .. join(envnum_errors, ', ')
       : ''))
