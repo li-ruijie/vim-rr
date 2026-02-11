@@ -5,17 +5,14 @@ def g:StartRStudio()
         return
     endif
 
-    g:SendCmdToR = function('SendCmdToR_NotYet')
+    g:SendCmdToR = function('g:SendCmdToR_NotYet')
 
     if has("win32")
         g:SetRHome()
     endif
-    var rstudio_launch_cmd: list<string>
-    if has("win32") && g:RStudio_cmd =~? '\.exe$'
-        rstudio_launch_cmd = ['cmd', '/c', g:RStudio_cmd]
-    else
-        rstudio_launch_cmd = [g:RStudio_cmd]
-    endif
+    var rstudio_launch_cmd = has("win32") && g:RStudio_cmd =~? '\.exe$'
+        ? ['cmd', '/c', g:RStudio_cmd]
+        : [g:RStudio_cmd]
     g:rplugin.jobs["RStudio"] = g:StartJob(rstudio_launch_cmd, {
         'err_cb':  'ROnJobStderr',
         'exit_cb': 'ROnJobExit',

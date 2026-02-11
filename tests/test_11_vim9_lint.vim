@@ -169,6 +169,46 @@ def BareCallsInDef(filepath: string, legacy: dict<bool>): list<string>
 enddef
 
 # ========================================================================
+# E700: function('LegacyName') inside def blocks without g: prefix
+# ========================================================================
+# In a def body, function('FuncName') resolves at runtime but only in
+# script-local scope — global functions require function('g:FuncName').
+# Without the prefix, Vim throws E700 (Unknown function).
+# Additionally, function('g:Name') changes the string() representation
+# to include 'g:', breaking comparisons.  The preferred fix is to resolve
+# the funcref at script level and capture it in a script variable.
+def StripDoubleQuotedStrings(line: string): string
+  return substitute(line, '"[^"\\]*\%(\\.[^"\\]*\)*"', '', 'g')
+enddef
+
+def FuncrefInDef(filepath: string, legacy: dict<bool>): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var in_def = false
+  var lnum = 0
+  for line in lines
+    lnum += 1
+    if line =~ '^\s*def\s'
+      in_def = true
+    elseif line =~ '^\s*enddef'
+      in_def = false
+    endif
+    if !in_def || line =~ '^\s*#'
+      continue
+    endif
+    # Only strip double-quoted strings: "function('Name')" in comparisons
+    # should be ignored, but function('Name') calls must be detected.
+    var stripped = StripDoubleQuotedStrings(line)
+    for fname in keys(legacy)
+      if stripped =~ "function('" .. fname .. "')"
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum .. ' ' .. fname)
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # E114 (execute context): readfile loop + execute without content guard
 # ========================================================================
 # Inside a def, execute runs in vim9 context where " starts a string
@@ -234,6 +274,7 @@ var comment_errors: list<string> = []
 var defg_errors: list<string> = []
 var funcbang_errors: list<string> = []
 var barecall_errors: list<string> = []
+var funcref_errors: list<string> = []
 var rfexec_errors: list<string> = []
 
 var legacy_names = CollectLegacyFuncNames(vim_files)
@@ -244,6 +285,7 @@ for filepath in vim_files
     defg_errors += DefGWithFinishGuard(filepath)
     funcbang_errors += FunctionBangInVim9(filepath)
     barecall_errors += BareCallsInDef(filepath, legacy_names)
+    funcref_errors += FuncrefInDef(filepath, legacy_names)
     rfexec_errors += ReadfileExecuteGuard(filepath)
   endif
 endfor
@@ -270,6 +312,12 @@ g:Assert(len(barecall_errors) == 0,
   'E117: no bare calls to legacy functions inside def blocks (use g: prefix)'
   .. (len(barecall_errors) > 0
       ? ' — found in: ' .. join(barecall_errors, ', ')
+      : ''))
+
+g:Assert(len(funcref_errors) == 0,
+  'E700: no function(''LegacyName'') inside def blocks (resolve at script level)'
+  .. (len(funcref_errors) > 0
+      ? ' — found in: ' .. join(funcref_errors, ', ')
       : ''))
 
 g:Assert(len(rfexec_errors) == 0,

@@ -452,7 +452,7 @@ function SendToVimcom(code, attch)
         call RWarningMsg("R is not running")
         return
     endif
-    if s:wait_vimcom && string(g:SendCmdToR) == "function('SendCmdToR_NotYet')"
+    if s:wait_vimcom && string(g:SendCmdToR) == "function('g:SendCmdToR_NotYet')"
         call RWarningMsg("R is not ready yet")
         return
     endif
