@@ -12,7 +12,7 @@ def g:SourceRFunList(lib: string)
     var fnm = g:rplugin.compldir .. '/fun_' .. lib
 
     if has_key(g:rplugin, 'localfun')
-        UpdateLocalFunctions(g:rplugin.localfun)
+        g:UpdateLocalFunctions(g:rplugin.localfun)
     endif
 
     # Highlight R functions
