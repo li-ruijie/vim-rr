@@ -1,6 +1,6 @@
 vim9script
 
-def OkularJobStdout(_job_id: job, msg: string)
+def OkularJobStdout(_ch: channel, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
     if cmd =~ "^call "
         execute cmd

@@ -186,8 +186,7 @@ def g:MovePosRLineComment(lnum: number, cpos: number)
     if line !~ '#'
         # Write the comment character
         line = line .. repeat(' ', cpos)
-        var cmd = "let line = substitute(line, '^\\(.\\{" .. (cpos - 1) .. "}\\).*', '\\1# ', '')"
-        execute cmd
+        line = substitute(line, '^\(.\{' .. (cpos - 1) .. '}\).*', '\1# ', '')
         setline(lnum, line)
     else
         # Align the comment character(s)

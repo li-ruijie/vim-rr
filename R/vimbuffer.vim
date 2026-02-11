@@ -6,7 +6,7 @@ var R_width = 0
 var number_col = 0
 
 def g:SendCmdToR_Buffer(...args: list<any>): number
-    if g:IsJobRunning(g:rplugin.jobs["R"]) || 1
+    if g:IsJobRunning(g:rplugin.jobs["R"])
         var cmd: string
         if g:R_clear_line
             if g:R_editing_mode == "emacs"

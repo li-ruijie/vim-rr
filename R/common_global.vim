@@ -951,7 +951,7 @@ if &filetype != "rbrowser"
 endif
 
 if v:windowid != 0 && $WINDOWID == ""
-    $WINDOWID = v:windowid
+    $WINDOWID = string(v:windowid)
 endif
 
 # Current view of the object browser: .GlobalEnv X loaded libraries

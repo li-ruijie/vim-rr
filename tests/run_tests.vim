@@ -5,6 +5,10 @@ vim9script
 set nocompatible
 set encoding=utf-8
 scriptencoding utf-8
+set nomore
+if has('gui_running')
+  set guioptions+=c
+endif
 
 var total_tests = 0
 var passed_tests = 0

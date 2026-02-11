@@ -56,8 +56,8 @@ enddef
 
 def HasPython3(): bool
     if exists("g:R_python3")
-        if filereadable("g:R_python3")
-            if executable("g:R_python3")
+        if filereadable(g:R_python3)
+            if executable(g:R_python3)
                 g:rplugin.py3 = g:R_python3
                 return true
             else
@@ -103,7 +103,7 @@ def g:CheckPyBTeX(_timer: number)
         if !exists("b:rplugin_did_bib_autocmd")
             autocmd BufWritePost <buffer> call <SID>GetBibFileName()
             if &filetype == 'rnoweb'
-                b:rplugin_non_r_omnifunc = "RnwNonRCompletion"
+                b:rplugin_non_r_omnifunc = "g:RnwNonRCompletion"
                 autocmd CompleteDone <buffer> call g:RnwOnCompleteDone()
             endif
         endif

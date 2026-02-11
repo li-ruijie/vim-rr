@@ -128,9 +128,27 @@ static int VimSecretLen;    // Length of Vim secret
 
 #ifdef WIN32
 static int Tid; // Thread ID
+static CRITICAL_SECTION stdout_mutex; // Mutex for stdout writes
 #else
 static pthread_t Tid; // Thread ID
+static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for stdout writes
 #endif
+
+static void lock_stdout(void) {
+#ifdef WIN32
+    EnterCriticalSection(&stdout_mutex);
+#else
+    pthread_mutex_lock(&stdout_mutex);
+#endif
+}
+
+static void unlock_stdout(void) {
+#ifdef WIN32
+    LeaveCriticalSection(&stdout_mutex);
+#else
+    pthread_mutex_unlock(&stdout_mutex);
+#endif
+}
 struct sockaddr_in servaddr; // Server address structure
 static int sockfd;           // socket file descriptor
 static int connfd;           // Connection file descriptor
@@ -236,8 +254,10 @@ HandleSigTerm(__attribute__((unused)) int s) // Signal handler for SIGTERM
 static void RegisterPort(int bindportn) // Function to register port number to R
 {
     // Register the port:
+    lock_stdout();
     printf("call RSetMyPort('%d')\n", bindportn);
     fflush(stdout);
+    unlock_stdout();
 }
 
 static void ParseMsg(char *b) // Parse the message from R
@@ -291,8 +311,10 @@ static void ParseMsg(char *b) // Parse the message from R
     }
 
     // Send the command to Vim-R
+    lock_stdout();
     printf("\x11%" PRI_SIZET "\x11%s\n", strlen(b), b);
     fflush(stdout);
+    unlock_stdout();
 }
 
 // Adapted from
@@ -1024,8 +1046,10 @@ static int run_R_code(const char *s, int senderror) {
 
     if (exit_code != 0) {
         if (senderror) {
+            lock_stdout();
             printf("call ShowBuildOmnilsError('%ld')\n", exit_code);
             fflush(stdout);
+            unlock_stdout();
         }
         return 0;
     }
@@ -1044,8 +1068,10 @@ static int run_R_code(const char *s, int senderror) {
     int stt = system(b);
     if (stt != 0 && stt != 512) { // ssh success status seems to be 512
         if (senderror) {
+            lock_stdout();
             printf("call ShowBuildOmnilsError('%d')\n", stt);
             fflush(stdout);
+            unlock_stdout();
         }
         return 0;
     }
@@ -1353,8 +1379,10 @@ static void finish_bol() {
     }
 
     // Message to Neovim: Update both syntax and Rhelp_list
+    lock_stdout();
     printf("call UpdateSynRhlist()\n");
     fflush(stdout);
+    unlock_stdout();
 }
 
 // Read the DESCRIPTION of all installed libraries
@@ -1742,8 +1770,10 @@ void hi_glbenv_fun(void) {
         g++;
     }
     p = str_cat(p, "')");
+    lock_stdout();
     printf("\x11%" PRI_SIZET "\x11%s\n", strlen(compl_buffer), compl_buffer);
     fflush(stdout);
+    unlock_stdout();
 }
 
 void update_glblenv_buffer(char *g) {
@@ -1799,8 +1829,10 @@ void omni2ob(void) {
 
     fclose(f);
     if (auto_obbr) {
+        lock_stdout();
         fputs("call UpdateOB('GlobalEnv')\n", stdout);
         fflush(stdout);
+        unlock_stdout();
     }
 }
 
@@ -1843,8 +1875,10 @@ void lib2ob(void) {
     }
 
     fclose(f);
+    lock_stdout();
     fputs("call UpdateOB('libraries')\n", stdout);
     fflush(stdout);
+    unlock_stdout();
 }
 
 void change_all(ListStatus *root, int stt) {
@@ -1926,6 +1960,7 @@ static void fill_inst_libs(void) {
 }
 
 static void send_nrs_info(void) {
+    lock_stdout();
     printf("call EchoNCSInfo('Loaded packages:");
     PkgData *pkg = pkgList;
     while (pkg) {
@@ -1934,6 +1969,7 @@ static void send_nrs_info(void) {
     }
     printf("')\n");
     fflush(stdout);
+    unlock_stdout();
 }
 
 static void init(void) {
@@ -2043,8 +2079,10 @@ static void init(void) {
     update_pkg_list(NULL);
     build_omnils();
 
+    lock_stdout();
     printf("let g:rplugin.nrs_running = 1\n");
     fflush(stdout);
+    unlock_stdout();
 
     Log("init() finished");
 }
@@ -2136,16 +2174,20 @@ void completion_info(const char *wrd, const char *pkg) {
             p = str_cat(p, "', 'descr': '");
             p = str_cat(p, f[6]);
             p = str_cat(p, "'}");
+            lock_stdout();
             printf("call %s(%s)\n", compl_info, compl_buffer);
             fflush(stdout);
+            unlock_stdout();
             return;
         }
         while (*s != '\n')
             s++;
         s++;
     }
+    lock_stdout();
     printf("call %s({})\n", compl_info);
     fflush(stdout);
+    unlock_stdout();
 }
 
 // Return the menu items for omni completion, but don't include function
@@ -2317,11 +2359,13 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
         if (*funcnm == '\004') {
             // Get menu completion for installed libraries
             p = complete_instlibs(p, base);
+            lock_stdout();
             printf("\x11%" PRI_SIZET "\x11"
                    "call %s(%s, [%s])\n",
                    strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11,
                    compl_cb, id, compl_buffer);
             fflush(stdout);
+            unlock_stdout();
             return;
         } else {
             // Normal completion of arguments
@@ -2343,11 +2387,13 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
         }
         if (base[0] == 0) {
             // base will be empty if completing only function arguments
+            lock_stdout();
             printf("\x11%" PRI_SIZET "\x11"
                    "call %s(%s, [%s])\n",
                    strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11,
                    compl_cb, id, compl_buffer);
             fflush(stdout);
+            unlock_stdout();
             return;
         }
     }
@@ -2373,11 +2419,13 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
         pd = pd->next;
     }
 
+    lock_stdout();
     printf("\x11%" PRI_SIZET "\x11"
            "call %s(%s, [%s])\n",
            strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11, compl_cb,
            id, compl_buffer);
     fflush(stdout);
+    unlock_stdout();
 }
 
 void stdin_loop() {
@@ -2499,11 +2547,15 @@ void stdin_loop() {
             switch (*msg) {
             case '1': // Check if R is running
                 if (PostMessage(RConsole, WM_NULL, 0, 0)) {
+                    lock_stdout();
                     printf("call RWarningMsg('R was already started')\n");
                     fflush(stdout);
+                    unlock_stdout();
                 } else {
+                    lock_stdout();
                     printf("call CleanVimAndStartR()\n");
                     fflush(stdout);
+                    unlock_stdout();
                 }
                 break;
             case '3': // SendToRConsole
@@ -2542,6 +2594,9 @@ void stdin_loop() {
 }
 
 int main(int argc, char **argv) {
+#ifdef WIN32
+    InitializeCriticalSection(&stdout_mutex);
+#endif
     init();
 #ifdef WIN32
     Windows_setup();

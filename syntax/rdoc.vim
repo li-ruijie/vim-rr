@@ -8,8 +8,8 @@ setlocal iskeyword=@,48-57,_,.
 setlocal conceallevel=2
 setlocal concealcursor=nvc
 
-if exists("rdoc_minlines") && exists("rdoc_maxlines")
-    execute "syn sync minlines=" .. rdoc_minlines .. " maxlines=" .. rdoc_maxlines
+if exists("g:rdoc_minlines") && exists("g:rdoc_maxlines")
+    execute "syn sync minlines=" .. g:rdoc_minlines .. " maxlines=" .. g:rdoc_maxlines
 else
     syn sync fromstart
 endif

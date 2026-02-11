@@ -66,7 +66,7 @@ if !exists('*g:RhelpComplete')
 endif
 
 b:IsInRCode = function('g:RhelpIsInRCode')
-b:rplugin_non_r_omnifunc = "RhelpComplete"
+b:rplugin_non_r_omnifunc = "g:RhelpComplete"
 
 #==========================================================================
 # Key bindings and menu items
