@@ -28,42 +28,45 @@ endif
 g:R_hi_fun = get(g:, 'R_hi_fun', 1)
 
 # Must be run for each buffer
-def g:SourceRFunList(lib: string)
+# Use function! (not def) because this file is re-sourced while these
+# functions may be in the call stack.  Vim9 def compiles at parse time,
+# before `finish` can guard against redefinition, causing E127.
+function! SourceRFunList(lib)
     if g:R_hi_fun == 0
         return
     endif
 
-    var fnm = g:rplugin.compldir .. '/fun_' .. lib
+    let fnm = g:rplugin.compldir .. '/fun_' .. a:lib
 
     if has_key(g:rplugin, 'localfun')
-        UpdateLocalFunctions(g:rplugin.localfun)
+        call UpdateLocalFunctions(g:rplugin.localfun)
     endif
 
-    # Highlight R functions
+    " Highlight R functions
     if !exists('g:R_hi_fun_paren') || g:R_hi_fun_paren == 0
         execute 'source ' .. substitute(fnm, ' ', '\\ ', 'g')
     else
-        var lines = readfile(fnm)
+        let lines = readfile(fnm)
         for line in lines
-            var newline = substitute(line, '\.', '\\.', 'g')
+            let newline = substitute(line, '\.', '\\.', 'g')
             if substitute(line, 'syn keyword rFunction ', '', '') =~ "[ ']"
-                newline = substitute(newline, 'keyword rFunction ', 'match rSpaceFun /`\\zs', '')
+                let newline = substitute(newline, 'keyword rFunction ', 'match rSpaceFun /`\\zs', '')
                 execute newline .. '\ze`\s*(/ contained'
             else
-                newline = substitute(newline, 'keyword rFunction ', 'match rFunction /\\<', '')
+                let newline = substitute(newline, 'keyword rFunction ', 'match rFunction /\\<', '')
                 execute newline .. '\s*\ze(/'
             endif
         endfor
     endif
-enddef
+endfunction
 
 # Function called when vimcom updates the list of loaded libraries
-def g:FunHiOtherBf()
+function! FunHiOtherBf()
     if &diff || g:R_hi_fun == 0
         return
     endif
 
-    # Syntax highlight other buffers
+    " Syntax highlight other buffers
     silent execute 'set syntax=' .. &syntax
     redraw
-enddef
+endfunction
