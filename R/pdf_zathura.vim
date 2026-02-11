@@ -13,7 +13,7 @@ var has_dbus_send = executable("dbus-send")
 var synctex_editor_cmd = "echo 'call SyncTeX_backward(\"%{input}\",  \"%{line}\")'"
 var OnJobStderr = function('ROnJobStderr')
 
-def ZathuraJobStdout(_job_id: job, msg: string)
+def ZathuraJobStdout(_ch: channel, msg: string)
     var cmd = substitute(msg, '[\n\r]', '', 'g')
     if cmd =~ "^call "
         execute cmd

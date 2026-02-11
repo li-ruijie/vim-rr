@@ -576,7 +576,7 @@ def g:StartObjBrowser()
         g:rplugin.curview = "GlobalEnv"
         g:rplugin.ob_winnr = win_getid()
 
-        if exists('s:autosttobjbr') && autosttobjbr == 1
+        if autosttobjbr == 1
             autosttobjbr = 0
             exe edbuf .. 'sb'
         endif
@@ -653,25 +653,30 @@ def g:StopRDebugging()
 enddef
 
 def g:FindDebugFunc(srcref: string)
+    var sbopt = &switchbuf
+    var curtab = tabpagenr()
+    var isnormal = mode() ==# 'n'
+    var curwin = winnr()
+    var rlines: list<string> = []
     if type(g:R_external_term) == v:t_number && g:R_external_term == 0
         func_offset = -1 # Not found
-        var sbopt = &switchbuf
+        sbopt = &switchbuf
         set switchbuf=useopen,usetab
-        var curtab = tabpagenr()
-        var isnormal = mode() ==# 'n'
-        var curwin = winnr()
+        curtab = tabpagenr()
+        isnormal = mode() ==# 'n'
+        curwin = winnr()
         exe 'sb ' .. g:rplugin.R_bufnr
         sleep 30m # Time to fill the buffer lines
-        var rlines = getline(1, "$")
+        rlines = getline(1, "$")
         exe 'sb ' .. g:rplugin.rscript_name
     elseif string(g:SendCmdToR) == "function('g:SendCmdToR_Term')"
         var tout = system('tmux -L VimR capture-pane -p -t ' .. g:rplugin.tmuxsname)
-        var rlines = split(tout, "\n")
+        rlines = split(tout, "\n")
     elseif string(g:SendCmdToR) == "function('g:SendCmdToR_TmuxSplit')"
         var tout = system('tmux capture-pane -p -t ' .. g:rplugin.rconsole_pane)
-        var rlines = split(tout, "\n")
+        rlines = split(tout, "\n")
     else
-        var rlines = []
+        rlines = []
     endif
 
     var idx = len(rlines) - 1

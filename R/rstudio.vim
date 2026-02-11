@@ -14,8 +14,8 @@ def g:StartRStudio()
         ? ['cmd', '/c', g:RStudio_cmd]
         : [g:RStudio_cmd]
     g:rplugin.jobs["RStudio"] = g:StartJob(rstudio_launch_cmd, {
-        'err_cb':  'ROnJobStderr',
-        'exit_cb': 'ROnJobExit',
+        'err_cb':  'g:ROnJobStderr',
+        'exit_cb': 'g:ROnJobExit',
         'stoponexit': ''})
     if has("win32")
         g:UnsetRHome()

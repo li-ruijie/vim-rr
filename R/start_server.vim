@@ -84,12 +84,13 @@ def g:RInitStdout(...args: list<any>)
         # (https://github.com/jalvesaq/Vim-R/issues/713)
         var rcmdl = split(rcmd, "\x14", 0)
         for rcmd_item in rcmdl
-            if rcmd_item =~ '^RWarn: '
-                RWarn += [substitute(rcmd_item, '^RWarn: ', '', '')]
+            var cmd = rcmd_item
+            if cmd =~ '^RWarn: '
+                RWarn += [substitute(cmd, '^RWarn: ', '', '')]
             else
-                exe rcmd_item
+                legacy execute cmd
             endif
-            if rcmd_item =~ '^echo'
+            if cmd =~ '^echo'
                 redraw
             endif
         endfor

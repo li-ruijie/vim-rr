@@ -250,7 +250,7 @@ if !exists('*g:RmdNonRCompletion')
     endfunction
 endif
 
-b:rplugin_non_r_omnifunc = "RmdNonRCompletion"
+b:rplugin_non_r_omnifunc = "g:RmdNonRCompletion"
 if !exists('b:rplugin_bibf')
     b:rplugin_bibf = ''
 endif

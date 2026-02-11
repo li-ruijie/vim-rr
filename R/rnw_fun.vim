@@ -316,6 +316,8 @@ def g:SyncTeX_backward(fname: string, ln: number)
     else
         basedir = '.'
     endif
+    var rnwln = 0
+    var rnwf = ''
     if filereadable(basenm .. "-concordance.tex")
         if !filereadable(basenm .. ".tex")
             g:RWarningMsg('SyncTeX [Vim-R]: "' .. basenm .. '.tex" not found.')
@@ -325,8 +327,6 @@ def g:SyncTeX_backward(fname: string, ln: number)
         var texlnum = concdata["texlnum"]
         var rnwfile = concdata["rnwfile"]
         var rnwline = concdata["rnwline"]
-        var rnwln = 0
-        var rnwf = ''
         for ii in range(len(texlnum))
             if texlnum[ii] >= ln
                 rnwf = rnwfile[ii]
@@ -339,8 +339,6 @@ def g:SyncTeX_backward(fname: string, ln: number)
             return
         endif
     else
-        var rnwf: string
-        var rnwln: number
         if filereadable(basenm .. ".Rnw") || filereadable(basenm .. ".rnw")
             g:RWarningMsg('SyncTeX [Vim-R]: "' .. basenm .. '-concordance.tex" not found.')
             return

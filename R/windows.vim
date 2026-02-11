@@ -13,7 +13,7 @@ if exists('g:R_path')
         if isdirectory(dir)
             $PATH = dir .. ';' .. $PATH
         else
-            RWarningMsg('"' .. dir .. '" is not a directory. Fix the value of R_path in your vimrc.')
+            g:RWarningMsg('"' .. dir .. '" is not a directory. Fix the value of R_path in your vimrc.')
         endif
     endfor
 else
@@ -52,7 +52,7 @@ else
         endif
     endfor
     if rinstallpath == ''
-        RWarningMsg("Could not find R path in Windows Registry. If you have already installed R, please, set the value of 'R_path'.")
+        g:RWarningMsg("Could not find R path in Windows Registry. If you have already installed R, please, set the value of 'R_path'.")
         g:rplugin.failed = 1
         finish
     endif
@@ -148,5 +148,5 @@ execute 'call AddForDeletion(g:rplugin.tmpdir .. "/run_cmd.bat")'
 
 # 2020-05-19
 if exists('g:Rtools_path')
-    RWarningMsg('The variable "Rtools_path" is no longer used.')
+    g:RWarningMsg('The variable "Rtools_path" is no longer used.')
 endif
