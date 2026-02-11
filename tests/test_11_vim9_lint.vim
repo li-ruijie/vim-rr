@@ -155,12 +155,72 @@ def BareCallsInDef(filepath: string, legacy: dict<bool>): list<string>
 enddef
 
 # ========================================================================
+# E114 (execute context): readfile loop + execute without content guard
+# ========================================================================
+# Inside a def, execute runs in vim9 context where " starts a string
+# literal.  If readfile() output is iterated and passed to execute
+# without filtering, legacy " comment lines cause E114.
+# Require a `continue` guard before any `execute` in such loops.
+def ReadfileExecuteGuard(filepath: string): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var in_def = false
+  var def_has_readfile = false
+  var in_for = 0
+  var for_has_execute = false
+  var for_has_guard = false
+  var for_execute_lnum = 0
+  var lnum = 0
+  for line in lines
+    lnum += 1
+    if line =~ '^\s*def\s'
+      in_def = true
+      def_has_readfile = false
+    elseif line =~ '^\s*enddef'
+      in_def = false
+    endif
+    if !in_def
+      continue
+    endif
+    if line =~ '\<readfile\s*('
+      def_has_readfile = true
+    endif
+    if line =~ '^\s*for\s'
+      in_for += 1
+      if in_for == 1
+        for_has_execute = false
+        for_has_guard = false
+        for_execute_lnum = 0
+      endif
+    elseif line =~ '^\s*endfor'
+      if in_for == 1 && def_has_readfile && for_has_execute && !for_has_guard
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. for_execute_lnum)
+      endif
+      in_for = max([0, in_for - 1])
+    endif
+    if in_for == 1
+      if line =~ '^\s*continue\>'
+        for_has_guard = true
+      endif
+      if line =~ '^\s*execute\s' && !for_has_guard
+        for_has_execute = true
+        if for_execute_lnum == 0
+          for_execute_lnum = lnum
+        endif
+      endif
+    endif
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run checks on every vim9script file
 # ========================================================================
 var comment_errors: list<string> = []
 var defg_errors: list<string> = []
 var funcbang_errors: list<string> = []
 var barecall_errors: list<string> = []
+var rfexec_errors: list<string> = []
 
 var legacy_names = CollectLegacyFuncNames(vim_files)
 
@@ -170,6 +230,7 @@ for filepath in vim_files
     defg_errors += DefGWithFinishGuard(filepath)
     funcbang_errors += FunctionBangInVim9(filepath)
     barecall_errors += BareCallsInDef(filepath, legacy_names)
+    rfexec_errors += ReadfileExecuteGuard(filepath)
   endif
 endfor
 
@@ -195,4 +256,10 @@ g:Assert(len(barecall_errors) == 0,
   'E117: no bare calls to legacy functions inside def blocks (use g: prefix)'
   .. (len(barecall_errors) > 0
       ? ' — found in: ' .. join(barecall_errors, ', ')
+      : ''))
+
+g:Assert(len(rfexec_errors) == 0,
+  'E114: readfile loop in def must guard before execute (add continue filter)'
+  .. (len(rfexec_errors) > 0
+      ? ' — found in: ' .. join(rfexec_errors, ', ')
       : ''))
