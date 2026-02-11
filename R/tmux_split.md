@@ -1,6 +1,6 @@
 # Integration with Tmux
 
-Before Neovim's built-in terminal emulator was developed, the best way of
+Before Vim's built-in terminal was widely available, the best way of
 running R was inside a Tmux session, and as an alternative to running R in a
 Tmux split pane, you could try the Tilix terminal emulator, and put in your
 `vimrc`:
@@ -70,7 +70,6 @@ set -g mouse-resize-pane on
 set -g mouse on
 
 # Escape time for libtermkey
-# (see https://github.com/neovim/neovim/issues/2035):
 set -sg escape-time 10
 
 # Act more like vi:

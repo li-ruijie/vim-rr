@@ -779,7 +779,7 @@ def g:RDebugJump(fnm: string, lnum: number)
         exe ':' .. flnum
     endif
 
-    # Call sign_place() and sign_unplace() when requiring Vim 8.2 and Neovim 0.5
+    # Call sign_place() and sign_unplace() (requires Vim 8.2+)
     #call sign_unplace('rdebugcurline')
     #call sign_place(1, 'rdebugcurline', 'dbgline', fname, {'lnum': flnum})
     sign unplace 1

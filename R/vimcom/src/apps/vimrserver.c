@@ -1,18 +1,18 @@
-#include <ctype.h>      // Character type functions
-#include <dirent.h>     // Directory entry
-#include <signal.h>     // Signal handling
-#include <stdarg.h>     // Variable argument functions
-#include <stdio.h>      // Standard input/output definitions
-#include <stdlib.h>     // Standard library
-#include <string.h>     // String handling functions
-#include <sys/stat.h>   // Data returned by the stat() function
-#include <sys/types.h>  // Data types
+#include <ctype.h>     // Character type functions
+#include <dirent.h>    // Directory entry
+#include <signal.h>    // Signal handling
+#include <stdarg.h>    // Variable argument functions
+#include <stdio.h>     // Standard input/output definitions
+#include <stdlib.h>    // Standard library
+#include <string.h>    // String handling functions
+#include <sys/stat.h>  // Data returned by the stat() function
+#include <sys/types.h> // Data types
 
 #ifdef __FreeBSD__
 #include <netinet/in.h> // BSD network library
 #endif
 
-#include <unistd.h>     // POSIX operating system API
+#include <unistd.h> // POSIX operating system API
 #ifdef WIN32
 #include <inttypes.h>
 #include <process.h>
@@ -36,10 +36,10 @@ HWND RConsole = NULL;
 #define PRI_SIZET "zu"
 #endif
 
-static char strL[8];        // String for last element prefix in tree view
-static char strT[8];        // String for tree element prefix in tree view
-static int OpenDF;          // Flag for open data frames in tree view
-static int OpenLS;          // Flag for open lists in tree view
+static char strL[8];       // String for last element prefix in tree view
+static char strT[8];       // String for tree element prefix in tree view
+static int OpenDF;         // Flag for open data frames in tree view
+static int OpenLS;         // Flag for open lists in tree view
 static int vimcom_is_utf8; // Flag for UTF-8 encoding
 static int allnames; // Flag for showing all names, including starting with '.'
 
@@ -127,11 +127,12 @@ static char VimSecret[128]; // Secret for communication with Vim
 static int VimSecretLen;    // Length of Vim secret
 
 #ifdef WIN32
-static int Tid; // Thread ID
+static int Tid;                       // Thread ID
 static CRITICAL_SECTION stdout_mutex; // Mutex for stdout writes
 #else
 static pthread_t Tid; // Thread ID
-static pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex for stdout writes
+static pthread_mutex_t stdout_mutex =
+    PTHREAD_MUTEX_INITIALIZER; // Mutex for stdout writes
 #endif
 
 static void lock_stdout(void) {
@@ -510,7 +511,7 @@ static void SendToRConsole(char *aString) {
         return;
     }
 
-    // The application (such as NeovimQt) might not define $WINDOWID
+    // $WINDOWID may not be defined in all environments
     if (!VimHwnd)
         VimHwnd = GetForegroundWindow();
 
@@ -695,12 +696,12 @@ void Windows_setup() // Setup Windows-specific configurations
         VimHwnd = (HWND)atol(getenv("WINDOWID"));
 #endif
     } else {
-        // The application (such as NeovimQt) might not define $WINDOWID
-        VimHwnd = FindWindow(NULL, "Neovim");
+        // $WINDOWID may not be defined in all environments
+        VimHwnd = FindWindow(NULL, "vim");
         if (!VimHwnd) {
-            VimHwnd = FindWindow(NULL, "vim");
+            VimHwnd = FindWindow(NULL, "GVIM");
             if (!VimHwnd) {
-                fprintf(stderr, "\"Neovim\" window not found\n");
+                fprintf(stderr, "Vim window not found\n");
                 fflush(stderr);
             }
         }
@@ -1378,7 +1379,7 @@ static void finish_bol() {
         fclose(f);
     }
 
-    // Message to Neovim: Update both syntax and Rhelp_list
+    // Message to Vim: Update both syntax and Rhelp_list
     lock_stdout();
     printf("call UpdateSynRhlist()\n");
     fflush(stdout);
@@ -2295,7 +2296,6 @@ char *parse_omnils(const char *s, const char *base, const char *pkg, char *p) {
     }
     return p;
 }
-
 
 char *complete_args(char *p, char *funcnm) {
     // Check if function is "pkg::fun"

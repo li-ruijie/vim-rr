@@ -23,10 +23,6 @@ endif
 
 # Necessary for RCreateMaps():
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_global.vim'
-if exists('g:has_Rnvim')
-    finish
-endif
-
 g:RCreateMaps('n', 'RQuartoRender',  'qr', ':call g:RQuarto("render")')
 g:RCreateMaps('n', 'RQuartoPreview', 'qp', ':call g:RQuarto("preview")')
 g:RCreateMaps('n', 'RQuartoStop',    'qs', ':call g:RQuarto("stop")')

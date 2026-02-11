@@ -13,10 +13,6 @@ set cpo&vim
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
-if exists('g:has_Rnvim')
-    finish
-endif
-
 setlocal iskeyword=@,48-57,_,.
 
 # Prepare R documentation output to be displayed by Vim

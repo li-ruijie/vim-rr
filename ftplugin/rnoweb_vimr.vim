@@ -6,10 +6,6 @@ endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
-if exists('g:has_Rnvim')
-    finish
-endif
-
 # Bibliographic completion
 if index(g:R_bib_compl, 'rnoweb') > -1
     execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/bibcompl.vim'
