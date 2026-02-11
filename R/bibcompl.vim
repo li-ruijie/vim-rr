@@ -146,7 +146,7 @@ function GetBibAttachment()
                 endif
                 if filereadable(fpath)
                     if has('win32')
-                        call system('open "' . fpath . '"')
+                        call system('start "" "' . fpath . '"')
                     else
                         call system('xdg-open "' . fpath . '"')
                     endif
