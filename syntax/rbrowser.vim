@@ -1,6 +1,3 @@
-" Vim syntax file
-" Language:	Object browser of R Workspace
-" Maintainer:	Jakson Alves de Aquino (jalvesaq@gmail.com)
 
 if exists("b:current_syntax")
     finish

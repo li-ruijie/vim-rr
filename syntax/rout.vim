@@ -1,7 +1,3 @@
-" Vim syntax file
-" Language:    R output Files
-" Maintainer:  Jakson Aquino <jalvesaq@gmail.com>
-
 
 if exists("b:current_syntax")
     finish
