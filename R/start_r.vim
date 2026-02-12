@@ -546,9 +546,9 @@ def g:ShowRObj(howto: string, bname: string, ftype: string, txt: string)
     var bfnm = substitute(bname, '[ [:punct:]]', '_', 'g')
     g:AddForDeletion(g:rplugin.tmpdir .. "/" .. bfnm)
     silent exe howto .. ' ' .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. '/' .. bfnm
-    silent exe 'set ft=' .. ftype
+    silent exe 'setlocal ft=' .. ftype
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
-    set nomodified
+    setlocal nomodified
 enddef
 
 # This function is called by vimcom
@@ -556,7 +556,7 @@ def g:EditRObject(fname: string)
     var fcont = readfile(fname)
     exe "tabnew " .. substitute($VIMR_TMPDIR .. "/edit_" .. $VIMR_ID, ' ', '\\ ', 'g')
     setline(".", fcont)
-    set filetype=r
+    setlocal filetype=r
     stopinsert
     autocmd BufUnload <buffer> delete($VIMR_TMPDIR .. "/edit_" .. $VIMR_ID .. "_wait") | startinsert
 enddef
@@ -903,7 +903,7 @@ def g:GetROutput(fnm: string, txt: string)
         endwhile
         exe 'tabnew so' .. tnum
         setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
-        set filetype=rout
+        setlocal filetype=rout
         setlocal buftype=nofile
         setlocal noswapfile
     else
@@ -956,7 +956,7 @@ def g:RViewDF(oname: string, howto: string, txt: string)
     setlocal nomodified
     setlocal bufhidden=wipe
     setlocal noswapfile
-    set buftype=nofile
+    setlocal buftype=nofile
     redraw
 enddef
 
@@ -1151,27 +1151,27 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     g:rplugin.curbuf = bufname("%")
 
     var save_unnamed_reg = @@
-    set modifiable
+    setlocal modifiable
     sil normal! ggdG
     var fcntt = split(substitute(txt, "\x13", "'", "g"), "\x14")
     setline(1, fcntt)
     if rkeyword =~ "R History"
-        set filetype=r
+        setlocal filetype=r
         cursor(1, 1)
     elseif rkeyword =~ '(help)' || search("\x08", "nw") > 0
-        set filetype=rdoc
+        setlocal filetype=rdoc
         cursor(1, 1)
     elseif rkeyword =~? '\.Rd$'
         # Called by devtools::load_all().
         # See https://github.com/jalvesaq/Vim-R/issues/482
-        set filetype=rhelp
+        setlocal filetype=rhelp
         cursor(1, 1)
     else
-        set filetype=rout
+        setlocal filetype=rout
         setlocal bufhidden=wipe
         setlocal nonumber
         setlocal noswapfile
-        set buftype=nofile
+        setlocal buftype=nofile
         nnoremap <buffer><silent> q :q<CR>
         cursor(1, 1)
     endif
@@ -1964,7 +1964,7 @@ def g:OpenRExample()
     nnoremap <buffer><silent> q :q<CR>
     setlocal bufhidden=wipe
     setlocal noswapfile
-    set buftype=nofile
+    setlocal buftype=nofile
     delete(g:rplugin.tmpdir .. "/example.R")
 enddef
 

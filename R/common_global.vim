@@ -109,27 +109,13 @@ def g:RWarningMsg(wmsg: string)
         endif
         return
     endif
-    if mode() == 'i' && has('patch-8.2.84')
+    if mode() == 'i'
         g:RFloatWarn(wmsg)
     endif
     echohl WarningMsg
     echomsg wmsg
     echohl None
 enddef
-
-# ==============================================================================
-# Check Vim version
-# ==============================================================================
-
-if v:version < 802
-    g:RWarningMsg("Vim-R requires Vim >= 8.2.84")
-    g:rplugin.failed = 1
-    finish
-elseif !has("channel") || !has("job") || !has('patch-8.2.84')
-    g:RWarningMsg("Vim-R requires Vim >= 8.2.84\nVim must have been compiled with both +channel and +job features.\n")
-    g:rplugin.failed = 1
-    finish
-endif
 
 # Convert _ into <-
 def g:ReplaceUnderS()

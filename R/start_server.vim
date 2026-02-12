@@ -463,8 +463,8 @@ if len(ff) > 1
         setline(1, msg)
         setlocal bufhidden=wipe
         setlocal noswapfile
-        set buftype=nofile
-        set nomodified
+        setlocal buftype=nofile
+        setlocal nomodified
         redraw
     enddef
     if v:vim_did_enter
