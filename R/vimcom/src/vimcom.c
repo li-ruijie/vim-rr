@@ -117,6 +117,66 @@ extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
 static int r_is_busy = 1; // Is R executing a top level command? R memory will
 // become corrupted and R will crash afterwards if we execute a function that
 // creates R objects while R is busy.
+
+// Linked-list queue for deferred eval commands. Replaces the static flag_eval
+// buffer on Windows. Commands are enqueued by the TCP thread (case 'E' / 'L')
+// when r_is_busy == 1, and drained by vimcom_task on the main R thread.
+#define MAX_EVAL_CMD 65536
+
+typedef struct eval_node {
+    struct eval_node *next;
+    char cmd[]; // flexible array member — allocated inline with node
+} eval_node_t;
+
+static eval_node_t *eval_head = NULL;
+static eval_node_t *eval_tail = NULL;
+
+/**
+ * @brief Enqueue a command for deferred execution by vimcom_task.
+ * Must be called under FLAG_LOCK.
+ */
+static void eval_queue_push(const char *cmd) {
+    size_t len = strlen(cmd);
+    if (len > MAX_EVAL_CMD) {
+        REprintf("vimcom: command too long (%zu bytes, max %d)\n", len,
+                 MAX_EVAL_CMD);
+        return;
+    }
+    eval_node_t *node = malloc(sizeof(eval_node_t) + len + 1);
+    if (!node) {
+        REprintf("vimcom: malloc failed for eval queue node\n");
+        return;
+    }
+    memcpy(node->cmd, cmd, len + 1);
+    node->next = NULL;
+    if (eval_tail)
+        eval_tail->next = node;
+    else
+        eval_head = node;
+    eval_tail = node;
+}
+
+/**
+ * @brief Detach the entire queue and return its head.
+ * Must be called under FLAG_LOCK. Caller owns the returned list.
+ */
+static eval_node_t *eval_queue_drain(void) {
+    eval_node_t *queue = eval_head;
+    eval_head = eval_tail = NULL;
+    return queue;
+}
+
+/**
+ * @brief Free a detached queue without executing any commands.
+ * Used for cleanup on disconnect/shutdown.
+ */
+static void eval_queue_free(eval_node_t *queue) {
+    while (queue) {
+        eval_node_t *tmp = queue;
+        queue = queue->next;
+        free(tmp);
+    }
+}
 #else
 static int fired = 0; // Do we have commands waiting to be executed?
 static int ifd;       // input file descriptor
@@ -920,7 +980,7 @@ void vimcom_task(void) {
         REprintf("vimcom_task()\n");
 #ifdef WIN32
     FLAG_LOCK();
-    r_is_busy = 0;
+    r_is_busy = 1; // Mark busy for entire task duration
     FLAG_UNLOCK();
 #endif
     if (nrs_port[0] != 0) {
@@ -955,26 +1015,27 @@ void vimcom_task(void) {
         }
     }
 #ifdef WIN32
-    char local_eval[512];
-    local_eval[0] = 0;
-    int local_glbenv = 0;
-
+    // Drain eval queue and flag_glbenv under lock
     FLAG_LOCK();
-    if (*flag_eval) {
-        strncpy(local_eval, flag_eval, 511);
-        local_eval[511] = 0;
-        *flag_eval = 0;
-    }
-    if (flag_glbenv) {
-        local_glbenv = 1;
-        flag_glbenv = 0;
-    }
+    eval_node_t *queue = eval_queue_drain();
+    int local_glbenv = flag_glbenv;
+    flag_glbenv = 0;
     FLAG_UNLOCK();
 
-    if (local_eval[0])
-        vimcom_eval_expr(local_eval);
+    // Execute all queued commands in FIFO order (outside lock)
+    while (queue) {
+        eval_node_t *tmp = queue;
+        queue = queue->next;
+        vimcom_eval_expr(tmp->cmd);
+        free(tmp); // matches malloc in eval_queue_push
+    }
     if (local_glbenv)
         vimcom_globalenv_list();
+
+    // All R API work done. NOW signal idle.
+    FLAG_LOCK();
+    r_is_busy = 0;
+    FLAG_UNLOCK();
 #endif
 }
 
@@ -1201,11 +1262,20 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
+#ifdef WIN32
+            char lazy_cmd[512];
+            snprintf(lazy_cmd, sizeof(lazy_cmd), "%s <- %s", p, p);
+            FLAG_LOCK();
+            eval_queue_push(lazy_cmd);
+            flag_glbenv = 1;
+            if (!r_is_busy)
+                r_is_busy = 1;
+            FLAG_UNLOCK();
+#else
             FLAG_LOCK();
             snprintf(flag_eval, 510, "%s <- %s", p, p);
             flag_glbenv = 1;
             FLAG_UNLOCK();
-#ifndef WIN32
             vimcom_fire();
 #endif
         }
@@ -1223,12 +1293,23 @@ static void vimcom_parse_received_msg(char *buf) {
             // instead of a garbage ~1.6 GB value (BUG-62).
             FLAG_LOCK();
             int busy = r_is_busy;
+            if (!busy)
+                r_is_busy = 1; // Mark busy BEFORE eval (Gap 2 fix)
             FLAG_UNLOCK();
             if (!busy) {
                 uintptr_t saved_stack_start = R_CStackStart;
                 R_CStackStart = (uintptr_t)&saved_stack_start;
                 vimcom_eval_expr(p);
                 R_CStackStart = saved_stack_start;
+                // Do NOT set r_is_busy = 0 here. sendToConsole is async --
+                // R's main thread may still be executing the queued code.
+                // vimcom_task sets r_is_busy = 0 when R is truly idle.
+            } else {
+                // R is busy (vimcom_task or prior eval). Enqueue for main
+                // thread. vimcom_task drains the queue each cycle.
+                FLAG_LOCK();
+                eval_queue_push(p);
+                FLAG_UNLOCK();
             }
 #else
             FLAG_LOCK();
@@ -1246,51 +1327,93 @@ static void vimcom_parse_received_msg(char *buf) {
     }
 }
 
+/**
+ * @brief Read exactly n bytes from a socket, looping on partial reads.
+ * @return n on success, 0 on clean close, -1 on error.
+ */
+static int recv_exact(int fd, char *buf, int n) {
+    int total = 0;
+    while (total < n) {
+        int r = recv(fd, buf + total, n - total, 0);
+        if (r <= 0)
+            return r;
+        total += r;
+    }
+    return total;
+}
+
 #ifdef WIN32
 /**
- * @brief Loop to receive TCP messages from vimrserver
+ * @brief Loop to receive TCP messages from vimrserver.
+ * Messages are framed: 8-byte hex length header + body.
  *
  * @param unused Unused parameter.
  */
 static DWORD WINAPI client_loop_thread(__attribute__((unused)) void *arg)
 #else
 /**
- * @brief Loop to receive TCP messages from vimrserver
+ * @brief Loop to receive TCP messages from vimrserver.
+ * Messages are framed: 8-byte hex length header + body.
  *
  * @param unused Unused parameter.
  */
 static void *client_loop_thread(__attribute__((unused)) void *arg)
 #endif
 {
-    size_t len;
+    char header[9];
+    char *body = NULL;
+    size_t body_cap = 0;
+
     for (;;) {
-        char buff[1024];
-        memset(buff, '\0', sizeof(buff));
-        len = recv(sfd, buff, sizeof(buff), 0);
-#ifdef WIN32
-        if (len == 0 || buff[0] == 0 || buff[0] == EOF ||
-            strstr(buff, "QuitNow") == buff)
-#else
-        if (len == 0 || buff[0] == 0 || buff[0] == EOF)
-#endif
-        {
-            if (len == 0)
-                REprintf("Connection with vimrserver was lost\n");
-            if (buff[0] == EOF)
-                REprintf("client_loop_thread: buff[0] == EOF\n");
-#ifdef WIN32
-            closesocket(sfd);
-            WSACleanup();
-#else
-            close(sfd);
-#endif
+        // 1. Read 8-byte hex length header
+        if (recv_exact(sfd, header, 8) <= 0)
             break;
+        header[8] = '\0';
+
+        // 2. Parse length (hard upper limit: 64 KB)
+        unsigned int msg_len = 0;
+        if (sscanf(header, "%X", &msg_len) != 1 || msg_len == 0 ||
+            msg_len > 65536)
+            break;
+
+        // 3. Grow buffer if needed
+        if (msg_len + 1 > body_cap) {
+            free(body);
+            body_cap = msg_len + 1;
+            body = malloc(body_cap);
+            if (!body) {
+                REprintf("vimcom: malloc failed for %u bytes\n", msg_len);
+                break;
+            }
         }
-        vimcom_parse_received_msg(buff);
-    }
+
+        // 4. Read exactly msg_len bytes
+        if (recv_exact(sfd, body, (int)msg_len) <= 0)
+            break;
+        body[msg_len] = '\0';
+
+        // 5. Check for shutdown command (Windows)
 #ifdef WIN32
+        if (strstr(body, "QuitNow") == body)
+            break;
+#endif
+
+        // 6. Dispatch
+        vimcom_parse_received_msg(body);
+    }
+
+    free(body);
+#ifdef WIN32
+    // Free any queued commands that will never be executed
+    FLAG_LOCK();
+    eval_node_t *abandoned = eval_queue_drain();
+    FLAG_UNLOCK();
+    eval_queue_free(abandoned);
+    closesocket(sfd);
+    WSACleanup();
     return 0;
 #else
+    close(sfd);
     return NULL;
 #endif
 }
@@ -1481,6 +1604,11 @@ void vimcom_Stop(void) {
         WSACleanup();
         TerminateThread(tid, 0);
         CloseHandle(tid);
+        // Free any queued commands that will never be executed
+        FLAG_LOCK();
+        eval_node_t *abandoned = eval_queue_drain();
+        FLAG_UNLOCK();
+        eval_queue_free(abandoned);
 #else
         if (debug_r)
             ptr_R_ReadConsole = save_ptr_R_ReadConsole;

@@ -510,8 +510,15 @@ void send_to_vimcom(
     Log("TCP out: %s", msg);
     if (connfd >= 0) {
         size_t len = strlen(msg);
+        char header[9];
+        snprintf(header, sizeof(header), "%08X", (unsigned int)len);
+        if (send(connfd, header, 8, 0) != 8) {
+            fprintf(stderr, "Failed to send header to vimcom.\n");
+            fflush(stderr);
+            return;
+        }
         if (send(connfd, msg, len, 0) != (ssize_t)len) {
-            fprintf(stderr, "Partial/failed write.\n");
+            fprintf(stderr, "Partial/failed write to vimcom.\n");
             fflush(stderr);
             return;
         }
