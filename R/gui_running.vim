@@ -324,11 +324,11 @@ def g:MakeRMenu()
     # Help
     #---------------------------------------------------------------------------
     menu R.-Sep51- <nul>
-    amenu R.Help\ (plugin).Overview :help vim-r-overview<CR>
-    amenu R.Help\ (plugin).Main\ features :help vim-r-features<CR>
-    amenu R.Help\ (plugin).Installation :help vim-r-installation<CR>
-    amenu R.Help\ (plugin).Use :help vim-r-use<CR>
-    amenu R.Help\ (plugin).Known\ bugs\ and\ workarounds :help vim-r-known-bugs<CR>
+    amenu R.Help\ (plugin).Overview :help vim-rr-overview<CR>
+    amenu R.Help\ (plugin).Main\ features :help vim-rr-features<CR>
+    amenu R.Help\ (plugin).Installation :help vim-rr-installation<CR>
+    amenu R.Help\ (plugin).Use :help vim-rr-use<CR>
+    amenu R.Help\ (plugin).Known\ bugs\ and\ workarounds :help vim-rr-known-bugs<CR>
 
     amenu R.Help\ (plugin).Options.Assignment\ operator\ and\ Rnoweb\ code :help R_assign<CR>
     amenu R.Help\ (plugin).Options.Object\ Browser :help R_objbr_place<CR>
@@ -340,8 +340,8 @@ def g:MakeRMenu()
     amenu R.Help\ (plugin).Options.Special\ R\ functions :help R_listmethods<CR>
     amenu R.Help\ (plugin).Options.Never\ unmake\ the\ R\ menu :help R_never_unmake_menu<CR>
 
-    amenu R.Help\ (plugin).Custom\ key\ bindings :help vim-r-key-bindings<CR>
-    amenu R.Help\ (plugin).News :help vim-r-news<CR>
+    amenu R.Help\ (plugin).Custom\ key\ bindings :help vim-rr-key-bindings<CR>
+    amenu R.Help\ (plugin).News :help vim-rr-news<CR>
 
     amenu R.Help\ (R)<Tab>:Rhelp :call g:SendCmdToR("help.start()")<CR>
     g:rplugin.hasmenu = 1

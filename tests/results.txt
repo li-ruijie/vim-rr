@@ -1,3 +1,3 @@
-Total: 311
-Passed: 311
+Total: 66
+Passed: 66
 Failed: 0

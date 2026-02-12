@@ -542,9 +542,9 @@ def g:RCreateSendMaps()
     # Function
     #-------------------------------------
     g:RCreateMaps('nvi', 'RSendFunction',  'ff', ':call SendFunctionToR("silent", "stay")')
-    g:RCreateMaps('nvi', 'RDSendFunction', 'fe', ':call SendFunctionToR("echo", "stay")')
-    g:RCreateMaps('nvi', 'RDSendFunction', 'fd', ':call SendFunctionToR("silent", "down")')
-    g:RCreateMaps('nvi', 'RDSendFunction', 'fa', ':call SendFunctionToR("echo", "down")')
+    g:RCreateMaps('nvi', 'RESendFunction',  'fe', ':call SendFunctionToR("echo", "stay")')
+    g:RCreateMaps('nvi', 'RDSendFunction',  'fd', ':call SendFunctionToR("silent", "down")')
+    g:RCreateMaps('nvi', 'REDSendFunction', 'fa', ':call SendFunctionToR("echo", "down")')
 
     # Selection
     #-------------------------------------
