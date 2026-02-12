@@ -728,6 +728,11 @@ g:SendParagraphToR = function('g:RNotRunning')
 g:SendSelectionToR = function('g:RNotRunning')
 g:SignalToR = function('g:RNotRunning')
 
+# Lazily source pdf_init.vim (called via timer_start from ftplugin files)
+def g:RPDFinit(...args: list<any>)
+    exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/pdf_init.vim"
+enddef
+
 
 # ==============================================================================
 # Global variables
