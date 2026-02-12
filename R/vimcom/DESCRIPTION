@@ -1,6 +1,6 @@
 Package: vimcom
-Version: 0.9-187
-Date: 2026-02-12
+Version: 0.9-188
+Date: 2026-02-13
 Title: Intermediate the Communication Between R and Vim
 Author: Li Ruijie
 Maintainer: Li Ruijie <1547237+li-ruijie@users.noreply.github.com>

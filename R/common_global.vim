@@ -1063,6 +1063,27 @@ def g:GlobalRInit(...args: list<any>)
     g:rplugin.debug_info['Time']['GlobalRInit'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['GlobalRInit'], reltime()))
 enddef
 
+def g:RaiseVimWindow(...args: list<any>)
+    if has("gui_running")
+        if has("win32") && g:IsJobRunning("Server")
+            g:JobStdin(g:rplugin.jobs["Server"], "87\n")
+        else
+            foreground()
+        endif
+        return
+    endif
+    # Terminal Vim
+    if executable("wmctrl")
+        if v:windowid != 0
+            system("wmctrl -ia " .. v:windowid)
+        elseif $WINDOWID != ""
+            system("wmctrl -ia " .. $WINDOWID)
+        endif
+    elseif get(g:rplugin, 'has_awbt', 0) && exists('g:R_term_title') && exists('*g:RRaiseWindow')
+        g:RRaiseWindow(g:R_term_title)
+    endif
+enddef
+
 if v:vim_did_enter == 0
     autocmd VimEnter * call timer_start(1, "g:GlobalRInit")
 else
