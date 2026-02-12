@@ -42,20 +42,32 @@ def g:ROnJobStdout(job_id: any, msg: string)
     # DEBUG: writefile([cmd], "/dev/shm/vimrserver_vim_stdout", "a")
 
     if cmd[0 : 0] == "\x11"
-        # Check the size of possibly very big string (dictionary for menu completion).
-        var cmdsplt = split(cmd, "\x11")
-        if len(cmdsplt) < 2
+        # Parse \x11<size>\x11<payload> using positional slicing — split()
+        # would break if the payload itself contains \x11 (BUG-126).
+        var idx2 = stridx(cmd, "\x11", 1)
+        if idx2 < 0
             return
         endif
-        var size = str2nr(cmdsplt[0])
-        var received = strlen(cmdsplt[1])
-        if size == received
-            cmd = cmdsplt[1]
+        var size = str2nr(cmd[1 : idx2 - 1])
+        var payload = cmd[idx2 + 1 :]
+        var received = strlen(payload)
+        if received == size
+            cmd = payload
+        elseif received > size
+            # Chunk contains tail of current message + start of next
+            cmd = payload[0 : size - 1]
+            var remainder = payload[size :]
+            # Process current message, then re-enter for the remainder
+            g:ROnJobStdout_Execute(job_id, cmd)
+            if remainder != ''
+                g:ROnJobStdout(job_id, remainder)
+            endif
+            return
         else
             waiting_more_input = 1
             incomplete_input.size = size
             incomplete_input.received = received
-            incomplete_input.str = cmdsplt[1]
+            incomplete_input.str = payload
             timer_start(100, 'g:StopWaitingNCS')
             return
         endif
@@ -66,15 +78,27 @@ def g:ROnJobStdout(job_id: any, msg: string)
         if incomplete_input.received == incomplete_input.size
             waiting_more_input = 0
             cmd = incomplete_input.str .. cmd
+        elseif incomplete_input.received > incomplete_input.size
+            # Extract the exact amount needed, feed remainder back
+            var needed = incomplete_input.size - (incomplete_input.received - strlen(cmd))
+            waiting_more_input = 0
+            cmd = incomplete_input.str .. cmd[0 : needed - 1]
+            var remainder = cmd[needed :]
+            g:ROnJobStdout_Execute(job_id, cmd)
+            if remainder != ''
+                g:ROnJobStdout(job_id, remainder)
+            endif
+            return
         else
             incomplete_input.str = incomplete_input.str .. cmd
-            if incomplete_input.received > incomplete_input.size
-                g:RWarningMsg('Received larger than expected message.')
-            endif
             return
         endif
     endif
 
+    g:ROnJobStdout_Execute(job_id, cmd)
+enddef
+
+def g:ROnJobStdout_Execute(job_id: any, cmd: string)
     if cmd =~ "^let "
         try
             execute substitute(cmd, '^let ', '', '')
@@ -88,10 +112,11 @@ def g:ROnJobStdout(job_id: any, msg: string)
             g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] " .. v:exception .. ": " .. cmd)
         endtry
     elseif cmd != ""
-        if len(cmd) > 128
-            cmd = substitute(cmd, '^\(.\{128}\).*', '\1', '') .. ' [...]'
+        var truncated = cmd
+        if len(truncated) > 128
+            truncated = substitute(truncated, '^\(.\{128}\).*', '\1', '') .. ' [...]'
         endif
-        g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] Unknown command: " .. cmd)
+        g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] Unknown command: " .. truncated)
     endif
 enddef
 

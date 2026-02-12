@@ -136,3 +136,25 @@ enddef
 
 g:AssertEqual(ParseTmuxPaneId('0: [80x24] [history 0/2000, 0 bytes] %0 (active)'), '%0', 'ParseTmuxPaneId: active pane')
 g:AssertEqual(ParseTmuxPaneId('1: [80x24] %1'), '1', 'ParseTmuxPaneId: fallback to line start number')
+
+# ========================================================================
+# IMP-03: TmuxOption cache
+# ========================================================================
+g:SetSuite('IMP-03: TmuxOption cache')
+
+# Test the caching pattern: second call returns cached value without system()
+var tmux_cache: dict<string> = {}
+
+def CachedLookup(key: string): string
+    if has_key(tmux_cache, key)
+        return tmux_cache[key]
+    endif
+    var result = 'value_for_' .. key
+    tmux_cache[key] = result
+    return result
+enddef
+
+g:AssertEqual(len(tmux_cache), 0, 'cache starts empty')
+g:AssertEqual(CachedLookup('pane-base-index:window'), 'value_for_pane-base-index:window', 'first lookup returns value')
+g:AssertEqual(len(tmux_cache), 1, 'cache populated after first call')
+g:AssertEqual(CachedLookup('pane-base-index:window'), 'value_for_pane-base-index:window', 'second lookup returns cached value')

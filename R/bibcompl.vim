@@ -156,9 +156,9 @@ def g:GetBibAttachment()
                 endif
                 if filereadable(fpath)
                     if has('win32')
-                        system('start "" "' .. fpath .. '"')
+                        system('start "" ' .. shellescape(fpath, 1))
                     else
-                        system('xdg-open "' .. fpath .. '"')
+                        system('xdg-open ' .. shellescape(fpath))
                     endif
                 else
                     g:RWarningMsg('Could not find "' .. fpath .. '"')

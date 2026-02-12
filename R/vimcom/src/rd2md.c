@@ -395,7 +395,7 @@ SEXP rd2md(SEXP txt) {
     // longer than string1 in \href{string1}{string2}. We decrease the risk of
     // overwriting text by creating buffers with extra room and prefixing the
     // string with empty spaces:
-    unsigned long maxp = strlen(s) + 999;
+    unsigned long maxp = strlen(s) * 2 + 1024;
 
     char *a = calloc(maxp + 1, sizeof(char));
     char *b = calloc(maxp + 1, sizeof(char));

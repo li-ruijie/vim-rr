@@ -173,3 +173,39 @@ g:AssertEqual(g:R_assign, 1, 'R_assign default is 1')
 
 g:R_indent_commented = get(g:, 'R_indent_commented', 1)
 g:AssertEqual(g:R_indent_commented, 1, 'R_indent_commented default is 1')
+
+# ========================================================================
+# IMP-01: ValidateTmpdir
+# ========================================================================
+g:SetSuite('IMP-01: tmpdir validation')
+
+def ValidateTmpdir(dir: string): bool
+    if resolve(dir) != dir
+        return false
+    endif
+    if !has('win32') && !has('win32unix')
+        var perms = getfperm(dir)
+        if perms != 'rwx------'
+            return false
+        endif
+    endif
+    if getftype(dir) != 'dir'
+        return false
+    endif
+    return true
+enddef
+
+# Test: valid directory
+var tdir_imp01 = tempname() .. '_imp01'
+mkdir(tdir_imp01, 'p', 0700)
+g:Assert(ValidateTmpdir(tdir_imp01), 'valid directory passes')
+delete(tdir_imp01, 'd')
+
+# Test: non-existent directory
+g:Assert(!ValidateTmpdir(tempname() .. '_nonexistent'), 'nonexistent rejected')
+
+# Test: file instead of directory
+var tfile_imp01 = tempname()
+writefile(['x'], tfile_imp01)
+g:Assert(!ValidateTmpdir(tfile_imp01), 'file rejected')
+delete(tfile_imp01)

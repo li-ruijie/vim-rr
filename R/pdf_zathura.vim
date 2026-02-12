@@ -94,8 +94,8 @@ def g:ROpenPDF2(fullpath: string)
 enddef
 
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: number)
-    var texname = substitute(tpath, ' ', '\\ ', 'g')
-    var pdfname = substitute(ppath, ' ', '\\ ', 'g')
+    var texname = shellescape(tpath)
+    var pdfname = shellescape(ppath)
     var shortp = substitute(ppath, '.*/', '', 'g')
 
     if get(g:rplugin.zathura_pid, ppath, 0) == 0
