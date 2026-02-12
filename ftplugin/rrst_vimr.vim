@@ -192,12 +192,6 @@ endif
 
 g:RSourceOtherScripts()
 
-if !exists('*g:RPDFinit')
-    def g:RPDFinit(...args: list<any>)
-        exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/pdf_init.vim"
-    enddef
-endif
-
 timer_start(1, 'g:RPDFinit')
 
 if exists("b:undo_ftplugin")
