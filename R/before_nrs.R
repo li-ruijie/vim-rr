@@ -114,6 +114,7 @@ if (!is.null(needed_vimcom_version)) {
                 tools:::.install_packages(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"), no.q = TRUE)
                 unlink(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"))
                 check_vimcom_installation()
+                out("echo \"vimcom installed successfully\"")
             } else {
                 out(paste0("RWarn: Cannot build vimcom: directory '", vim_r_home, "/R/vimcom", "' not found"))
                 quit(save = "no", status = 72)
@@ -131,6 +132,7 @@ if (!is.null(needed_vimcom_version)) {
             tools:::.install_packages(paste0("vimcom_", needed_vimcom_version, ".tar.gz"), no.q = TRUE)
             unlink(paste0("vimcom_", needed_vimcom_version, ".tar.gz"))
             check_vimcom_installation()
+            out("echo \"vimcom installed successfully\"")
         }
     }
 }
