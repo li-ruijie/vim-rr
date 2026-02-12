@@ -91,7 +91,7 @@ if (!is.null(needed_vimcom_version)) {
 
     # Build and install vimcom if necessary
     if (need_new_vimcom != "") {
-        out(paste0("let g:rplugin.debug_info['Why build vimcom'] = '", need_new_vimcom, "'"))
+        out(paste0("g:rplugin.debug_info['Why build vimcom'] = '", need_new_vimcom, "'"))
 
         # Check if any directory in libPaths is writable
         ok <- FALSE
@@ -99,7 +99,7 @@ if (!is.null(needed_vimcom_version)) {
             if (dir.exists(p) && file.access(p, mode = 2) == 0)
                 ok <- TRUE
         if (!ok) {
-            out(paste0("let g:rplugin.libd = '", libp[1], "'"))
+            out(paste0("g:rplugin.libd = '", libp[1], "'"))
             quit(save = "no", status = 71)
         }
 

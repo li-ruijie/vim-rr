@@ -100,24 +100,13 @@ def g:ROnJobStdout(job_id: any, msg: string)
 enddef
 
 def g:ROnJobStdout_Execute(job_id: any, cmd: string)
-    if cmd =~ "^let "
+    if cmd != ""
+        var excmd = substitute(cmd, '^let ', '', '')
         try
-            execute substitute(cmd, '^let ', '', '')
+            execute excmd
         catch
             g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] " .. v:exception .. ": " .. cmd)
         endtry
-    elseif cmd =~ "^call " || cmd =~ "^unlet "
-        try
-            execute cmd
-        catch
-            g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] " .. v:exception .. ": " .. cmd)
-        endtry
-    elseif cmd != ""
-        var truncated = cmd
-        if len(truncated) > 128
-            truncated = substitute(truncated, '^\(.\{128}\).*', '\1', '') .. ' [...]'
-        endif
-        g:RWarningMsg("[" .. g:GetJobTitle(job_id) .. "] Unknown command: " .. truncated)
     endif
 enddef
 

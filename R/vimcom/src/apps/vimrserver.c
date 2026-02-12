@@ -260,7 +260,7 @@ static void RegisterPort(int bindportn) // Function to register port number to R
 {
     // Register the port:
     lock_stdout();
-    printf("call RSetMyPort('%d')\n", bindportn);
+    printf("g:RSetMyPort('%d')\n", bindportn);
     fflush(stdout);
     unlock_stdout();
 }
@@ -1068,7 +1068,7 @@ static int run_R_code(const char *s, int senderror) {
     if (exit_code != 0) {
         if (senderror) {
             lock_stdout();
-            printf("call ShowBuildOmnilsError('%ld')\n", exit_code);
+            printf("g:ShowBuildOmnilsError('%ld')\n", exit_code);
             fflush(stdout);
             unlock_stdout();
         }
@@ -1090,7 +1090,7 @@ static int run_R_code(const char *s, int senderror) {
     if (stt != 0 && stt != 512) { // ssh success status seems to be 512
         if (senderror) {
             lock_stdout();
-            printf("call ShowBuildOmnilsError('%d')\n", stt);
+            printf("g:ShowBuildOmnilsError('%d')\n", stt);
             fflush(stdout);
             unlock_stdout();
         }
@@ -1405,7 +1405,7 @@ static void finish_bol() {
 
     // Message to Vim: Update both syntax and Rhelp_list
     lock_stdout();
-    printf("call UpdateSynRhlist()\n");
+    printf("g:UpdateSynRhlist()\n");
     fflush(stdout);
     unlock_stdout();
 }
@@ -1791,7 +1791,7 @@ void hi_glbenv_fun(void) {
     unsigned long used;
 
     memset(compl_buffer, 0, compl_buffer_size);
-    p = str_cat(p, "call UpdateLocalFunctions('");
+    p = str_cat(p, "g:UpdateLocalFunctions('");
     while (*g) {
         s = g;
         while (*s != 0)
@@ -1873,7 +1873,7 @@ void omni2ob(void) {
     fclose(f);
     if (auto_obbr) {
         lock_stdout();
-        fputs("call UpdateOB('GlobalEnv')\n", stdout);
+        fputs("g:UpdateOB('GlobalEnv')\n", stdout);
         fflush(stdout);
         unlock_stdout();
     }
@@ -1919,7 +1919,7 @@ void lib2ob(void) {
 
     fclose(f);
     lock_stdout();
-    fputs("call UpdateOB('libraries')\n", stdout);
+    fputs("g:UpdateOB('libraries')\n", stdout);
     fflush(stdout);
     unlock_stdout();
 }
@@ -2005,8 +2005,8 @@ static void fill_inst_libs(void) {
 static void send_nrs_info(void) {
     char buf[4096];
     char *p = buf;
-    p += snprintf(p, sizeof(buf) - (p - buf),
-                  "call EchoNCSInfo('Loaded packages:");
+    p +=
+        snprintf(p, sizeof(buf) - (p - buf), "g:EchoNCSInfo('Loaded packages:");
     PkgData *pkg = pkgList;
     while (pkg && (p - buf) < (int)sizeof(buf) - 128) {
         char safe_name[128];
@@ -2199,8 +2199,8 @@ static void init(void) {
     build_omnils();
 
     lock_stdout();
-    printf("let $VIMR_SECRET = '%s'\n", VimSecret);
-    printf("let g:rplugin.nrs_running = 1\n");
+    printf("$VIMR_SECRET = '%s'\n", VimSecret);
+    printf("g:rplugin.nrs_running = 1\n");
     fflush(stdout);
     unlock_stdout();
 
@@ -2296,10 +2296,10 @@ void completion_info(const char *wrd, const char *pkg) {
             p = str_cat(p, "'}");
             lock_stdout();
             {
-                size_t msg_len = strlen("call ") + strlen(compl_info) + 1 +
-                                 strlen(compl_buffer) + 1;
+                size_t msg_len =
+                    strlen(compl_info) + 1 + strlen(compl_buffer) + 1;
                 printf("\x11%" PRI_SIZET "\x11"
-                       "call %s(%s)\n",
+                       "%s(%s)\n",
                        msg_len, compl_info, compl_buffer);
                 fflush(stdout);
             }
@@ -2312,9 +2312,9 @@ void completion_info(const char *wrd, const char *pkg) {
     }
     lock_stdout();
     {
-        size_t msg_len = strlen("call ") + strlen(compl_info) + 4;
+        size_t msg_len = strlen(compl_info) + 4;
         printf("\x11%" PRI_SIZET "\x11"
-               "call %s({})\n",
+               "%s({})\n",
                msg_len, compl_info);
         fflush(stdout);
     }
@@ -2491,8 +2491,8 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
             p = complete_instlibs(p, base);
             lock_stdout();
             printf("\x11%" PRI_SIZET "\x11"
-                   "call %s(%s, [%s])\n",
-                   strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11,
+                   "%s(%s, [%s])\n",
+                   strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 6,
                    compl_cb, id, compl_buffer);
             fflush(stdout);
             unlock_stdout();
@@ -2519,8 +2519,8 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
             // base will be empty if completing only function arguments
             lock_stdout();
             printf("\x11%" PRI_SIZET "\x11"
-                   "call %s(%s, [%s])\n",
-                   strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11,
+                   "%s(%s, [%s])\n",
+                   strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 6,
                    compl_cb, id, compl_buffer);
             fflush(stdout);
             unlock_stdout();
@@ -2551,8 +2551,8 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
 
     lock_stdout();
     printf("\x11%" PRI_SIZET "\x11"
-           "call %s(%s, [%s])\n",
-           strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 11, compl_cb,
+           "%s(%s, [%s])\n",
+           strlen(compl_cb) + strlen(id) + strlen(compl_buffer) + 6, compl_cb,
            id, compl_buffer);
     fflush(stdout);
     unlock_stdout();
@@ -2678,12 +2678,12 @@ void stdin_loop() {
             case '1': // Check if R is running
                 if (PostMessage(RConsole, WM_NULL, 0, 0)) {
                     lock_stdout();
-                    printf("call RWarningMsg('R was already started')\n");
+                    printf("g:RWarningMsg('R was already started')\n");
                     fflush(stdout);
                     unlock_stdout();
                 } else {
                     lock_stdout();
-                    printf("call CleanVimAndStartR()\n");
+                    printf("g:CleanVimAndStartR()\n");
                     fflush(stdout);
                     unlock_stdout();
                 }

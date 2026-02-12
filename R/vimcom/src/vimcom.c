@@ -799,7 +799,7 @@ static void vimcom_eval_expr(const char *buf) {
          * a semicolon. */
         PROTECT(ans = R_tryEval(VECTOR_ELT(cmdexpr, 0), R_GlobalEnv, &er));
         if (er && verbose > 1) {
-            strcpy(rep, "call RWarningMsg('Error running: ");
+            strcpy(rep, "g:RWarningMsg('Error running: ");
             strncat(rep, buf2, 80);
             strcat(rep, "')");
             send_to_vim(rep);
@@ -807,7 +807,7 @@ static void vimcom_eval_expr(const char *buf) {
         UNPROTECT(1);
     } else {
         if (verbose > 1) {
-            strcpy(rep, "call RWarningMsg('Invalid command: ");
+            strcpy(rep, "g:RWarningMsg('Invalid command: ");
             strncat(rep, buf2, 80);
             strcat(rep, "')");
             send_to_vim(rep);
@@ -1057,7 +1057,7 @@ static void vimcom_fire(void) {
 static void SrcrefInfo(void) {
     // Adapted from SrcrefPrompt(), at src/main/eval.c
     if (debugging == 0) {
-        send_to_vim("call StopRDebugging()");
+        send_to_vim("g:StopRDebugging()");
         return;
     }
     /* If we have a valid R_Srcref, use it */
@@ -1074,7 +1074,7 @@ static void SrcrefInfo(void) {
                 snprintf(buf, 2 * slen + 1, "%s",
                          CHAR(STRING_ELT(filename, 0)));
                 vimcom_squo(buf, buf2, 2 * slen + 32);
-                snprintf(buf, 2 * slen + 31, "call RDebugJump('%s', %d)", buf2,
+                snprintf(buf, 2 * slen + 31, "g:RDebugJump('%s', %d)", buf2,
                          asInteger(R_Srcref));
                 send_to_vim(buf);
                 free(buf);
@@ -1131,19 +1131,19 @@ static void vimcom_send_running_info(const char *r_info, const char *nvv) {
 #ifdef WIN32
 #ifdef _WIN64
     snprintf(msg, 2175,
-             "call SetVimcomInfo('%s', %" PRId64 ", '%" PRId64 "', '%s')", nvv,
+             "g:SetVimcomInfo('%s', %" PRId64 ", '%" PRId64 "', '%s')", nvv,
              R_PID, (long long)GetForegroundWindow(), r_info_escaped);
 #else
-    snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '%ld', '%s')", nvv, R_PID,
+    snprintf(msg, 2175, "g:SetVimcomInfo('%s', %d, '%ld', '%s')", nvv, R_PID,
              (long)GetForegroundWindow(), r_info_escaped);
 #endif
 #else
     if (getenv("WINDOWID"))
-        snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '%s', '%s')", nvv,
-                 R_PID, getenv("WINDOWID"), r_info_escaped);
+        snprintf(msg, 2175, "g:SetVimcomInfo('%s', %d, '%s', '%s')", nvv, R_PID,
+                 getenv("WINDOWID"), r_info_escaped);
     else
-        snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '0', '%s')", nvv,
-                 R_PID, r_info_escaped);
+        snprintf(msg, 2175, "g:SetVimcomInfo('%s', %d, '0', '%s')", nvv, R_PID,
+                 r_info_escaped);
 #endif
     send_to_vim(msg);
 }
