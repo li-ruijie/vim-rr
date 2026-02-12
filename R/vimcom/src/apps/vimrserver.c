@@ -22,6 +22,25 @@
 #include <bcrypt.h>
 HWND VimHwnd = NULL;
 HWND RConsole = NULL;
+
+// SetForegroundWindow() fails when the caller is not the foreground thread —
+// Windows just flashes the taskbar instead. Work around this by temporarily
+// attaching our thread's input queue to the current foreground thread, which
+// grants permission to steal focus.
+static void ForceForegroundWindow(HWND hwnd) {
+    DWORD foreThread = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+    DWORD curThread = GetCurrentThreadId();
+    BOOL attached = FALSE;
+
+    if (foreThread != curThread)
+        attached = AttachThreadInput(foreThread, curThread, TRUE);
+
+    BringWindowToTop(hwnd);
+    SetForegroundWindow(hwnd);
+
+    if (attached)
+        AttachThreadInput(foreThread, curThread, FALSE);
+}
 #define bzero(b, len) (memset((b), '\0', (len)), (void)0)
 #ifdef _WIN64
 #define PRI_SIZET PRIu64
@@ -556,7 +575,7 @@ static void RClearConsole() {
         return;
     }
 
-    SetForegroundWindow(RConsole);
+    ForceForegroundWindow(RConsole);
     keybd_event(VK_CONTROL, 0, 0, 0);
     keybd_event(VkKeyScan('L'), 0, KEYEVENTF_EXTENDEDKEY | 0, 0);
     Sleep(50);
@@ -707,7 +726,7 @@ static void ArrangeWindows(char *cachedir) {
         }
     }
 
-    SetForegroundWindow(VimHwnd);
+    ForceForegroundWindow(VimHwnd);
     fclose(f);
 }
 
@@ -2712,7 +2731,7 @@ void stdin_loop() {
                 break;
             case '7': // RaiseVimWindow
                 if (VimHwnd)
-                    SetForegroundWindow(VimHwnd);
+                    ForceForegroundWindow(VimHwnd);
                 break;
             }
             break;

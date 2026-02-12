@@ -389,6 +389,10 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
             endif
         endfor
     endif
+    # Raise Vim window after R starts in an external window
+    if exists("g:RStudio_cmd") || !(type(g:R_external_term) == v:t_number && g:R_external_term == 0)
+        timer_start(500, "g:RaiseVimWindow")
+    endif
     timer_start(1000, "g:SetSendCmdToR")
     if g:R_objbr_auto_start
         autosttobjbr = 1

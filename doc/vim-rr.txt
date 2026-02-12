@@ -4,7 +4,7 @@
 
 Author:  Li Ruijie
 
-Version: 0.9-187
+Version: 0.9-188
 For Vim >= 8.2.84
 
  1. Overview                                    |vim-rr-overview|
@@ -1568,6 +1568,35 @@ width and height of a specific window by setting the options 'winwidth' and
 Console window, you should set a large value for 'winheight' in the script
 window.
 
+                                                          *vim-rr-focus*
+Automatic focus return ~
+
+When R starts in an external window (RStudio, RGui, or an external terminal
+emulator), the new window takes focus away from Vim. The plugin automatically
+returns focus to Vim after R finishes initialising, so you can continue editing
+without switching windows manually.
+
+The mechanism is platform-dependent:
+
+  - GVim on Windows: vimrserver calls the Windows API to activate the Vim
+    window. On Windows, a background process cannot normally steal focus from
+    the foreground window — the OS just flashes the taskbar instead. The plugin
+    works around this limitation using `AttachThreadInput` to temporarily join
+    the foreground thread's input queue before raising the window.
+
+  - GVim on Linux: Uses the built-in |foreground()| function.
+
+  - Terminal Vim on X11: Uses `wmctrl -ia` if wmctrl is installed.
+
+  - Terminal Vim on Wayland (GNOME): Uses the GNOME "Allow Window Activation
+    By Title" Shell extension if detected.
+
+  - Vim buffer terminal or tmux split: Focus is already in Vim, so no action
+    is needed.
+
+This also applies to SyncTeX backward search: after jumping to the source
+location, Vim raises itself using the same mechanism.
+
 
 ------------------------------------------------------------------------------
 6.14. Integration with RStudio
@@ -2381,10 +2410,10 @@ mounted locally. Below is an example of how to achieve this goal.
 >sh
        cd /tmp
        R CMD build /path/to/Vim-R/R/vimcom
-       scp vimcom_0.9-187.tar.gz remotelogin@remotehost:/tmp
+       scp vimcom_0.9-188.tar.gz remotelogin@remotehost:/tmp
        ssh remotelogin@remotehost
        cd /tmp
-       R CMD INSTALL vimcom_0.9-187.tar.gz
+       R CMD INSTALL vimcom_0.9-188.tar.gz
 <
 
 Alternative: vimcmdline~

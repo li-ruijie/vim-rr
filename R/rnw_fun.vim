@@ -366,21 +366,7 @@ def g:SyncTeX_backward(fname: string, ln: number)
     rnwf = substitute(rnwf, '^\./', '', '')
 
     if g:GoToBuf(rnwbn, rnwf, basedir, rnwln)
-        if g:rplugin.has_wmctrl
-            if v:windowid != 0
-                system("wmctrl -ia " .. v:windowid)
-            elseif $WINDOWID != ""
-                system("wmctrl -ia " .. $WINDOWID)
-            endif
-        elseif g:rplugin.has_awbt && exists('g:R_term_title')
-            g:RRaiseWindow(g:R_term_title)
-        elseif has("gui_running")
-            if has("win32")
-                g:JobStdin(g:rplugin.jobs["Server"], "87\n")
-            else
-                foreground()
-            endif
-        endif
+        g:RaiseVimWindow()
     endif
 enddef
 
