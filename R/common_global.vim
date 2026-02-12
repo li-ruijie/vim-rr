@@ -572,6 +572,20 @@ def g:RCreateSendMaps()
         g:RCreateMaps('n', 'RSendAboveLines',  'su', ':call g:SendAboveLinesToR()')
     endif
 
+    # Default <Space> mappings
+    if g:R_user_maps_only != 1
+        if &filetype == "r"
+            if index(g:R_disable_cmds, 'RSendAboveLines') == -1
+                    && maparg('<Space>', 'n') == ''
+                nmap <buffer><silent> <Space> <Plug>RSendAboveLines
+            endif
+        endif
+        if index(g:R_disable_cmds, 'RDSendSelection') == -1
+                && maparg('<Space>', 'v') == ''
+            vmap <buffer><silent> <Space> <Plug>RDSendSelection
+        endif
+    endif
+
     # Debug
     g:RCreateMaps('n',   'RDebug', 'bg', ':call RAction("debug")')
     g:RCreateMaps('n',   'RUndebug', 'ud', ':call RAction("undebug")')

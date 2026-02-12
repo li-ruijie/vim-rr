@@ -311,6 +311,9 @@ Send
   . Right part of line (cur)                     \r<Right>
   . Line (evaluate and insert the output as comment)    \o
   . All lines above the current one                    \su
+  . All lines above the current one (R only)        <Space>
+  --------------------------------------------------------
+  . Selection (and down)  [visual]                  <Space>
 -----------------------------------------------------------
 
 Command
@@ -385,6 +388,14 @@ Object Browser
 Help (plugin)
 Help (R)                                            :Rhelp
 -----------------------------------------------------------
+
+In addition to the <LocalLeader> key bindings, <Space> is mapped by default
+for quick code sending: in Normal mode it sends all lines above the cursor to
+R (same as <LocalLeader>su, .R files only), and in Visual mode it sends the
+selection and moves the cursor down (same as <LocalLeader>sd, all R-related
+filetypes). These mappings are only created if <Space> is not already mapped
+in the respective mode. They are controlled by |R_user_maps_only| and
+|R_disable_cmds| like all other default key bindings.
 
 Please see |vim-rr-key-bindings| to learn how to customize the key bindings
 without editing the plugin directly.
