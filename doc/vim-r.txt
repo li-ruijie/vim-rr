@@ -4,7 +4,7 @@
 
 Author:  Li Ruijie
 
-Version: 0.9-179
+Version: 0.9-183
 For Vim >= 8.2.84
 
  1. Overview                                    |vim-r-overview|
@@ -2350,10 +2350,10 @@ mounted locally. Below is an example of how to achieve this goal.
 >sh
        cd /tmp
        R CMD build /path/to/Vim-R/R/vimcom
-       scp vimcom_0.9-179.tar.gz remotelogin@remotehost:/tmp
+       scp vimcom_0.9-183.tar.gz remotelogin@remotehost:/tmp
        ssh remotelogin@remotehost
        cd /tmp
-       R CMD INSTALL vimcom_0.9-179.tar.gz
+       R CMD INSTALL vimcom_0.9-183.tar.gz
 <
 
 Alternative: vimcmdline~
