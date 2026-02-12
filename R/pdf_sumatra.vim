@@ -32,30 +32,22 @@ enddef
 
 def g:ROpenPDF2(fullpath: string)
     if SumatraInPath()
-        var pdir = substitute(fullpath, '\(.*\)/.*', '\1', '')
-        var pname = substitute(fullpath, '.*/\(.*\)', '\1', '')
-        var olddir = getcwd()
-        execute "cd " .. fnameescape(pdir)
         $VIMR_PORT = string(g:rplugin.myport)
-        writefile(['start SumatraPDF.exe -reuse-instance -inverse-search "vimrserver.exe %%f %%l" "' .. fullpath .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
-        system(g:rplugin.tmpdir .. "/run_cmd.bat")
-        execute "cd " .. fnameescape(olddir)
+        job_start(['SumatraPDF.exe', '-reuse-instance',
+            '-inverse-search', 'vimrserver.exe %f %l',
+            fullpath], {stoponexit: ''})
     endif
 enddef
 
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: number)
-    if tpath =~ ' '
-        # SumatraPDF has issues with spaces in file names for SyncTeX
-    endif
     if SumatraInPath()
         var tname = substitute(tpath, '.*/\(.*\)', '\1', '')
         var tdir = substitute(tpath, '\(.*\)/.*', '\1', '')
         var pname = substitute(ppath, tdir .. '/', '', '')
-        var olddir = getcwd()
-        execute "cd " .. fnameescape(tdir)
         $VIMR_PORT = string(g:rplugin.myport)
-        writefile(['start SumatraPDF.exe -reuse-instance -forward-search "' .. tname .. '" ' .. texln .. ' -inverse-search "vimrserver.exe %%f %%l" "' .. pname .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
-        system(g:rplugin.tmpdir .. "/run_cmd.bat")
-        execute "cd " .. fnameescape(olddir)
+        job_start(['SumatraPDF.exe', '-reuse-instance',
+            '-forward-search', tname, string(texln),
+            '-inverse-search', 'vimrserver.exe %f %l',
+            pname], {stoponexit: ''})
     endif
 enddef

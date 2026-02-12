@@ -141,10 +141,10 @@ def g:RInitExit(...args: list<any>)
         # Try to use local R to build the vimcom package.
         g:rplugin._pkgbuild_attempt = 1
         if executable("R")
-            var shf = ['cd ' .. g:rplugin.tmpdir,
-                        'R CMD build ' .. g:rplugin.home .. '/R/vimcom']
+            var shf = ['cd "' .. g:rplugin.tmpdir .. '"',
+                        'R CMD build "' .. g:rplugin.home .. '/R/vimcom"']
             writefile(shf, g:rplugin.tmpdir .. '/buildpkg.sh')
-            var rout = system('sh ' .. g:rplugin.tmpdir .. '/buildpkg.sh')
+            var rout = system('sh "' .. g:rplugin.tmpdir .. '/buildpkg.sh"')
             if v:shell_error == 0
                 g:CheckVimcomVersion()
                 cnv_again = 1

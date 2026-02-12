@@ -59,8 +59,7 @@ static int needs_lib_msg = 0;    // Did the number of libraries change?
 static int needs_glbenv_msg = 0; // Did .GlobalEnv change?
 
 static char nrs_port[16]; // vimrserver port.
-static char vimsecr[32];  // Random string used to increase the safety of TCP
-                          // communication.
+static char vimsecr[128]; // Secret for authenticated TCP communication.
 
 static char *glbnvbuf1;   // Temporary buffer used to store the list of
                           // .GlobalEnv objects.
@@ -97,6 +96,16 @@ static char flag_eval[512]; // Do we have an R expression to evaluate?
 static int flag_glbenv = 0; // Do we have to list objects from .GlobalEnv?
 static int flag_debug = 0;  // Do we need to get file name and line information
                             // of debugging function?
+
+#ifdef WIN32
+static CRITICAL_SECTION flag_mutex;
+#define FLAG_LOCK() EnterCriticalSection(&flag_mutex)
+#define FLAG_UNLOCK() LeaveCriticalSection(&flag_mutex)
+#else
+static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define FLAG_LOCK() pthread_mutex_lock(&flag_mutex)
+#define FLAG_UNLOCK() pthread_mutex_unlock(&flag_mutex)
+#endif
 
 #ifdef WIN32
 static int r_is_busy = 1; // Is R executing a top level command? R memory will
@@ -903,7 +912,9 @@ void vimcom_task(void) {
     if (verbose > 4)
         REprintf("vimcom_task()\n");
 #ifdef WIN32
+    FLAG_LOCK();
     r_is_busy = 0;
+    FLAG_UNLOCK();
 #endif
     if (nrs_port[0] != 0) {
         vimcom_checklibs();
@@ -937,14 +948,26 @@ void vimcom_task(void) {
         }
     }
 #ifdef WIN32
+    char local_eval[512];
+    local_eval[0] = 0;
+    int local_glbenv = 0;
+
+    FLAG_LOCK();
     if (*flag_eval) {
-        vimcom_eval_expr(flag_eval);
+        strncpy(local_eval, flag_eval, 511);
+        local_eval[511] = 0;
         *flag_eval = 0;
     }
     if (flag_glbenv) {
-        vimcom_globalenv_list();
+        local_glbenv = 1;
         flag_glbenv = 0;
     }
+    FLAG_UNLOCK();
+
+    if (local_eval[0])
+        vimcom_eval_expr(local_eval);
+    if (local_glbenv)
+        vimcom_globalenv_list();
 #endif
 }
 
@@ -955,14 +978,28 @@ void vimcom_task(void) {
  * @param unused Unused parameter.
  */
 static void vimcom_exec(__attribute__((unused)) void *nothing) {
+    char local_eval[512];
+    local_eval[0] = 0;
+    int local_glbenv = 0;
+
+    FLAG_LOCK();
     if (*flag_eval) {
-        vimcom_eval_expr(flag_eval);
+        strncpy(local_eval, flag_eval, 511);
+        local_eval[511] = 0;
         *flag_eval = 0;
     }
     if (flag_glbenv) {
-        vimcom_globalenv_list();
+        local_glbenv = 1;
         flag_glbenv = 0;
     }
+    FLAG_UNLOCK();
+
+    if (local_eval[0])
+        vimcom_eval_expr(local_eval);
+
+    if (local_glbenv)
+        vimcom_globalenv_list();
+
     if (flag_debug) {
         SrcrefInfo();
         flag_debug = 0;
@@ -1080,24 +1117,26 @@ static int vimcom_read_console(const char *prompt, unsigned char *buf, int len,
  */
 static void vimcom_send_running_info(const char *r_info, const char *nvv) {
     char msg[2176];
+    char r_info_escaped[2048];
+    vimcom_squo(r_info, r_info_escaped, sizeof(r_info_escaped));
     pid_t R_PID = getpid();
 
 #ifdef WIN32
 #ifdef _WIN64
     snprintf(msg, 2175,
              "call SetVimcomInfo('%s', %" PRId64 ", '%" PRId64 "', '%s')", nvv,
-             R_PID, (long long)GetForegroundWindow(), r_info);
+             R_PID, (long long)GetForegroundWindow(), r_info_escaped);
 #else
     snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '%ld', '%s')", nvv, R_PID,
-             (long)GetForegroundWindow(), r_info);
+             (long)GetForegroundWindow(), r_info_escaped);
 #endif
 #else
     if (getenv("WINDOWID"))
         snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '%s', '%s')", nvv,
-                 R_PID, getenv("WINDOWID"), r_info);
+                 R_PID, getenv("WINDOWID"), r_info_escaped);
     else
         snprintf(msg, 2175, "call SetVimcomInfo('%s', %d, '0', '%s')", nvv,
-                 R_PID, r_info);
+                 R_PID, r_info_escaped);
 #endif
     send_to_vim(msg);
 }
@@ -1130,7 +1169,9 @@ static void vimcom_parse_received_msg(char *buf) {
         autoglbenv = 0;
         break;
     case 'G':
+        FLAG_LOCK();
         flag_glbenv = 1;
+        FLAG_UNLOCK();
 #ifndef WIN32
         vimcom_fire();
 #endif
@@ -1141,7 +1182,9 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
+            FLAG_LOCK();
             r_is_busy = 1;
+            FLAG_UNLOCK();
             Rconsolecmd(p);
         }
         break;
@@ -1151,8 +1194,10 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
+            FLAG_LOCK();
             snprintf(flag_eval, 510, "%s <- %s", p, p);
             flag_glbenv = 1;
+            FLAG_UNLOCK();
 #ifndef WIN32
             vimcom_fire();
 #endif
@@ -1164,13 +1209,25 @@ static void vimcom_parse_received_msg(char *buf) {
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
 #ifdef WIN32
-            // On Windows (RStudio), 'E' is used for sendToConsole() which
-            // must execute immediately — deferring to vimcom_task would
-            // deadlock because R is idle waiting for console input.
-            if (!r_is_busy)
+            // On Windows, this runs on the TCP thread. R's R_CheckStack
+            // compares the stack pointer against R's main-thread base,
+            // producing a garbage delta (~1.6 GB) that triggers "C stack
+            // usage too close to the limit". Fix: temporarily set
+            // R_CStackStart to the current stack frame so the delta is
+            // small. Safe because R is idle during sendToConsole() calls.
+            FLAG_LOCK();
+            int busy = r_is_busy;
+            FLAG_UNLOCK();
+            if (!busy) {
+                uintptr_t saved_stack_start = R_CStackStart;
+                R_CStackStart = (uintptr_t)&saved_stack_start;
                 vimcom_eval_expr(p);
+                R_CStackStart = saved_stack_start;
+            }
 #else
+            FLAG_LOCK();
             strncpy(flag_eval, p, 510);
+            FLAG_UNLOCK();
             vimcom_fire();
 #endif
         } else {
@@ -1271,8 +1328,8 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         strncpy(tmpdir, getenv("VIMR_TMPDIR"), 500);
         tmpdir[500] = '\0';
         if (getenv("VIMR_SECRET")) {
-            strncpy(vimsecr, getenv("VIMR_SECRET"), 31);
-            vimsecr[31] = '\0';
+            strncpy(vimsecr, getenv("VIMR_SECRET"), 127);
+            vimsecr[127] = '\0';
         } else
             REprintf("vimcom: Environment variable VIMR_SECRET is missing.\n");
     } else {
@@ -1331,6 +1388,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     if (atoi(nrs_port) > 0) {
         struct sockaddr_in servaddr;
 #ifdef WIN32
+        InitializeCriticalSection(&flag_mutex);
         WSADATA d;
         int wr = WSAStartup(MAKEWORD(2, 2), &d);
         if (wr != 0) {

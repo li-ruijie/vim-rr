@@ -5,18 +5,28 @@ if exists("g:did_vimr_extern_term")
 endif
 g:did_vimr_extern_term = 1
 
+# Cache for tmux option lookups (cleared on new tmux session)
+var tmux_option_cache: dict<string> = {}
+
 # Define a function to retrieve tmux settings
 def g:TmuxOption(option: string, isglobal: string): string
+    var key = option .. ':' .. isglobal
+    if has_key(tmux_option_cache, key)
+        return tmux_option_cache[key]
+    endif
     var result: string
     if isglobal == "global"
         result = system("tmux -L VimR show-options -gv " .. option)
     else
         result = system("tmux -L VimR show-window-options -gv " .. option)
     endif
-    return substitute(result, '\n\+$', '', '')
+    result = substitute(result, '\n\+$', '', '')
+    tmux_option_cache[key] = result
+    return result
 enddef
 
 def g:StartR_ExternalTerm(rcmd: string)
+    tmux_option_cache = {}
     var tmuxcnf: string
     if g:R_notmuxconf
         tmuxcnf = ' '
@@ -49,12 +59,12 @@ def g:StartR_ExternalTerm(rcmd: string)
         tmuxcnf = '-f "' .. g:rplugin.tmpdir .. "/tmux.conf" .. '"'
     endif
 
-    var envrcmd = 'VIMR_TMPDIR=' .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') ..
-                ' VIMR_COMPLDIR=' .. substitute(g:rplugin.compldir, ' ', '\\ ', 'g') ..
-                ' VIMR_ID=' .. $VIMR_ID ..
-                ' VIMR_SECRET=' .. $VIMR_SECRET ..
+    var envrcmd = 'VIMR_TMPDIR=' .. shellescape(g:rplugin.tmpdir) ..
+                ' VIMR_COMPLDIR=' .. shellescape(g:rplugin.compldir) ..
+                ' VIMR_ID=' .. shellescape($VIMR_ID) ..
+                ' VIMR_SECRET=' .. shellescape($VIMR_SECRET) ..
                 ' VIMR_PORT=' .. g:rplugin.myport ..
-                ' R_DEFAULT_PACKAGES=' .. $R_DEFAULT_PACKAGES
+                ' R_DEFAULT_PACKAGES=' .. shellescape($R_DEFAULT_PACKAGES)
 
     envrcmd ..= ' ' .. rcmd
 

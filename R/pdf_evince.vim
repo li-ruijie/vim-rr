@@ -12,7 +12,7 @@ if !has_key(g:rplugin, 'evince_list')
 endif
 
 def g:ROpenPDF2(fullpath: string)
-    system("evince '" .. fullpath .. "' 2>/dev/null >/dev/null &")
+    system("evince " .. shellescape(fullpath) .. " 2>/dev/null >/dev/null &")
 enddef
 
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: number)

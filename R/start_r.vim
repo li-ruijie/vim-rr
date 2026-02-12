@@ -281,10 +281,17 @@ def g:ReallyStartR(whatr: string)
     g:StartR_ExternalTerm(rcmd)
 enddef
 
-# Send SIGINT to R
+# Send signal to R
 def g:SignalToR(signal: string)
     if g:rplugin.R_pid
-        system('kill -s ' .. signal .. ' ' .. g:rplugin.R_pid)
+        if has('win32')
+            # Windows: only termination is supported via taskkill
+            if signal ==? 'SIGTERM' || signal ==? 'SIGKILL' || signal ==? 'TERM' || signal ==? 'KILL'
+                system('taskkill /PID ' .. g:rplugin.R_pid .. ' /F')
+            endif
+        else
+            system('kill -s ' .. signal .. ' ' .. g:rplugin.R_pid)
+        endif
     endif
 enddef
 

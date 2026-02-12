@@ -98,7 +98,8 @@ def g:RKnitRmCache()
     endif
     normal! :<Esc>
     if cleandir
-        g:SendCmdToR('rm(list=ls(all.names=TRUE)); unlink("' .. pathdir .. '*")')
+        var safe_pathdir = substitute(pathdir, '"', '\\"', 'g')
+        g:SendCmdToR('rm(list=ls(all.names=TRUE)); unlink("' .. safe_pathdir .. '*")')
     endif
 enddef
 
@@ -133,7 +134,9 @@ def g:RWeave(bibtex: string, knit: number, pdf: number)
     if has("win32")
         rnwdir = substitute(rnwdir, '\\', '/', 'g')
     endif
-    var pdfcmd = 'vim.interlace.rnoweb("' .. expand("%:t") .. '", rnwdir = "' .. rnwdir .. '"'
+    var safe_fname = substitute(expand("%:t"), '"', '\\"', 'g')
+    var safe_rnwdir = substitute(rnwdir, '"', '\\"', 'g')
+    var pdfcmd = 'vim.interlace.rnoweb("' .. safe_fname .. '", rnwdir = "' .. safe_rnwdir .. '"'
 
     if knit == 0
         pdfcmd = pdfcmd .. ', knit = FALSE'

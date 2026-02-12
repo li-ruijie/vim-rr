@@ -37,11 +37,7 @@ if !exists('*g:ShowRout')
         " if not silent, the user will have to type <Enter>
         silent update
 
-        if has("win32")
-            let rcmd = g:rplugin.Rcmd . ' CMD BATCH --no-restore --no-save "' . expand("%") . '" "' . l:routfile . '"'
-        else
-            let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  l:routfile]
-        endif
+        let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  l:routfile]
         let Cb = function('g:GetRCmdBatchOutput', [l:routfile])
         let rjob = job_start(rcmd, {'close_cb': Cb})
         let g:rplugin.jobs["R_CMD"] = rjob
@@ -52,7 +48,9 @@ endif
 if !exists('*g:RSpin')
     function g:RSpin()
         update
-        call g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' . expand("%:p:h") . '"); spin("' . expand("%:t") . '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
+        let l:dir = substitute(expand("%:p:h"), '"', '\\"', 'g')
+        let l:fname = substitute(expand("%:t"), '"', '\\"', 'g')
+        call g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' . l:dir . '"); spin("' . l:fname . '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
     endfunction
 endif
 

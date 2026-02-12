@@ -77,8 +77,8 @@ if !exists("g:Rout_more_colors")
     g:Rout_more_colors = 0
 endif
 
-g:Rout_prompt_str = get(g:, 'Rout_prompt_str', '>')
-g:Rout_continue_str = get(g:, 'Rout_continue_str', '+')
+g:Rout_prompt_str = escape(get(g:, 'Rout_prompt_str', '>'), '/\|')
+g:Rout_continue_str = escape(get(g:, 'Rout_continue_str', '+'), '/\|')
 
 if g:Rout_more_colors
     syn include @routR syntax/r.vim

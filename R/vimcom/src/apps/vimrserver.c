@@ -19,6 +19,7 @@
 #include <time.h>
 #include <winsock2.h>
 #include <windows.h>
+#include <bcrypt.h>
 HWND VimHwnd = NULL;
 HWND RConsole = NULL;
 #define bzero(b, len) (memset((b), '\0', (len)), (void)0)
@@ -28,6 +29,7 @@ HWND RConsole = NULL;
 #define PRI_SIZET PRIu32
 #endif
 #else
+#include <fcntl.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <signal.h>
@@ -356,7 +358,12 @@ static void init_listening() // Initialise listening for incoming connections
 
     // assign IP, PORT
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // Bind to localhost by default; only bind to all interfaces when
+    // remote R access is configured (VIMR_IP_ADDRESS is set by sshR).
+    if (getenv("VIMR_IP_ADDRESS"))
+        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    else
+        servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
     while (port < 10199) {
         servaddr.sin_port = htons(port);
@@ -403,7 +410,7 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
     int msg_size;
 
     if (strstr(b, VimSecret) != b) {
-        fprintf(stderr, "Strange string received {%s}: \"%s\"\n", VimSecret, b);
+        fprintf(stderr, "Rejected message: authentication failed\n");
         fflush(stderr);
         return;
     }
@@ -1309,10 +1316,14 @@ static void build_omnils(void) {
             if (compl_buffer_size < nsz)
                 p = grow_buffer(&compl_buffer, &compl_buffer_size,
                                 nsz - compl_buffer_size);
+            char safe_name[128];
+            strncpy(safe_name, pkg->name, 127);
+            safe_name[127] = '\0';
+            fix_single_quote(safe_name);
             if (k == 0)
-                snprintf(buf, 63, "'%s'", pkg->name);
+                snprintf(buf, sizeof(buf), "'%s'", safe_name);
             else
-                snprintf(buf, 63, ",\n  '%s'", pkg->name);
+                snprintf(buf, sizeof(buf), ",\n  '%s'", safe_name);
             p = str_cat(p, buf);
             pkg->to_build = 1;
             k++;
@@ -1980,16 +1991,71 @@ static void fill_inst_libs(void) {
 }
 
 static void send_nrs_info(void) {
-    lock_stdout();
-    printf("call EchoNCSInfo('Loaded packages:");
+    char buf[4096];
+    char *p = buf;
+    p += snprintf(p, sizeof(buf) - (p - buf),
+                  "call EchoNCSInfo('Loaded packages:");
     PkgData *pkg = pkgList;
-    while (pkg) {
-        printf(" %s", pkg->name);
+    while (pkg && (p - buf) < (int)sizeof(buf) - 128) {
+        char safe_name[128];
+        strncpy(safe_name, pkg->name, 127);
+        safe_name[127] = '\0';
+        fix_single_quote(safe_name);
+        p += snprintf(p, sizeof(buf) - (p - buf), " %s", safe_name);
         pkg = pkg->next;
     }
-    printf("')\n");
+    snprintf(p, sizeof(buf) - (p - buf), "')");
+    lock_stdout();
+    printf("\x11%" PRI_SIZET "\x11%s\n", strlen(buf), buf);
     fflush(stdout);
     unlock_stdout();
+}
+
+#ifndef WIN32
+// Validate that a directory is safe: real directory, owned by us, mode 0700.
+static int validate_dir(const char *path) {
+    struct stat st;
+    if (lstat(path, &st) != 0)
+        return 0;
+    if (!S_ISDIR(st.st_mode))
+        return 0; // not a directory
+    if (S_ISLNK(st.st_mode))
+        return 0; // symlink
+    if (st.st_uid != getuid())
+        return 0; // wrong owner
+    if ((st.st_mode & 0777) != 0700)
+        return 0; // wrong permissions
+    return 1;
+}
+#endif
+
+// Generate a cryptographically strong 128-bit secret, hex-encoded.
+// Returns 0 on success, -1 on failure.
+static int generate_secret(char *buf, size_t buflen) {
+    if (buflen < 33)
+        return -1;
+    unsigned char raw[16];
+    const char hex[] = "0123456789abcdef";
+#ifdef WIN32
+    NTSTATUS status = BCryptGenRandom(NULL, raw, sizeof(raw),
+                                      BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+    if (status != 0)
+        return -1;
+#else
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0)
+        return -1;
+    ssize_t n = read(fd, raw, sizeof(raw));
+    close(fd);
+    if (n != (ssize_t)sizeof(raw))
+        return -1;
+#endif
+    for (int i = 0; i < 16; i++) {
+        buf[i * 2] = hex[raw[i] >> 4];
+        buf[i * 2 + 1] = hex[raw[i] & 0x0f];
+    }
+    buf[32] = '\0';
+    return 0;
 }
 
 static void init(void) {
@@ -2023,13 +2089,11 @@ static void init(void) {
         strcpy(strT, "|- ");
     }
 
-    if (!getenv("VIMR_SECRET")) {
-        fprintf(stderr, "VIMR_SECRET not found\n");
+    if (generate_secret(VimSecret, sizeof(VimSecret)) != 0) {
+        fprintf(stderr, "Failed to generate secret\n");
         fflush(stderr);
         exit(1);
     }
-    strncpy(VimSecret, getenv("VIMR_SECRET"), 127);
-    VimSecret[127] = '\0';
     VimSecretLen = strlen(VimSecret);
 
     if (getenv("VIMR_COMPLCB"))
@@ -2050,6 +2114,18 @@ static void init(void) {
         strncpy(localtmpdir, getenv("VIMR_TMPDIR"), 255);
     }
     localtmpdir[255] = '\0';
+#ifndef WIN32
+    if (tmpdir[0] && !validate_dir(tmpdir)) {
+        fprintf(stderr, "Unsafe tmpdir: %s\n", tmpdir);
+        fflush(stderr);
+        exit(1);
+    }
+    if (localtmpdir[0] && !validate_dir(localtmpdir)) {
+        fprintf(stderr, "Unsafe localtmpdir: %s\n", localtmpdir);
+        fflush(stderr);
+        exit(1);
+    }
+#endif
 
     snprintf(liblist, 575, "%s/liblist_%s", localtmpdir, getenv("VIMR_ID"));
     snprintf(globenv, 575, "%s/globenv_%s", localtmpdir, getenv("VIMR_ID"));
@@ -2110,6 +2186,7 @@ static void init(void) {
     build_omnils();
 
     lock_stdout();
+    printf("let $VIMR_SECRET = '%s'\n", VimSecret);
     printf("let g:rplugin.nrs_running = 1\n");
     fflush(stdout);
     unlock_stdout();
@@ -2205,8 +2282,14 @@ void completion_info(const char *wrd, const char *pkg) {
             p = str_cat(p, f[6]);
             p = str_cat(p, "'}");
             lock_stdout();
-            printf("call %s(%s)\n", compl_info, compl_buffer);
-            fflush(stdout);
+            {
+                size_t msg_len = strlen("call ") + strlen(compl_info) + 1 +
+                                 strlen(compl_buffer) + 1;
+                printf("\x11%" PRI_SIZET "\x11"
+                       "call %s(%s)\n",
+                       msg_len, compl_info, compl_buffer);
+                fflush(stdout);
+            }
             unlock_stdout();
             return;
         }
@@ -2215,8 +2298,13 @@ void completion_info(const char *wrd, const char *pkg) {
         s++;
     }
     lock_stdout();
-    printf("call %s({})\n", compl_info);
-    fflush(stdout);
+    {
+        size_t msg_len = strlen("call ") + strlen(compl_info) + 4;
+        printf("\x11%" PRI_SIZET "\x11"
+               "call %s({})\n",
+               msg_len, compl_info);
+        fflush(stdout);
+    }
     unlock_stdout();
 }
 

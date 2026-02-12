@@ -9,7 +9,7 @@ endif
 all: vimrserver.exe
 
 vimrserver.exe: vimrserver.c
-	$(CC) $(CFLAGS) vimrserver.c -o vimrserver.exe -lWs2_32
+	$(CC) $(CFLAGS) vimrserver.c -o vimrserver.exe -lWs2_32 -lbcrypt
 
 clean:
 
