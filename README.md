@@ -96,6 +96,101 @@ Vim communicates with R through `vimrserver` (a TCP server run as a Vim job) and
   └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Challenges
+
+### Concurrency and Thread Safety (Windows/RStudio)
+
+Bridging Vim and R involves complex concurrency, particularly on Windows where RStudio runs the R console on the main thread while `vimcom` (the plugin's C extension) listens for commands on a background TCP thread. This architecture creates several critical race conditions:
+
+1.  **Command Overwrite**: Rapid-fire commands from Vim (like sending a visual block line-by-line) could overwrite the command buffer before R's main thread had a chance to execute the previous one.
+2.  **Deadlocks**: When R waits for user input, the main thread is blocked. The TCP thread cannot safely call the R API to execute code without risking a crash, but waiting for R to become idle causes a deadlock.
+3.  **State Desynchronization**: Interrupting R (e.g., `Ctrl+C` or a breakpoint) could leave the plugin thinking R is "busy" forever, blocking future updates like the Object Browser.
+
+`vim-rr` solves these issues using a mutex-protected event queue and a heuristic recovery mechanism:
+
+```text
+      Vim Editor                                      R Process (vimcom)
+      ┌────────┐                            ┌───────────────────────────────────┐
+      │ :RSend ├──┐                         │                                   │
+      └────────┘  │ TCP (localhost)         │       [TCP Listener Thread]       │
+                  │                         │                 │                 │
+      ┌────────┐  │   ┌──────────────┐      │     (1) Receive Command 'E'       │
+      │ :RSend ├──┼──►│  vimrserver  │─────►│                 ▼                 │
+      └────────┘  │   │(Dynamic Buff)│      │          [MUTEX_LOCK] 🔒          │
+                  │   └──────────────┘      │                 │                 │
+      ┌────────┐  │                         │      ┌──────────┴──────────┐      │
+      │ :RSend ├──┘                         │      │ Check: r_is_busy?   │      │
+      └────────┘                            │      └─┬─────────────────┬─┘      │
+                                            │        │ YES             │ NO     │
+                                            │        ▼                 │        │
+                                            │  ┌───────────┐           │        │
+                                            │  │Check Timer│           │        │
+                                            │  │> 5.0 sec? │           │        │
+                                            │  └─┬───────┬─┘           │        │
+                                            │    │ YES   │ NO          │        │
+  ┌──────────────────────────────────────┐  │    ▼       ▼             │        │
+  │ RECOVERY MECHANISM                   │  │ ┌─────┐  ┌─────┐         │        │
+  │ If R is stopped at a breakpoint      │  │ │RESET│  │Push │         │        │
+  │ or interrupted (Ctrl+C), 'busy'      │  │ │Busy │  │ to  │(Linked  │        │
+  │ stays 1. The TCP thread detects      │  │ │ = 0 │  │Queue│ List)   │        │
+  │ staleness (>5s) and forces reset.    │  │ └──┬──┘  └─┬───┘         │        │
+  └──────────────────────────────────────┘  │    │       │             │        │
+                                            │    │       ▼             │        │
+                                            │    │  ┌──────────────┐   │        │
+                                            │    │  │[MUTEX_UNLOCK]│   │        │
+                                            │    │  │      🔓      │   │        │
+                                            │    │  └──────────────┘   │        │
+                                            │    │       │ (Done)      │        │
+                                            │    └───────┼─────────────┘        │
+                                            │            ▼                      │
+                                            │      ┌───────────┐                │
+                                            │      │Set Busy=1 │                │
+                                            │      │BusySince=T│                │
+                                            │      └─────┬─────┘                │
+                                            │            ▼                      │
+                                            │     ┌──────────────┐              │
+                                            │     │[MUTEX_UNLOCK]│              │
+                                            │     │      🔓      │              │
+                                            │     └──────┬───────┘              │
+                                            │            ▼                      │
+                                            │      ┌──────────┐                 │
+                                            │      │ Exec Now │                 │
+                                            │      │ (HACK)   │                 │
+                                            │      └─────┬────┘                 │
+                                            │            │                      │
+                                            │            ▼                      │
+                                            │     [R API Call]                  │
+                                            │            │                      │
+                                            │            │                      │
+                                            │   [Main R Thread]                 │
+                                            │            │                      │
+                                            │            │ (R finishes task)    │
+                                            │            │                      │
+                                            │            ▼                      │
+                                            │   ┌─────────────────┐             │
+                                            │   │   vimcom_task   │             │
+                                            │   │ (Task Callback) │             │
+                                            │   └──────┬──────────┘             │
+                                            │          │                        │
+                                            │          ▼                        │
+                                            │   [MUTEX_LOCK] 🔒                 │
+                                            │          │                        │
+                                            │   ┌──────┴──────┐                 │
+                                            │   │ Drain Queue │                 │
+                                            │   │ & Exec Cmds │                 │
+                                            │   └──────┬──────┘                 │
+                                            │          │                        │
+                                            │   ┌──────┴──────┐                 │
+                                            │   │ Set Busy=0  │                 │
+                                            │   └──────┬──────┘                 │
+                                            │          │                        │
+                                            │   [MUTEX_UNLOCK] 🔓               │
+                                            │          │                        │
+                                            │          ▼                        │
+                                            │      (R Idle)                     │
+                                            └───────────────────────────────────┘
+```
+
 ### Component Breakdown
 
 1.  **Vim Frontend (`ftplugin/`, `ftdetect/`)**:
