@@ -16,7 +16,8 @@ enddef
 def g:GetJobTitle(job_id: any): string
     var jid = type(job_id) == v:t_channel ? ch_getjob(job_id) : job_id
     for key in keys(g:rplugin.jobs)
-        if g:rplugin.jobs[key] == jid
+        var val = g:rplugin.jobs[key]
+        if type(val) == v:t_job && val == jid
             return key
         endif
     endfor

@@ -163,6 +163,8 @@ Log(const char *fmt, ...) // Logging function for debugging
 #ifdef Debug_NRS
     va_list argptr;
     FILE *f = fopen("/dev/shm/vimrserver_log", "a");
+    if (!f)
+        return;
     va_start(argptr, fmt);
     vfprintf(f, fmt, argptr);
     fprintf(f, "\n");
@@ -1608,7 +1610,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
     char base1[128];
     char base2[128];
     char prefix[128];
-    char newprfx[96];
+    char newprfx[128];
     char nm[160];
     char descr[160];
     const char *f[7];
@@ -1722,7 +1724,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
         int len = strlen(prfx);
         if (vimcom_is_utf8) {
             int j = 0, i = 0;
-            while (i < len) {
+            while (i < len && j < (int)sizeof(newprfx) - 4) {
                 if (prfx[i] == '\xe2') {
                     i += 3;
                     if (prfx[i - 1] == '\x80' || prfx[i - 1] == '\x94') {
@@ -1743,6 +1745,8 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
             }
             newprfx[j] = 0;
         } else {
+            if (len > (int)sizeof(newprfx) - 1)
+                len = (int)sizeof(newprfx) - 1;
             for (int i = 0; i < len; i++) {
                 if (prfx[i] == '-' || prfx[i] == '`')
                     newprfx[i] = ' ';
@@ -1784,6 +1788,7 @@ void hi_glbenv_fun(void) {
     char *g = glbnv_buffer;
     char *p = compl_buffer;
     char *s;
+    unsigned long used;
 
     memset(compl_buffer, 0, compl_buffer_size);
     p = str_cat(p, "call UpdateLocalFunctions('");
@@ -1793,6 +1798,13 @@ void hi_glbenv_fun(void) {
             s++;
         s++;
         if (*s == '\003') {
+            used = (unsigned long)(p - compl_buffer);
+            unsigned long need = used + strlen(g) + 64;
+            if (need >= compl_buffer_size) {
+                grow_buffer(&compl_buffer, &compl_buffer_size,
+                            need - compl_buffer_size + 1024);
+                p = compl_buffer + used;
+            }
             p = str_cat(p, g);
             p = str_cat(p, " ");
         }
@@ -2071,11 +2083,12 @@ static void init(void) {
 
     envstr[0] = 0;
     if (getenv("LC_MESSAGES"))
-        strcat(envstr, getenv("LC_MESSAGES"));
+        strncat(envstr, getenv("LC_MESSAGES"),
+                sizeof(envstr) - strlen(envstr) - 1);
     if (getenv("LC_ALL"))
-        strcat(envstr, getenv("LC_ALL"));
+        strncat(envstr, getenv("LC_ALL"), sizeof(envstr) - strlen(envstr) - 1);
     if (getenv("LANG"))
-        strcat(envstr, getenv("LANG"));
+        strncat(envstr, getenv("LANG"), sizeof(envstr) - strlen(envstr) - 1);
     int len = strlen(envstr);
     for (int i = 0; i < len; i++)
         envstr[i] = toupper(envstr[i]);

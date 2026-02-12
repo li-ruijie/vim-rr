@@ -94,8 +94,10 @@ static int oldcolwd = 0; // Last set width.
 
 static char flag_eval[512]; // Do we have an R expression to evaluate?
 static int flag_glbenv = 0; // Do we have to list objects from .GlobalEnv?
-static int flag_debug = 0;  // Do we need to get file name and line information
-                            // of debugging function?
+#ifndef WIN32
+static int flag_debug = 0; // Do we need to get file name and line information
+                           // of debugging function?
+#endif
 
 #ifdef WIN32
 static CRITICAL_SECTION flag_mutex;
@@ -108,6 +110,10 @@ static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 #ifdef WIN32
+extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
+// exported from R.dll on Windows. Needed to fix BUG-62: temporarily set the
+// stack base to the current frame so R_CheckStack sees a small delta instead
+// of a garbage ~1.6 GB value when called from the TCP thread.
 static int r_is_busy = 1; // Is R executing a top level command? R memory will
 // become corrupted and R will crash afterwards if we execute a function that
 // creates R objects while R is busy.
@@ -227,12 +233,13 @@ static void send_to_vim(char *msg) {
         return;
 
     int sent;
-    char b[64];
+    char b[192];
     size_t len;
 
     if (verbose > 2) {
         if (strlen(msg) < 128)
-            REprintf("send_to_vim [%d] {%s}: %s\n", sfd, vimsecr, msg);
+            REprintf("send_to_vim [%lld] {%s}: %s\n", (long long)sfd, vimsecr,
+                     msg);
     }
 
     len = strlen(msg);
@@ -258,13 +265,13 @@ static void send_to_vim(char *msg) {
     */
 
     // Send the header
-    snprintf(b, 63, "%s%09zu", vimsecr, len);
+    snprintf(b, sizeof(b), "%s%09zu", vimsecr, len);
     sent = send(sfd, b, tcp_header_len, 0);
     if (sent < 0 || (size_t)sent != tcp_header_len) {
         if (sent == -1)
             REprintf("Error sending message header to Vim-R: -1\n");
         else
-            REprintf("Error sending message header to Vim-R: %zu x %d\n",
+            REprintf("Error sending message header to Vim-R: %lu x %d\n",
                      tcp_header_len, sent);
 #ifdef WIN32
         closesocket(sfd);
@@ -1209,12 +1216,11 @@ static void vimcom_parse_received_msg(char *buf) {
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
 #ifdef WIN32
-            // On Windows, this runs on the TCP thread. R's R_CheckStack
-            // compares the stack pointer against R's main-thread base,
-            // producing a garbage delta (~1.6 GB) that triggers "C stack
-            // usage too close to the limit". Fix: temporarily set
-            // R_CStackStart to the current stack frame so the delta is
-            // small. Safe because R is idle during sendToConsole() calls.
+            // On Windows (RStudio), 'E' must execute immediately on the TCP
+            // thread — deferring to vimcom_task deadlocks because R is idle
+            // waiting for console input. Temporarily set R_CStackStart to
+            // the current stack frame so R_CheckStack sees a small delta
+            // instead of a garbage ~1.6 GB value (BUG-62).
             FLAG_LOCK();
             int busy = r_is_busy;
             FLAG_UNLOCK();
