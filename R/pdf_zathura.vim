@@ -111,6 +111,7 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: nu
             RStartZathura(ppath)
             sleep 900m
             g:SyncTeX_forward2(tpath, ppath, texln, 0)
+            return
         else
             g:RWarningMsg(substitute(result, "\n", " ", "g"))
             return

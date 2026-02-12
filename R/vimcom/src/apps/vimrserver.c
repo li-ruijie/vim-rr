@@ -187,9 +187,9 @@ static int ascii_ic_cmp(const char *a,
     while (*a && *b) {
         x = (unsigned char)*a;
         y = (unsigned char)*b;
-        if (x <= 'Z')
+        if (x >= 'A' && x <= 'Z')
             x += 32;
-        if (y <= 'Z')
+        if (y >= 'A' && y <= 'Z')
             y += 32;
         d = x - y;
         if (d != 0)
@@ -287,13 +287,17 @@ static void ParseMsg(char *b) // Parse the message from R
             char *args;
             char *id = b;
             char *base = id;
-            while (*base != ';')
+            while (*base != ';' && *base != 0)
                 base++;
+            if (*base == 0)
+                break;
             *base = 0;
             base++;
             char *fnm = base;
-            while (*fnm != ';')
+            while (*fnm != ';' && *fnm != 0)
                 fnm++;
+            if (*fnm == 0)
+                break;
             *fnm = 0;
             fnm++;
             args = fnm;
@@ -431,13 +435,18 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
         if (*p == '\x11')
             break;
         p++;
+        if ((size_t)(p - finalbuffer) >= fb_size - 1) {
+            fprintf(stderr, "recv loop: message exceeds buffer size\n");
+            fflush(stderr);
+            break;
+        }
     }
     *p = 0;
 
     // FIXME: Delete this check when the code proved to be reliable
     if (strlen(finalbuffer) != msg_size) {
         fprintf(stderr, "Divergent TCP message size: %" PRI_SIZET " x %d\n",
-                strlen(p), msg_size);
+                strlen(finalbuffer), msg_size);
         fflush(stderr);
     }
 
@@ -452,7 +461,7 @@ static void *receive_msg() // Thread function to receive messages on Unix
 #endif
 {
     size_t blen = VimSecretLen + 9;
-    char b[32];
+    char b[256];
     size_t rlen;
 
     for (;;) {
@@ -490,7 +499,7 @@ void send_to_vimcom(
     char *msg) // Function to send messages to R (vimcom package)
 {
     Log("TCP out: %s", msg);
-    if (connfd) {
+    if (connfd >= 0) {
         size_t len = strlen(msg);
         if (send(connfd, msg, len, 0) != (ssize_t)len) {
             fprintf(stderr, "Partial/failed write.\n");
@@ -518,7 +527,7 @@ static void SendToRConsole(char *aString) {
     char msg[1024];
     snprintf(msg, 1023, "C%s%s", getenv("VIMR_ID"), aString);
     send_to_vimcom(msg);
-    Sleep(0.02);
+    Sleep(20);
 
     // Necessary to force RConsole to actually process the line
     PostMessage(RConsole, WM_NULL, 0, 0);
@@ -534,10 +543,10 @@ static void RClearConsole() {
     SetForegroundWindow(RConsole);
     keybd_event(VK_CONTROL, 0, 0, 0);
     keybd_event(VkKeyScan('L'), 0, KEYEVENTF_EXTENDEDKEY | 0, 0);
-    Sleep(0.05);
+    Sleep(50);
     keybd_event(VkKeyScan('L'), 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
     keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
-    Sleep(0.05);
+    Sleep(50);
     PostMessage(RConsole, WM_NULL, 0, 0);
 }
 
@@ -922,7 +931,7 @@ static int run_R_code(const char *s, int senderror) {
         fwrite(s, sizeof(char), strlen(s), f);
         fclose(f);
     } else {
-        fprintf(stderr, "Failed to write \"%s/bo_code.R\"\n", fnm);
+        fprintf(stderr, "Failed to write \"%s\"\n", fnm);
         fflush(stderr);
         return 1;
     }
@@ -956,6 +965,8 @@ static int run_R_code(const char *s, int senderror) {
     if (!SetHandleInformation(g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0)) {
         fprintf(stderr, "SetHandleInformation error\n");
         fflush(stderr);
+        CloseHandle(g_hChildStd_OUT_Rd);
+        CloseHandle(g_hChildStd_OUT_Wr);
         return 1;
     }
 
@@ -1040,7 +1051,7 @@ static int run_R_code(const char *s, int senderror) {
         if (!res || dwRead == 0)
             break;
         if (f)
-            fwrite(chBuf, sizeof(char), strlen(chBuf), f);
+            fwrite(chBuf, sizeof(char), dwRead, f);
     }
     if (f)
         fclose(f);
@@ -1436,13 +1447,17 @@ void update_pkg_list(char *libnms) {
         Log("update_pkg_list != NULL");
         while (*libnms) {
             nm = libnms;
-            while (*libnms != '\003')
+            while (*libnms != '\003' && *libnms != 0)
                 libnms++;
+            if (*libnms == 0)
+                break;
             *libnms = 0;
             libnms++;
             vrsn = libnms;
-            while (*libnms != '\004')
+            while (*libnms != '\004' && *libnms != 0)
                 libnms++;
+            if (*libnms == 0)
+                break;
             *libnms = 0;
             libnms++;
             if (*libnms == '\n') // this was the last package
@@ -1474,12 +1489,14 @@ void update_pkg_list(char *libnms) {
         }
 
         while ((s = fgets(lbnm, 127, flib))) {
-            while (*s != '_')
+            while (*s != '_' && *s != 0)
                 s++;
+            if (*s == 0)
+                continue;
             *s = 0;
             s++;
             vrsn = s;
-            while (*s != '\n')
+            while (*s != '\n' && *s != 0)
                 s++;
             *s = 0;
 
@@ -1520,6 +1537,8 @@ void update_pkg_list(char *libnms) {
 
 ListStatus *search(const char *s) {
     ListStatus *node = listTree;
+    if (!node)
+        return NULL;
     int cmp = strcmp(node->key, s);
     while (node && cmp != 0) {
         if (cmp > 0)
@@ -2010,17 +2029,27 @@ static void init(void) {
         exit(1);
     }
     strncpy(VimSecret, getenv("VIMR_SECRET"), 127);
+    VimSecret[127] = '\0';
     VimSecretLen = strlen(VimSecret);
 
-    strncpy(compl_cb, getenv("VIMR_COMPLCB"), 63);
-    strncpy(compl_info, getenv("VIMR_COMPLInfo"), 63);
-    strncpy(compldir, getenv("VIMR_COMPLDIR"), 255);
-    strncpy(tmpdir, getenv("VIMR_TMPDIR"), 255);
+    if (getenv("VIMR_COMPLCB"))
+        strncpy(compl_cb, getenv("VIMR_COMPLCB"), 63);
+    compl_cb[63] = '\0';
+    if (getenv("VIMR_COMPLInfo"))
+        strncpy(compl_info, getenv("VIMR_COMPLInfo"), 63);
+    compl_info[63] = '\0';
+    if (getenv("VIMR_COMPLDIR"))
+        strncpy(compldir, getenv("VIMR_COMPLDIR"), 255);
+    compldir[255] = '\0';
+    if (getenv("VIMR_TMPDIR"))
+        strncpy(tmpdir, getenv("VIMR_TMPDIR"), 255);
+    tmpdir[255] = '\0';
     if (getenv("VIMR_LOCAL_TMPDIR")) {
         strncpy(localtmpdir, getenv("VIMR_LOCAL_TMPDIR"), 255);
-    } else {
+    } else if (getenv("VIMR_TMPDIR")) {
         strncpy(localtmpdir, getenv("VIMR_TMPDIR"), 255);
     }
+    localtmpdir[255] = '\0';
 
     snprintf(liblist, 575, "%s/liblist_%s", localtmpdir, getenv("VIMR_ID"));
     snprintf(globenv, 575, "%s/globenv_%s", localtmpdir, getenv("VIMR_ID"));
@@ -2050,12 +2079,12 @@ static void init(void) {
     char fname[512];
     snprintf(fname, 511, "%s/libPaths", tmpdir);
     char *b = read_file(fname, 1);
-#ifdef WIN32
-    for (int i = 0; i < strlen(b); i++)
-        if (b[i] == '\\')
-            b[i] = '/';
-#endif
     if (b) {
+#ifdef WIN32
+        for (int i = 0; i < strlen(b); i++)
+            if (b[i] == '\\')
+                b[i] = '/';
+#endif
         libpaths = calloc(1, sizeof(LibPath));
         libpaths->path = b;
         LibPath *p = libpaths;
@@ -2344,11 +2373,11 @@ char *complete_args(char *p, char *funcnm) {
 }
 
 void complete(const char *id, char *base, char *funcnm, char *args) {
-    if (args)
+    if (args && strlen(args) >= 4)
         Log("complete(%s, %s, %s, [%c%c%c%c...])", id, base, funcnm, args[0],
             args[1], args[2], args[3]);
     else
-        Log("complete(%s, %s, %s, NULL)", id, base, funcnm);
+        Log("complete(%s, %s, %s, %s)", id, base, funcnm, args ? args : "NULL");
     char *p;
 
     memset(compl_buffer, 0, compl_buffer_size);

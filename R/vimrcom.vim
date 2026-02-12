@@ -14,8 +14,9 @@ def g:StartJob(cmd: any, opt: dict<any>): job
 enddef
 
 def g:GetJobTitle(job_id: any): string
+    var jid = type(job_id) == v:t_channel ? ch_getjob(job_id) : job_id
     for key in keys(g:rplugin.jobs)
-        if g:rplugin.jobs[key] == job_id
+        if g:rplugin.jobs[key] == jid
             return key
         endif
     endfor

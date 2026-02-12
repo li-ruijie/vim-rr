@@ -105,8 +105,8 @@ enddef
 
 def g:RBrowserMenu()
     g:RCreateMenuItem('nvi', 'Object\ browser.Open/Close', 'RUpdateObjBrowser', 'ro', ':call g:RObjBrowser()')
-    g:RCreateMenuItem('nvi', 'Object\ browser.Expand\ (all\ lists)', 'ROpenLists', 'r=', ':call g:RBrOpenCloseLs(1)')
-    g:RCreateMenuItem('nvi', 'Object\ browser.Collapse\ (all\ lists)', 'RCloseLists', 'r-', ':call g:RBrOpenCloseLs(0)')
+    g:RCreateMenuItem('nvi', 'Object\ browser.Expand\ (all\ lists)', 'ROpenLists', 'r=', ':call g:RBrOpenCloseLs("O")')
+    g:RCreateMenuItem('nvi', 'Object\ browser.Collapse\ (all\ lists)', 'RCloseLists', 'r-', ':call g:RBrOpenCloseLs("C")')
     if &filetype == "rbrowser"
         imenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter <Esc>:call g:RBrowserDoubleClick()<CR>
         nmenu <silent> R.Object\ browser.Toggle\ (cur)<Tab>Enter :call g:RBrowserDoubleClick()<CR>

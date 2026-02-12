@@ -58,8 +58,8 @@ endif
 # the README).
 var first_line = 'Last change in this file: 2024-08-15'
 var readme_path = g:rplugin.compldir .. "/README"
-var need_readme = !filereadable(readme_path)
-    || readfile(readme_path)[0] != first_line
+var readme_lines = filereadable(readme_path) ? readfile(readme_path, '', 1) : []
+var need_readme = len(readme_lines) == 0 || readme_lines[0] != first_line
 
 if need_readme
     delete(g:rplugin.compldir .. "/vimcom_info")

@@ -177,16 +177,28 @@ static char *vimcom_grow_buffers(void) {
     glbnvbufsize += 32768;
 
     char *tmp = (char *)calloc(glbnvbufsize, sizeof(char));
+    if (!tmp) {
+        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
+        return (glbnvbuf2 + strlen(glbnvbuf2));
+    }
     strcpy(tmp, glbnvbuf1);
     free(glbnvbuf1);
     glbnvbuf1 = tmp;
 
     tmp = (char *)calloc(glbnvbufsize, sizeof(char));
+    if (!tmp) {
+        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
+        return (glbnvbuf2 + strlen(glbnvbuf2));
+    }
     strcpy(tmp, glbnvbuf2);
     free(glbnvbuf2);
     glbnvbuf2 = tmp;
 
     tmp = (char *)calloc(glbnvbufsize + 64, sizeof(char));
+    if (!tmp) {
+        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
+        return (glbnvbuf2 + strlen(glbnvbuf2));
+    }
     free(send_ge_buf);
     send_ge_buf = tmp;
 
@@ -205,7 +217,7 @@ static void send_to_vim(char *msg) {
     if (sfd == -1)
         return;
 
-    size_t sent;
+    int sent;
     char b[64];
     size_t len;
 
@@ -239,11 +251,11 @@ static void send_to_vim(char *msg) {
     // Send the header
     snprintf(b, 63, "%s%09zu", vimsecr, len);
     sent = send(sfd, b, tcp_header_len, 0);
-    if (sent != tcp_header_len) {
+    if (sent < 0 || (size_t)sent != tcp_header_len) {
         if (sent == -1)
             REprintf("Error sending message header to Vim-R: -1\n");
         else
-            REprintf("Error sending message header to Vim-R: %zu x %zu\n",
+            REprintf("Error sending message header to Vim-R: %zu x %d\n",
                      tcp_header_len, sent);
 #ifdef WIN32
         closesocket(sfd);
@@ -275,7 +287,7 @@ static void send_to_vim(char *msg) {
             // The goal here is to avoid infinite loop.
             // TODO: Maybe delete this check because php code does not have
             // something similar
-            REprintf("Too many attempts to send message to Vim-R: %zu x %zu\n",
+            REprintf("Too many attempts to send message to Vim-R: %zu x %d\n",
                      len, sent);
             return;
         }
@@ -284,7 +296,7 @@ static void send_to_vim(char *msg) {
     // End the message with \x11
     sent = send(sfd, "\x11", 1, 0);
     if (sent != 1)
-        REprintf("Error sending final byte to Vim-R: 1 x %zu\n", sent);
+        REprintf("Error sending final byte to Vim-R: 1 x %d\n", sent);
 }
 
 /**
@@ -321,6 +333,7 @@ static void vimcom_squo(const char *buf, char *buf2, int bsize) {
         i++;
         j++;
     }
+    buf2[bsize - 1] = 0;
 }
 
 /**
@@ -334,11 +347,13 @@ static void vimcom_squo(const char *buf, char *buf2, int bsize) {
  */
 static void vimcom_backtick(const char *b1, char *b2) {
     int i = 0, j = 0;
-    while (i < 511 && b1[i] != '$' && b1[i] != '@' && b1[i] != 0) {
+    while (i < 511 && j < 510 && b1[i] != '$' && b1[i] != '@' && b1[i] != 0) {
         if (b1[i] == '[' && b1[i + 1] == '[') {
             b2[j] = '[';
             i++;
             j++;
+            if (j >= 510)
+                break;
             b2[j] = '[';
             i++;
             j++;
@@ -346,19 +361,19 @@ static void vimcom_backtick(const char *b1, char *b2) {
             b2[j] = '`';
             j++;
         }
-        while (i < 511 && b1[i] != '$' && b1[i] != '@' && b1[i] != '[' &&
-               b1[i] != 0) {
+        while (i < 511 && j < 510 && b1[i] != '$' && b1[i] != '@' &&
+               b1[i] != '[' && b1[i] != 0) {
             b2[j] = b1[i];
             i++;
             j++;
         }
-        if (b1[i - 1] != ']') {
+        if (j < 510 && b1[i - 1] != ']') {
             b2[j] = '`';
             j++;
         }
         if (b1[i] == 0)
             break;
-        if (b1[i] != '[') {
+        if (j < 510 && b1[i] != '[') {
             b2[j] = b1[i];
             i++;
             j++;
@@ -377,9 +392,20 @@ static void vimcom_backtick(const char *b1, char *b2) {
  */
 static LibInfo *vimcom_lib_info_new(const char *nm, const char *vrsn) {
     LibInfo *pi = calloc(1, sizeof(LibInfo));
+    if (!pi)
+        return NULL;
     pi->name = malloc((strlen(nm) + 1) * sizeof(char));
+    if (!pi->name) {
+        free(pi);
+        return NULL;
+    }
     strcpy(pi->name, nm);
     pi->version = malloc((strlen(vrsn) + 1) * sizeof(char));
+    if (!pi->version) {
+        free(pi->name);
+        free(pi);
+        return NULL;
+    }
     strcpy(pi->version, vrsn);
     pi->strlen = strlen(pi->name) + strlen(pi->version) + 2;
     return pi;
@@ -394,6 +420,10 @@ static LibInfo *vimcom_lib_info_new(const char *nm, const char *vrsn) {
  */
 static void vimcom_lib_info_add(const char *nm, const char *vrsn) {
     LibInfo *pi = vimcom_lib_info_new(nm, vrsn);
+    if (!pi) {
+        REprintf("vimcom: malloc failed in vimcom_lib_info_add\n");
+        return;
+    }
     if (libList) {
         pi->next = libList;
         libList = pi;
@@ -594,12 +624,12 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
                     if (newenv[strlen(newenv) - 1] == '$')
                         newenv[strlen(newenv) - 1] = 0; // Delete trailing '$'
                     for (int i = 0; i < len1; i++) {
-                        sprintf(ebuf, "[[%d]]", i + 1);
+                        snprintf(ebuf, sizeof(ebuf), "[[%d]]", i + 1);
                         elmt = VECTOR_ELT(*x, i);
                         p = vimcom_glbnv_line(&elmt, ebuf, newenv, p,
                                               depth + 1);
                     }
-                    sprintf(ebuf, "[[%d]]", len1 + 1);
+                    snprintf(ebuf, sizeof(ebuf), "[[%d]]", len1 + 1);
                     PROTECT(elmt = VECTOR_ELT(*x, len1));
                     p = vimcom_glbnv_line(&elmt, ebuf, newenv, p, depth + 1);
                     UNPROTECT(1);
@@ -612,7 +642,7 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
                     ename = CHAR(eexp);
                     UNPROTECT(1);
                     if (ename[0] == 0) {
-                        sprintf(ebuf, "[[%d]]", i + 1);
+                        snprintf(ebuf, sizeof(ebuf), "[[%d]]", i + 1);
                         ename = ebuf;
                     }
                     PROTECT(elmt = VECTOR_ELT(*x, i));
@@ -621,7 +651,7 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
                 }
                 ename = CHAR(STRING_ELT(listNames, len));
                 if (ename[0] == 0) {
-                    sprintf(ebuf, "[[%d]]", len + 1);
+                    snprintf(ebuf, sizeof(ebuf), "[[%d]]", len + 1);
                     ename = ebuf;
                 }
                 PROTECT(elmt = VECTOR_ELT(*x, len));
@@ -811,8 +841,10 @@ static void vimcom_checklibs(void) {
     PROTECT(a = eval(lang1(install("search")), R_GlobalEnv));
 
     int newnlibs = Rf_length(a);
-    if (nlibs == newnlibs)
+    if (nlibs == newnlibs) {
+        UNPROTECT(1);
         return;
+    }
 
     SEXP l, cmdSexp, cmdexpr, ans;
     const char *libname;
@@ -1077,11 +1109,16 @@ static void vimcom_send_running_info(const char *r_info, const char *nvv) {
  */
 static void vimcom_parse_received_msg(char *buf) {
     char *p;
+    const char *vimr_id = getenv("VIMR_ID");
+    if (!vimr_id) {
+        REprintf("vimcom: VIMR_ID environment variable not set\n");
+        return;
+    }
 
     if (verbose > 3) {
         REprintf("vimcom received: %s\n", buf);
     } else if (verbose > 2) {
-        p = buf + strlen(getenv("VIMR_ID")) + 1;
+        p = buf + strlen(vimr_id) + 1;
         REprintf("vimcom Received: [%c] %s\n", buf[0], p);
     }
 
@@ -1102,8 +1139,8 @@ static void vimcom_parse_received_msg(char *buf) {
     case 'C': // Send command to Rgui Console
         p = buf;
         p++;
-        if (strstr(p, getenv("VIMR_ID")) == p) {
-            p += strlen(getenv("VIMR_ID"));
+        if (strstr(p, vimr_id) == p) {
+            p += strlen(vimr_id);
             r_is_busy = 1;
             Rconsolecmd(p);
         }
@@ -1112,8 +1149,8 @@ static void vimcom_parse_received_msg(char *buf) {
     case 'L': // Evaluate lazy object
         p = buf;
         p++;
-        if (strstr(p, getenv("VIMR_ID")) == p) {
-            p += strlen(getenv("VIMR_ID"));
+        if (strstr(p, vimr_id) == p) {
+            p += strlen(vimr_id);
             snprintf(flag_eval, 510, "%s <- %s", p, p);
             flag_glbenv = 1;
 #ifndef WIN32
@@ -1124,8 +1161,8 @@ static void vimcom_parse_received_msg(char *buf) {
     case 'E': // eval expression
         p = buf;
         p++;
-        if (strstr(p, getenv("VIMR_ID")) == p) {
-            p += strlen(getenv("VIMR_ID"));
+        if (strstr(p, vimr_id) == p) {
+            p += strlen(vimr_id);
 #ifdef WIN32
             // On Windows (RStudio), 'E' is used for sendToConsole() which
             // must execute immediately — deferring to vimcom_task would
@@ -1232,9 +1269,11 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
 
     if (getenv("VIMR_TMPDIR")) {
         strncpy(tmpdir, getenv("VIMR_TMPDIR"), 500);
-        if (getenv("VIMR_SECRET"))
+        tmpdir[500] = '\0';
+        if (getenv("VIMR_SECRET")) {
             strncpy(vimsecr, getenv("VIMR_SECRET"), 31);
-        else
+            vimsecr[31] = '\0';
+        } else
             REprintf("vimcom: Environment variable VIMR_SECRET is missing.\n");
     } else {
         if (verbose)
@@ -1248,8 +1287,10 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         return ans;
     }
 
-    if (getenv("VIMR_PORT"))
+    if (getenv("VIMR_PORT")) {
         strncpy(nrs_port, getenv("VIMR_PORT"), 15);
+        nrs_port[15] = '\0';
+    }
 
     if (verbose > 0)
         REprintf("vimcom %s loaded\n", CHAR(STRING_ELT(nvv, 0)));
@@ -1389,6 +1430,7 @@ void vimcom_Stop(void) {
         while (lib) {
             tmp = lib->next;
             free(lib->name);
+            free(lib->version);
             free(lib);
             lib = tmp;
         }

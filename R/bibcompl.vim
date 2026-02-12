@@ -28,7 +28,9 @@ def g:RCompleteBib(base: string): list<dict<string>>
         var lines = readfile(g:rplugin.tmpdir .. "/bibcompl")
         for line in lines
             var tmp = split(line, "\x09")
-            add(resp, {word: tmp[0], abbr: tmp[1], menu: tmp[2]})
+            if len(tmp) >= 3
+                add(resp, {word: tmp[0], abbr: tmp[1], menu: tmp[2]})
+            endif
         endfor
     endif
     return resp
@@ -125,6 +127,10 @@ def g:GetBibAttachment()
         wrd = substitute(wrd, '^@', '', '')
         if wrd != ''
             g:rplugin.last_attach = ''
+            if !g:IsJobRunning("BibComplete")
+                g:RWarningMsg("BibComplete not running.")
+                return
+            endif
             g:JobStdin(g:rplugin.jobs["BibComplete"], "\x02" .. expand("%:p") .. "\x05" .. wrd .. "\n")
             sleep 20m
             var count = 0

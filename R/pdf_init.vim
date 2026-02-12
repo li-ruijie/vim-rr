@@ -93,7 +93,7 @@ else
 endif
 
 if has("win32")
-    g:R_pdfviewer = "sumatra"
+    g:R_pdfviewer = get(g:, "R_pdfviewer", "sumatra")
 else
     g:R_pdfviewer = get(g:, "R_pdfviewer", "zathura")
 endif
@@ -101,7 +101,7 @@ endif
 if &filetype == 'rnoweb'
     g:RSetPDFViewer()
     g:SetPDFdir()
-    if g:R_synctex && $DISPLAY != "" && g:rplugin.pdfviewer == "evince"
+    if g:R_synctex && ($DISPLAY != "" || $WAYLAND_DISPLAY != "") && g:rplugin.pdfviewer == "evince"
         g:rplugin.evince_loop = 0
         g:Run_EvinceBackward()
     endif

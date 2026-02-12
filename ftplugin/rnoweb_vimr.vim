@@ -34,7 +34,7 @@ def CompleteEnv(base: string): list<dict<string>>
     var lenv = ['abstract]', 'align*}', 'align}', 'center}', 'description}',
                 'document}', 'enumerate}', 'equation}', 'figure}',
                 'itemize}', 'table}', 'tabular}']
-    filter(lenv, (_, v) => v =~ base)
+    filter(lenv, (_, v) => stridx(v, base) >= 0)
     sort(lenv)
     var rr: list<dict<string>> = []
     for env in lenv
@@ -51,7 +51,7 @@ def CompleteLaTeXCmd(base: string): list<dict<string>>
                 '\multirow{', '\newcommand', '\pageref', '\ref', '\section{',
                 '\subsection{', '\subsubsection{', '\toprule', '\usepackage{']
     var newbase = '\' .. base
-    filter(lcmd, (_, v) => v =~ newbase)
+    filter(lcmd, (_, v) => stridx(v, newbase) >= 0)
     sort(lcmd)
     var rr: list<dict<string>> = []
     for cmd in lcmd
@@ -64,8 +64,8 @@ def CompleteRef(base: string): list<dict<string>>
     # Get \label{abc}
     var lines = getline(1, '$')
     var bigline = join(lines)
-    var labline = substitute(bigline, '^.\{-}\label{', '', 'g')
-    labline = substitute(labline, '\label{', "\x05", 'g')
+    var labline = substitute(bigline, '^.\{-}\\label{', '', 'g')
+    labline = substitute(labline, '\\label{', "\x05", 'g')
     var labels = split(labline, "\x05")
     map(labels, (_, v) => substitute(v, '}.*', '', 'g'))
     filter(labels, (_, v) => len(v) < 40)
@@ -85,7 +85,7 @@ def CompleteRef(base: string): list<dict<string>>
     map(lines, (_, v) => substitute(v, '".*', '', ''))
     labels += lines
 
-    filter(labels, (_, v) => v =~ '^' .. base)
+    filter(labels, (_, v) => stridx(v, base) == 0)
 
     var resp: list<dict<string>> = []
     for lbl in labels
@@ -142,7 +142,7 @@ if !exists('*g:RnwNonRCompletion')
             endif
 
             if newbase != '' && piece =~ g:rplugin.rnw_cite_ptrn
-                return RCompleteBib(newbase)
+                return g:RCompleteBib(newbase)
             elseif piece == '\begin{'
                 let g:rplugin.rnw_compl_type = 9
                 return s:CompleteEnv(newbase)
@@ -228,7 +228,7 @@ endif
 timer_start(1, 'g:RPDFinit')
 
 if exists("b:undo_ftplugin")
-    b:undo_ftplugin ..= " | unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR"
+    b:undo_ftplugin ..= " | unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR b:rplugin_knitr_pattern"
 else
-    b:undo_ftplugin = "unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR"
+    b:undo_ftplugin = "unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR b:rplugin_knitr_pattern"
 endif

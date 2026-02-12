@@ -304,7 +304,7 @@ enddef
 # We can't transfer this function to the vimrserver because
 # vimcom:::vim_complete_args runs the function methods(), and we couldn't do
 # something similar in the vimrserver.
-def g:GetRArgs(id: string, base: string, rkeyword0: string, listdf: any, firstobj: string, pkg: string, isfarg: any)
+def g:GetRArgs(id: any, base: string, rkeyword0: string, listdf: any, firstobj: string, pkg: string, isfarg: any)
     if rkeyword0 == ""
         return
     endif
@@ -329,6 +329,10 @@ def g:FindStartRObj(): number
     var cpos = getpos(".")
     var idx = cpos[2] - 2
     var idx2 = cpos[2] - 2
+    if idx2 < 0
+        g:rplugin.compl_argkey = ''
+        return 0
+    endif
     if line[idx2] == ' ' || line[idx2] == ',' || line[idx2] == '('
         idx2 = cpos[2]
         g:rplugin.compl_argkey = ''
@@ -353,6 +357,9 @@ def g:NeedRArguments(line: string, cpos: list<number>): list<any>
     var lnum = line(".")
     var cp = cpos
     var idx = cp[2] - 2
+    if idx < 0
+        return []
+    endif
     var np = 1
     var nl = 0
     # Look up to 10 lines above for an opening parenthesis
@@ -424,7 +431,7 @@ def g:NeedRArguments(line: string, cpos: list<number>): list<any>
     return []
 enddef
 
-def g:SetComplMenu(id: string, cmn: list<any>)
+def g:SetComplMenu(id: any, cmn: list<any>)
     g:rplugin.compl_menu = deepcopy(cmn)
     for idx in range(len(g:rplugin.compl_menu))
         g:rplugin.compl_menu[idx]['word'] = substitute(g:rplugin.compl_menu[idx]['word'], "\x13", "'", "g")
@@ -613,8 +620,14 @@ def g:FillQuartoComplMenu()
                 'schema/cell-pagelayout.yml',
                 'schema/cell-table.yml',
                 'schema/cell-textoutput.yml']
+            if !has_key(intel, key)
+                continue
+            endif
             var tmp = intel[key]
             for item in tmp
+                if !has_key(item, 'name') || !has_key(item, 'description')
+                    continue
+                endif
                 var abr = item['name']
                 var wrd = abr .. ': '
                 var descr = type(item['description']) == v:t_string ? item['description'] : item['description']['long']

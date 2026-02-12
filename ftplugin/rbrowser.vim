@@ -58,11 +58,16 @@ if !exists('*g:UpdateOB')
             return "Object_Browser not listed"
         endif
 
-        if wht == "GlobalEnv"
-            let fcntt = readfile(g:rplugin.localtmpdir . "/globenv_" . $VIMR_ID)
-        else
-            let fcntt = readfile(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
-        endif
+        try
+            if wht == "GlobalEnv"
+                let fcntt = readfile(g:rplugin.localtmpdir . "/globenv_" . $VIMR_ID)
+            else
+                let fcntt = readfile(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
+            endif
+        catch
+            let g:rplugin.ob_upobcnt = 0
+            return "Error reading OB file: " . v:exception
+        endtry
         if has_key(g:rplugin, "curbuf") && g:rplugin.curbuf != "Object_Browser"
             let savesb = &switchbuf
             set switchbuf=useopen,usetab
@@ -92,6 +97,9 @@ endif
 if !exists('*g:RBrowserDoubleClick')
     function g:RBrowserDoubleClick()
         if line(".") == 2
+            return
+        endif
+        if !g:IsJobRunning("Server")
             return
         endif
 
@@ -231,7 +239,7 @@ if !exists('*g:RBrowserFindParent')
             endif
             let word = thisword . suffix . a:word
             if curpos != spacelimit
-                let word = g:RBrowserFindParent(word, line("."), curpos)
+                let word = g:RBrowserFindParent(word, curline, curpos)
             endif
             return word
         else
@@ -302,7 +310,9 @@ endif
 
 if !exists('*g:PrintListTree')
     function g:PrintListTree()
-        call g:JobStdin(g:rplugin.jobs["Server"], "37\n")
+        if g:IsJobRunning("Server")
+            call g:JobStdin(g:rplugin.jobs["Server"], "37\n")
+        endif
     endfunction
 endif
 
@@ -325,7 +335,7 @@ autocmd BufEnter <buffer> stopinsert
 autocmd BufUnload <buffer> g:OnOBBufUnload()
 
 g:rplugin.ob_reserved = '\(if\|else\|repeat\|while\|function\|for\|in\|next\|break\|TRUE\|FALSE\|NULL\|Inf\|NaN\|NA\|NA_integer_\|NA_real_\|NA_complex_\|NA_character_\)'
-g:rplugin.ob_punct = '\(!\|''\|"\|#\|%\|&\|(\|)\|\*\|+\|,\|-\|/\|\\\|:\|;\|<\|=\|>\|?\|@\|[\|/\|]\|\^\|\$\|{\||\|}\|\~\)'
+g:rplugin.ob_punct = '\(!\|''\|"\|#\|%\|&\|(\|)\|\*\|+\|,\|-\|/\|\\\|:\|;\|<\|=\|>\|?\|@\|\[\|/\|\]\|\^\|\$\|{\||\|}\|\~\)'
 
 var envstring = tolower($LC_MESSAGES .. $LC_ALL .. $LANG)
 if envstring =~ "utf-8" || envstring =~ "utf8"

@@ -86,7 +86,7 @@ if !exists('g:R_args')
     endif
 endif
 
-g:R_R_window_title = 'R Console'
+g:R_R_window_title = get(g:, 'R_R_window_title', 'R Console')
 
 var saved_home = ''
 
@@ -115,11 +115,13 @@ enddef
 
 def g:StartR_Windows()
     if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
-        g:JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
+        if g:IsJobRunning("Server")
+            g:JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
+        endif
         return
     endif
 
-    if g:rplugin.R =~? 'Rterm' && g:R_app =~? 'Rterm'
+    if g:rplugin.R =~? 'Rterm' && exists('g:R_app') && g:R_app =~? 'Rterm'
         g:RWarningMsg('"R_app" cannot be "Rterm.exe". R will crash if you send any command.')
         sleep 200m
     endif
@@ -138,12 +140,16 @@ def g:CleanVimAndStartR()
     g:StartR_Windows()
 enddef
 
-def g:SendCmdToR_Windows(...args: list<string>): number
+def g:SendCmdToR_Windows(...args: list<any>): number
     var cmd: string
     if g:R_clear_line
         cmd = "\001" .. "\013" .. args[0] .. "\n"
     else
         cmd = args[0] .. "\n"
+    endif
+    if !g:IsJobRunning("Server")
+        g:RWarningMsg("Server not running.")
+        return 0
     endif
     g:JobStdin(g:rplugin.jobs['Server'], '83' .. cmd)
     return 1

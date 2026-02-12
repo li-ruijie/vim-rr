@@ -36,8 +36,8 @@ if &encoding != "utf-8"
 endif
 
 syn match rbrowserTab contained "\t"
-syn match rbrowserLen " \[[0-9]\+, [0-9]\+\]$" contains=rbrowserEspSpc
-syn match rbrowserLen " \[[0-9]\+\]$" contains=rbrowserEspSpc
+syn match rbrowserLen " \[[0-9]\+, [0-9]\+\]$"
+syn match rbrowserLen " \[[0-9]\+\]$"
 syn match rbrowserErr /Error: label isn't "character"./
 syn match rbrowserDelim contained /!#\|\~#\|(#\|\$#\|\[#\|{#\|%#\|##\|<#\|:#\|;#\|&#\|\*#/ conceal
 
@@ -56,7 +56,6 @@ hi def link rbrowserS4		Structure
 hi def link rbrowserEnv		Include
 hi def link rbrowserLazy	Comment
 hi def link rbrowserUnknown	Normal
-hi def link rbrowserWarn	WarningMsg
 hi def link rbrowserErr 	ErrorMsg
 hi def link rbrowserTreePart	Comment
 hi def link rbrowserDelim	Ignore

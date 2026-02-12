@@ -12,14 +12,10 @@ syn region mdBoldItalic start="\*\*\*\ze\S" end="\S\zs\*\*\*\|^$" skip="\\\*" co
 
 if get(g:rplugin, 'compl_cls', '') == 'f'
     syn include @R syntax/r.vim
-    syn region rCodeRegion start="^```{R} $" end="^\ze```$" contains=@R,docCodeDelim1,docCodeDelim2
-    syn match docCodeDelim2 /```/ contained conceal
-    syn match docCodeDelim1 /```{R}/ contained conceal
+    syn region rCodeRegion matchgroup=Conceal start="^```{R} $" end="^```$" contains=@R concealends
 else
     syn include @Rout syntax/rout.vim
-    syn region rCodeRegion start="^```{Rout} $" end="^```$" contains=@Rout,docCodeDelim1,docCodeDelim2
-    syn match docCodeDelim2 /```/ contained conceal
-    syn match docCodeDelim1 /```{Rout}/ contained conceal
+    syn region rCodeRegion matchgroup=Conceal start="^```{Rout} $" end="^```$" contains=@Rout concealends
 endif
 
 hi link markdownCode Special

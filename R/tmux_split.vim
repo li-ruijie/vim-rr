@@ -24,7 +24,7 @@ enddef
 def g:StartR_ExternalTerm(rcmd: string)
     g:rplugin.editor_pane = $TMUX_PANE
     var tmuxconf = ['set-environment VIMR_TMPDIR "' .. g:rplugin.tmpdir .. '"',
-                'set-environment VIMR_COMPLDIR "' .. substitute(g:rplugin.compldir, ' ', '\\ ', "g") .. '"',
+                'set-environment VIMR_COMPLDIR "' .. g:rplugin.compldir .. '"',
                 'set-environment VIMR_ID ' .. $VIMR_ID,
                 'set-environment VIMR_SECRET ' .. $VIMR_SECRET,
                 'set-environment VIMR_PORT ' .. g:rplugin.myport,
@@ -32,7 +32,7 @@ def g:StartR_ExternalTerm(rcmd: string)
     if $R_LIBS_USER != ""
         extend(tmuxconf, ['set-environment R_LIBS_USER ' .. $R_LIBS_USER])
     endif
-    if &t_Co == 256
+    if str2nr(&t_Co) == 256
         extend(tmuxconf, ['set default-terminal "' .. $TERM .. '"'])
     endif
     writefile(tmuxconf, g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf")

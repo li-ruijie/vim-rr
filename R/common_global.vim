@@ -158,7 +158,7 @@ def g:ReplaceUnderS()
         else
             if synName == "rString"
                 isString = 1
-                if s[j - 1] == '"' || s[j - 1] == "'" && g:R_assign == 1
+                if (s[j - 1] == '"' || s[j - 1] == "'") && g:R_assign == 1
                     synName = synIDattr(synID(line("."), j - 2, 1), "name")
                     if synName == "rString" || synName == "rSpecial"
                         isString = 0
@@ -216,12 +216,12 @@ def g:RGetKeyword(...args: list<any>): string
     endwhile
     # Go to the beginning of the word
     # See https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-    while i > 0 && line[i - 1] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[i - 1] > "\x80" && line[i - 1] < "\xf5")
+    while i > 0 && (line[i - 1] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[i - 1] > "\x80" && line[i - 1] < "\xf5"))
         i -= 1
     endwhile
     # Go to the end of the word
     var j = i
-    while line[j] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[j] > "\x80" && line[j] < "\xf5")
+    while j < strlen(line) && (line[j] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[j] > "\x80" && line[j] < "\xf5"))
         j += 1
     endwhile
     var rkeyword = strpart(line, i, j - i)
@@ -308,7 +308,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
                 idx += 1
             endwhile
             firstobj = strpart(line, 0, idx)
-        elseif line =~ '^\(\k\|\$\)*\s*[' || line =~ '^\(k\|\$\)*\s*=\s*\(\k\|\$\)*\s*[.*('
+        elseif line =~ '^\(\k\|\$\)*\s*[' || line =~ '^\(\k\|\$\)*\s*=\s*\(\k\|\$\)*\s*[.*('
             var idx = 0
             while line[idx] != '['
                 idx += 1

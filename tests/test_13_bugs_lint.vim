@@ -1,31 +1,10 @@
 vim9script
-# Additional static lint checks targeting specific bug patterns found during
-# the vim9script port review.  Each rule is designed to catch a class of bugs
-# with low false-positive rates.
+# Static lint checks that catch classes of bugs likely to recur during
+# vim9script and C development.  Each rule scans all relevant files (not
+# just the original buggy file) so it detects future regressions.
 #
-# Bugs caught by these rules (see BUGS.md for details):
-#   BlockScopedVarLeak      -> BUG-01, BUG-11
-#   FilereadableLiteralGVar -> BUG-07
-#   CallbackMissingGPrefix  -> BUG-13
-#   OmnifuncMissingGPrefix  -> BUG-14, BUG-15
-#   OutCbWrongParamType     -> BUG-17, BUG-19
-#   ExistsSPrefixInVim9     -> BUG-22
-#   ExistsBareName          -> BUG-32
-#   AlwaysTrueOrOne         -> BUG-25
-#   EnvVarVimVarAssign      -> BUG-21
-#   ExecuteLetInDef         -> BUG-04, BUG-05
-#
-# Bugs NOT catchable by static lint (need type inference or semantic analysis):
-#   BUG-02 (missing g: on option variable)
-#   BUG-03 (input() string vs number)
-#   BUG-06 (uninitialized variable — cross-file)
-#   BUG-08, BUG-09, BUG-10 (split() returns strings)
-#   BUG-12 (list vs string comparison)
-#   BUG-16 (inverted logic — semantic)
-#   BUG-18, BUG-20 (SyncTeX string through execute)
-#   BUG-23 (g:R_newsize uninitialized — cross-file)
-#   BUG-24 (mixed bool/number — type inference)
-#   BUG-26 (dead code from conflicting guards — semantic)
+# Rules ported from test_14, test_15, test_16 are noted with their
+# original bug IDs for reference.
 
 g:SetSuite('bugs_lint')
 
@@ -39,6 +18,15 @@ for dir in ['R', 'ftdetect', 'ftplugin', 'syntax', 'autoload']
     vim_files += glob(d .. '/**/*.vim', false, true)
   endif
 endfor
+
+# Helper: read a specific file, return empty list if missing
+def ReadPluginFile(relpath: string): list<string>
+  var filepath = plugin_root .. '/' .. relpath
+  if filereadable(filepath)
+    return readfile(filepath)
+  endif
+  return []
+enddef
 
 # ========================================================================
 # Helper: does the file start with vim9script?
@@ -60,7 +48,6 @@ enddef
 # Variables declared inside a block are not visible after the closing
 # keyword (endif/endfor/endwhile/endtry).  This rule detects variables
 # declared at nesting > 0 that are referenced after their block closes.
-# Catches: BUG-01 (FindDebugFunc), BUG-11 (SyncTeX_backward)
 def BlockScopedVarLeak(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
@@ -160,7 +147,6 @@ enddef
 # ========================================================================
 # Detects filereadable("g:R_python3") where the quoted "g:..." is passed
 # as a literal string instead of the variable value g:R_python3.
-# Catches: BUG-07 (bibcompl.vim)
 def FilereadableLiteralGVar(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
@@ -178,10 +164,7 @@ enddef
 # Job callback strings missing g: prefix
 # ========================================================================
 # In vim9, string callback names passed to job_start() must include the
-# g: prefix for global functions.  Detects patterns like:
-#   'err_cb': 'ROnJobStderr'  (should be 'g:ROnJobStderr')
-#   'exit_cb': 'ROnJobExit'   (should be 'g:ROnJobExit')
-# Catches: BUG-13 (rstudio.vim)
+# g: prefix for global functions.
 def CallbackMissingGPrefix(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
@@ -201,37 +184,11 @@ def CallbackMissingGPrefix(filepath: string): list<string>
 enddef
 
 # ========================================================================
-# b:rplugin_non_r_omnifunc value missing g: prefix
-# ========================================================================
-# The b:rplugin_non_r_omnifunc variable stores a function name string
-# that is later resolved via function(name) inside def g:CompleteR().
-# In a def block, function("Name") only searches script-local scope.
-# The value must include "g:" for global function resolution.
-# Catches: BUG-14, BUG-15 (rmd_vimr.vim, rhelp_vimr.vim)
-def OmnifuncMissingGPrefix(filepath: string): list<string>
-  var errors: list<string> = []
-  var lines = readfile(filepath)
-  var lnum = 0
-  for line in lines
-    lnum += 1
-    # Match: b:rplugin_non_r_omnifunc = "SomeName"
-    # where SomeName does NOT start with g:
-    if line =~ 'b:rplugin_non_r_omnifunc\s*=\s*"[A-Z]'
-      if line !~ 'b:rplugin_non_r_omnifunc\s*=\s*"g:'
-        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
-      endif
-    endif
-  endfor
-  return errors
-enddef
-
-# ========================================================================
 # out_cb / err_cb callback with wrong `: job` type annotation
 # ========================================================================
 # The out_cb and close_cb callbacks receive a `channel` as the first
-# argument, not a `job`.  The err_cb callback also receives a `channel`.
-# Annotating the first parameter as `: job` causes E1013 at runtime.
-# Catches: BUG-17 (pdf_okular.vim), BUG-19 (pdf_zathura.vim)
+# argument, not a `job`.  Annotating the first parameter as `: job`
+# causes E1013 at runtime.
 def OutCbWrongParamType(filepath: string): list<string>
   var errors: list<string> = []
   if !IsVim9(filepath)
@@ -273,9 +230,7 @@ enddef
 # exists('s:varname') in vim9script
 # ========================================================================
 # In vim9script, there is no s: prefix for script-local variables.
-# Script-local variables are simply declared with `var name` at script
-# level.  exists('s:name') always returns false.
-# Catches: BUG-22 (start_r.vim)
+# exists('s:name') always returns false.
 def ExistsSPrefixInVim9(filepath: string): list<string>
   var errors: list<string> = []
   if !IsVim9(filepath)
@@ -306,11 +261,7 @@ enddef
 # ========================================================================
 # In vim9script at script level, exists("rdoc_minlines") checks
 # script-local scope.  Users set these as g:rdoc_minlines.  The check
-# should be exists("g:rdoc_minlines").  This rule flags exists() calls
-# where the argument is a bare identifier without g:/b:/w:/t:/v:/$/*
-# prefix and starts with a lowercase letter (user option convention).
-# Uses \< word boundary to avoid matching bufexists(), fileexists() etc.
-# Catches: BUG-32 (syntax/rdoc.vim)
+# should be exists("g:rdoc_minlines").
 def ExistsBareName(filepath: string): list<string>
   var errors: list<string> = []
   if !IsVim9(filepath)
@@ -329,10 +280,6 @@ def ExistsBareName(filepath: string): list<string>
     if in_legacy > 0 || line =~ '^\s*#'
       continue
     endif
-    # Match \<exists\>( to avoid matching bufexists(), fileexists() etc.
-    # Then check for a bare lowercase name without scope prefix.
-    # Exclude exists('*name') (function), exists(':name') (command),
-    # exists('#name') (autocmd), exists('+name') (option).
     if line =~ "\\<exists\\>(['\"][a-z]"
           && line !~ "\\<exists\\>(['\"][gbwtv]:"
           && line !~ "\\<exists\\>(['\"][$&*#:+]"
@@ -346,8 +293,7 @@ enddef
 # || 1 (always-true condition)
 # ========================================================================
 # Detects conditions like `if expr || 1` which are always true, making
-# the else branch dead code.  This is typically a debugging leftover.
-# Catches: BUG-25 (vimbuffer.vim)
+# the else branch dead code.  Typically a debugging leftover.
 def AlwaysTrueOrOne(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
@@ -366,9 +312,7 @@ enddef
 # $ENVVAR = v:variable (number-typed v: variables)
 # ========================================================================
 # Environment variables are always strings.  Assigning a number-typed
-# v: variable like v:windowid, v:count, v:lnum etc. without string()
-# wrap may cause E1012 depending on Vim version.
-# Catches: BUG-21 (common_global.vim)
+# v: variable without string() wrap causes E1012.
 def EnvVarVimVarAssign(filepath: string): list<string>
   var errors: list<string> = []
   var lines = readfile(filepath)
@@ -391,10 +335,6 @@ enddef
 # execute/exe of string containing "let " in def blocks
 # ========================================================================
 # In vim9 def blocks, execute runs in vim9 context where `let` is E1126.
-# This rule detects patterns where a variable is assigned a string
-# starting with "let " and is later passed to execute/exe without the
-# `legacy` keyword.
-# Catches: BUG-05 (comment.vim)
 def ExecuteLetInDef(filepath: string): list<string>
   var errors: list<string> = []
   if !IsVim9(filepath)
@@ -403,7 +343,6 @@ def ExecuteLetInDef(filepath: string): list<string>
   var lines = readfile(filepath)
   var in_def = false
   var in_legacy = 0
-  # Track vars assigned from strings containing "let "
   var let_vars: dict<bool> = {}
   var lnum = 0
   for line in lines
@@ -425,12 +364,10 @@ def ExecuteLetInDef(filepath: string): list<string>
     if !in_def || line =~ '^\s*#'
       continue
     endif
-    # Detect: var cmd = "let ..." or cmd = "let ..."
     var m = matchstr(line, '^\s*\%(var\s\+\)\?\zs\w\+\ze\s*=.*"let\s')
     if m != ''
       let_vars[m] = true
     endif
-    # Detect: execute cmd  or  exe cmd  (without legacy prefix)
     if line =~ '^\s*\%(exe\|execute\)\s' && line !~ '^\s*legacy\s'
       for vname in keys(let_vars)
         if line =~ '^\s*\%(exe\|execute\)\s\+' .. vname .. '\>'
@@ -444,12 +381,302 @@ def ExecuteLetInDef(filepath: string): list<string>
 enddef
 
 # ========================================================================
+# substitute() called with numeric first argument
+# ========================================================================
+# substitute() requires a string first argument.  Functions like
+# localtime() return a number.  (From BUG-44.)
+def SubstituteNumericArg(): list<string>
+  var errors: list<string> = []
+  var num_funcs = ['localtime', 'line', 'col', 'winnr', 'bufnr',
+    'tabpagenr', 'virtcol', 'getpid', 'argc']
+  for filepath in vim_files
+    var lines = readfile(filepath)
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      for fn in num_funcs
+        if line =~ 'substitute(' .. fn .. '('
+          add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum
+            .. ' substitute(' .. fn .. '() returns number')
+        endif
+      endfor
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# function('Name') without g: prefix at script level
+# ========================================================================
+# At script level in vim9script, function('Name') only searches
+# script-local scope.  Global functions need function('g:Name').
+# (Extends test_11's in-def check to script level.  From BUG-45.)
+def FuncrefMissingGAtScript(): list<string>
+  var errors: list<string> = []
+  for filepath in vim_files
+    if !IsVim9(filepath)
+      continue
+    endif
+    var lines = readfile(filepath)
+    var in_def = false
+    var in_legacy = 0
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      if line =~ '^\s*fu\%[nction]!\?\s'
+        in_legacy += 1
+      elseif line =~ '^\s*endfu\%[nction]'
+        in_legacy = max([0, in_legacy - 1])
+      endif
+      if in_legacy > 0
+        continue
+      endif
+      if line =~ '^\s*def\s'
+        in_def = true
+      elseif line =~ '^\s*enddef'
+        in_def = false
+      endif
+      # Only check script level (def blocks covered by test_11)
+      if in_def || line =~ '^\s*#'
+        continue
+      endif
+      if line =~ "function('[A-Z]" && line !~ "function('g:" && line !~ "function('s:"
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# exists() check immediately after unconditional assignment
+# ========================================================================
+# Scans all files for dead-code pattern where exists("var") is checked
+# within 5 lines of unconditionally assigning that variable.  (From
+# BUG-58.)
+def DeadExistsAfterAssign(): list<string>
+  var errors: list<string> = []
+  for filepath in vim_files
+    var lines = readfile(filepath)
+    var lnum = 0
+    var prev_assigned: dict<number> = {}
+    for line in lines
+      lnum += 1
+      var m = matchstr(line, '^\s*let\s\+\zs\w\+\ze\s*=')
+      if m == ''
+        m = matchstr(line, '^\s*var\s\+\zs\w\+\ze\s*=')
+      endif
+      if m != ''
+        prev_assigned[m] = lnum
+      endif
+      var ex = matchstr(line, 'exists("\zs\w\+\ze")')
+      if ex == ''
+        ex = matchstr(line, "exists('" .. '\zs\w\+' .. "'" .. ')')
+      endif
+      if ex != '' && has_key(prev_assigned, ex)
+        if lnum - prev_assigned[ex] <= 5
+          add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum
+            .. ' exists("' .. ex .. '") after assignment at line '
+            .. prev_assigned[ex])
+        endif
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# &t_Co must be wrapped in str2nr() before comparison in def blocks
+# ========================================================================
+# In vim9 def blocks, &t_Co returns a string.  Comparing with a number
+# via == is a type mismatch (E1072).  (From BUG-76.)
+def TCoWithoutStr2nr(): list<string>
+  var errors: list<string> = []
+  var r_files = glob(plugin_root .. '/R/**/*.vim', false, true)
+  for filepath in r_files
+    var lines = readfile(filepath)
+    var in_def = false
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      if line =~ '^\s*def\s'
+        in_def = true
+      elseif line =~ '^\s*enddef'
+        in_def = false
+      endif
+      if in_def && line =~ '&t_Co\s*==' && line !~ 'str2nr' && line !~ '^\s*#'
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum
+          .. ' &t_Co needs str2nr() in def block')
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# ftplugin autocmd FileType must use <buffer>
+# ========================================================================
+# Global autocmd FileType in a ftplugin accumulates on each buffer load.
+# Must use <buffer> to keep the autocmd buffer-local.  (From BUG-90.)
+def FtpluginGlobalAutocmd(): list<string>
+  var errors: list<string> = []
+  var ftplugin_files = glob(plugin_root .. '/ftplugin/**/*.vim', false, true)
+  for filepath in ftplugin_files
+    var lines = readfile(filepath)
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      if line =~ 'autocmd\s\+FileType\s' && line !~ '<buffer>'
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum
+          .. ' autocmd FileType must use <buffer> in ftplugin')
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# All g:JobStdin calls must have g:IsJobRunning guard
+# ========================================================================
+# Calling g:JobStdin without checking IsJobRunning first throws E906
+# when the server is not running.  Scans all files that use JobStdin.
+# (From BUG-103.)
+def JobStdinAllSitesGuarded(): list<string>
+  var errors: list<string> = []
+  # Scan files known to use JobStdin
+  var check_files = [
+    'R/start_r.vim',
+    'R/start_server.vim',
+    'R/windows.vim',
+    'R/bibcompl.vim',
+    'ftplugin/rbrowser.vim',
+  ]
+  for relpath in check_files
+    var filepath = plugin_root .. '/' .. relpath
+    if !filereadable(filepath)
+      continue
+    endif
+    var lines = readfile(filepath)
+    var in_func = ''
+    var has_guard = false
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      if line =~ '^\s*def\s\+g:\(\w\+\)'
+        in_func = matchstr(line, 'g:\zs\w\+')
+        has_guard = false
+      elseif line =~ '^\s*function\s\+g:\(\w\+\)'
+        in_func = matchstr(line, 'g:\zs\w\+')
+        has_guard = false
+      elseif line =~ '^\s*enddef\>' || line =~ '^\s*endfunction\>'
+        in_func = ''
+        has_guard = false
+      endif
+      if in_func != ''
+        # Skip functions that are only called when R is known running
+        if index(['RClearConsole', 'RClearAll'], in_func) >= 0
+          continue
+        endif
+        if line =~ 'IsJobRunning'
+          has_guard = true
+        endif
+        if line =~ 'g:JobStdin(' && !has_guard && line !~ '^\s*#'
+          add(errors, fnamemodify(filepath, ':t') .. ':' .. lnum
+            .. ' ' .. in_func .. ': JobStdin needs IsJobRunning guard')
+        endif
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
+# b:undo_ftplugin must include all buffer-local variables
+# ========================================================================
+# ftplugin files that set buffer-local variables must clean them up in
+# b:undo_ftplugin.  (From BUG-119.)
+def UndoFtpluginVars(): list<string>
+  var errors: list<string> = []
+
+  # rnoweb_vimr.vim must include b:rplugin_knitr_pattern
+  var lines = ReadPluginFile('ftplugin/rnoweb_vimr.vim')
+  var has_knitr_in_undo = false
+  for line in lines
+    if line =~ 'undo_ftplugin' && line =~ 'rplugin_knitr_pattern'
+      has_knitr_in_undo = true
+      break
+    endif
+  endfor
+  if !has_knitr_in_undo
+    add(errors, 'ftplugin/rnoweb_vimr.vim: undo_ftplugin missing'
+      .. ' b:rplugin_knitr_pattern')
+  endif
+
+  # rmd_vimr.vim must include b:rplugin_non_r_omnifunc and b:rplugin_bibf
+  lines = ReadPluginFile('ftplugin/rmd_vimr.vim')
+  var has_omnifunc_undo = false
+  var has_bibf_undo = false
+  for line in lines
+    if line =~ 'undo_ftplugin' && line =~ 'rplugin_non_r_omnifunc'
+      has_omnifunc_undo = true
+    endif
+    if line =~ 'undo_ftplugin' && line =~ 'rplugin_bibf'
+      has_bibf_undo = true
+    endif
+  endfor
+  if !has_omnifunc_undo
+    add(errors, 'ftplugin/rmd_vimr.vim: undo_ftplugin missing'
+      .. ' b:rplugin_non_r_omnifunc')
+  endif
+  if !has_bibf_undo
+    add(errors, 'ftplugin/rmd_vimr.vim: undo_ftplugin missing'
+      .. ' b:rplugin_bibf')
+  endif
+
+  # rhelp_vimr.vim must include b:rplugin_non_r_omnifunc
+  lines = ReadPluginFile('ftplugin/rhelp_vimr.vim')
+  has_omnifunc_undo = false
+  for line in lines
+    if line =~ 'undo_ftplugin' && line =~ 'rplugin_non_r_omnifunc'
+      has_omnifunc_undo = true
+      break
+    endif
+  endfor
+  if !has_omnifunc_undo
+    add(errors, 'ftplugin/rhelp_vimr.vim: undo_ftplugin missing'
+      .. ' b:rplugin_non_r_omnifunc')
+  endif
+  return errors
+enddef
+
+# ========================================================================
+# sprintf(ebuf, ...) must be snprintf in C source
+# ========================================================================
+# sprintf without bounds checking is a buffer overflow risk.  All
+# sprintf(ebuf calls should use snprintf(ebuf, sizeof(ebuf) instead.
+# (From BUG-C25.)
+def CSprintfEbuf(): list<string>
+  var errors: list<string> = []
+  var lines = ReadPluginFile('R/vimcom/src/vimcom.c')
+  var lnum = 0
+  for line in lines
+    lnum += 1
+    if line =~ 'sprintf(ebuf' && line !~ '^\s*//'
+      add(errors, 'R/vimcom/src/vimcom.c:' .. lnum
+        .. ' sprintf(ebuf must be snprintf(ebuf, sizeof(ebuf)')
+    endif
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run all checks
 # ========================================================================
+
+# Per-file checks (scan all vim files)
 var blockleak_errors: list<string> = []
 var freadable_errors: list<string> = []
 var callback_errors: list<string> = []
-var omnifunc_errors: list<string> = []
 var outcb_errors: list<string> = []
 var exists_s_errors: list<string> = []
 var exists_bare_errors: list<string> = []
@@ -462,7 +689,6 @@ for filepath in vim_files
     blockleak_errors += BlockScopedVarLeak(filepath)
     freadable_errors += FilereadableLiteralGVar(filepath)
     callback_errors += CallbackMissingGPrefix(filepath)
-    omnifunc_errors += OmnifuncMissingGPrefix(filepath)
     outcb_errors += OutCbWrongParamType(filepath)
     exists_s_errors += ExistsSPrefixInVim9(filepath)
     exists_bare_errors += ExistsBareName(filepath)
@@ -472,52 +698,88 @@ for filepath in vim_files
   endif
 endfor
 
+# Self-contained checks
+var subst_errors = SubstituteNumericArg()
+var funcref_errors = FuncrefMissingGAtScript()
+var dead_exists_errors = DeadExistsAfterAssign()
+var tco_errors = TCoWithoutStr2nr()
+var ftplugin_autocmd_errors = FtpluginGlobalAutocmd()
+var jobstdin_errors = JobStdinAllSitesGuarded()
+var undo_errors = UndoFtpluginVars()
+var sprintf_errors = CSprintfEbuf()
+
+# Helper for error suffix
+def Err(errors: list<string>): string
+  if len(errors) > 0
+    return ' — found: ' .. join(errors, ', ')
+  endif
+  return ''
+enddef
+
 g:Assert(len(blockleak_errors) == 0,
   'block-scoped var used after block closes (E1001)'
-  .. (len(blockleak_errors) > 0
-      ? ' — found: ' .. join(blockleak_errors, ', ') : ''))
+  .. Err(blockleak_errors))
 
 g:Assert(len(freadable_errors) == 0,
   'filereadable/executable called on literal "g:..." string'
-  .. (len(freadable_errors) > 0
-      ? ' — found: ' .. join(freadable_errors, ', ') : ''))
+  .. Err(freadable_errors))
 
 g:Assert(len(callback_errors) == 0,
   'job callback string missing g: prefix'
-  .. (len(callback_errors) > 0
-      ? ' — found: ' .. join(callback_errors, ', ') : ''))
-
-g:Assert(len(omnifunc_errors) == 0,
-  'b:rplugin_non_r_omnifunc value missing g: prefix (E700)'
-  .. (len(omnifunc_errors) > 0
-      ? ' — found: ' .. join(omnifunc_errors, ', ') : ''))
+  .. Err(callback_errors))
 
 g:Assert(len(outcb_errors) == 0,
   'out_cb/err_cb callback first param should be channel not job (E1013)'
-  .. (len(outcb_errors) > 0
-      ? ' — found: ' .. join(outcb_errors, ', ') : ''))
+  .. Err(outcb_errors))
 
 g:Assert(len(exists_s_errors) == 0,
   'exists(''s:name'') always false in vim9 — no s: prefix'
-  .. (len(exists_s_errors) > 0
-      ? ' — found: ' .. join(exists_s_errors, ', ') : ''))
+  .. Err(exists_s_errors))
 
 g:Assert(len(exists_bare_errors) == 0,
   'exists("name") without scope prefix — probably needs g:'
-  .. (len(exists_bare_errors) > 0
-      ? ' — found: ' .. join(exists_bare_errors, ', ') : ''))
+  .. Err(exists_bare_errors))
 
 g:Assert(len(or_one_errors) == 0,
   '|| 1 or || true makes condition always true (dead else branch)'
-  .. (len(or_one_errors) > 0
-      ? ' — found: ' .. join(or_one_errors, ', ') : ''))
+  .. Err(or_one_errors))
 
 g:Assert(len(envvvar_errors) == 0,
   '$ENVVAR = v:numeric_var without string() wrap (E1012)'
-  .. (len(envvvar_errors) > 0
-      ? ' — found: ' .. join(envvvar_errors, ', ') : ''))
+  .. Err(envvvar_errors))
 
 g:Assert(len(exelet_errors) == 0,
   'execute of string containing "let" in def block without legacy (E1126)'
-  .. (len(exelet_errors) > 0
-      ? ' — found: ' .. join(exelet_errors, ', ') : ''))
+  .. Err(exelet_errors))
+
+g:Assert(len(subst_errors) == 0,
+  'substitute() first arg must be string, not number'
+  .. Err(subst_errors))
+
+g:Assert(len(funcref_errors) == 0,
+  'function(''Name'') at script level needs g: prefix for globals'
+  .. Err(funcref_errors))
+
+g:Assert(len(dead_exists_errors) == 0,
+  'exists() check after unconditional assignment is dead code'
+  .. Err(dead_exists_errors))
+
+g:Assert(len(tco_errors) == 0,
+  '&t_Co must use str2nr() before numeric comparison in def blocks'
+  .. Err(tco_errors))
+
+g:Assert(len(ftplugin_autocmd_errors) == 0,
+  'ftplugin autocmd FileType must use <buffer>'
+  .. Err(ftplugin_autocmd_errors))
+
+g:Assert(len(jobstdin_errors) == 0,
+  'all JobStdin calls must have IsJobRunning guard'
+  .. Err(jobstdin_errors))
+
+g:Assert(len(undo_errors) == 0,
+  'b:undo_ftplugin must include all buffer-local variables'
+  .. Err(undo_errors))
+
+g:Assert(len(sprintf_errors) == 0,
+  'sprintf(ebuf must be snprintf(ebuf, sizeof(ebuf))'
+  .. Err(sprintf_errors))

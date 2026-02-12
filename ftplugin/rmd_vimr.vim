@@ -1,6 +1,6 @@
 vim9script
 
-if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filetypes, 'rmd') == -1
+if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filetypes, 'rmd') == -1 && index(g:R_filetypes, 'quarto') == -1
     finish
 endif
 
@@ -226,7 +226,7 @@ if !exists('*g:RmdNonRCompletion')
                 return idx + 1
             else
                 let citekey = substitute(a:base, '^@', '', '')
-                return RCompleteBib(citekey)
+                return g:RCompleteBib(citekey)
             endif
         endif
 
@@ -297,7 +297,7 @@ endif
 timer_start(1, 'g:RPDFinit')
 
 if exists("b:undo_ftplugin")
-    b:undo_ftplugin ..= " | unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR"
+    b:undo_ftplugin ..= " | unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR b:rplugin_non_r_omnifunc b:rplugin_bibf b:rplugin_knitr_pattern"
 else
-    b:undo_ftplugin = "unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR"
+    b:undo_ftplugin = "unlet! b:IsInRCode b:PreviousRChunk b:NextRChunk b:SendChunkToR b:rplugin_non_r_omnifunc b:rplugin_bibf b:rplugin_knitr_pattern"
 endif
