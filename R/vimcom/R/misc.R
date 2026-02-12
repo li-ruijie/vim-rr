@@ -18,7 +18,7 @@ vim.edit <- function(name, file, title) {
     sink()
 
     .C("vimcom_msg_to_vim",
-       paste0("call EditRObject('", initial, "')"),
+       paste0("g:EditRObject('", initial, "')"),
        PACKAGE = "vimcom")
 
     while (file.exists(waitf))
@@ -42,7 +42,7 @@ vim_capture_source_output <- function(s, nm) {
     o <- capture.output(base::source(s, echo = TRUE), file = NULL)
     o <- paste0(o, collapse = "\x14")
     o <- gsub("'", "\x13", o)
-    .C("vimcom_msg_to_vim", paste0("call GetROutput('", nm, "', '", o, "')"),
+    .C("vimcom_msg_to_vim", paste0("g:GetROutput('", nm, "', '", o, "')"),
        PACKAGE = "vimcom")
 }
 
@@ -55,7 +55,7 @@ vim_dput <- function(oname, howto = "tabnew") {
     o <- paste0(o, collapse = "\x14")
     o <- gsub("'", "\x13", o)
     .C("vimcom_msg_to_vim",
-       paste0("call ShowRObj('", howto, "', '", oname, "', 'r', '", o, "')"),
+       paste0("g:ShowRObj('", howto, "', '", oname, "', 'r', '", o, "')"),
        PACKAGE = "vimcom")
 }
 
@@ -89,7 +89,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         }
         if (inherits(ok, "try-error")) {
             .C("vimcom_msg_to_vim",
-               paste0("call RWarningMsg('", '"', oname, '"', " not found in .GlobalEnv')"),
+               paste0("g:RWarningMsg('", '"', oname, '"', " not found in .GlobalEnv')"),
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -100,7 +100,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         }
         if (!is.null(R_df_viewer)) {
             .C("vimcom_msg_to_vim",
-               paste0("call g:SendCmdToR(printf(g:R_df_viewer, '", oname, "'))"),
+               paste0("g:SendCmdToR(printf(g:R_df_viewer, '", oname, "'))"),
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -114,7 +114,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         txt <- paste0(txt, collapse = "\x14")
         txt <- gsub("'", "\x13", txt)
         .C("vimcom_msg_to_vim",
-           paste0("call RViewDF('", oname, "', '", howto, "', '", txt, "')"),
+           paste0("g:RViewDF('", oname, "', '", howto, "', '", txt, "')"),
            PACKAGE = "vimcom")
     } else {
         vim_dput(oname, howto)
@@ -189,7 +189,7 @@ vim_format <- function(l1, l2, wco, sw, txt) {
                 options(vimcom.formatfun = "tidy_source")
             } else {
                 .C("vimcom_msg_to_vim",
-                   "call RWarningMsg('You have to install either formatR or styler in order to run :Rformat')",
+                   "g:RWarningMsg('You have to install either formatR or styler in order to run :Rformat')",
                    PACKAGE = "vimcom")
                 return(invisible(NULL))
             }
@@ -201,7 +201,7 @@ vim_format <- function(l1, l2, wco, sw, txt) {
         ok <- formatR::tidy_source(text = txt, width.cutoff = wco, output = FALSE)
         if (inherits(ok, "try-error")) {
             .C("vimcom_msg_to_vim",
-               "call RWarningMsg('Error trying to execute the function formatR::tidy_source()')",
+               "g:RWarningMsg('Error trying to execute the function formatR::tidy_source()')",
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -210,7 +210,7 @@ vim_format <- function(l1, l2, wco, sw, txt) {
         ok <- try(styler::style_text(txt, indent_by = sw))
         if (inherits(ok, "try-error")) {
             .C("vimcom_msg_to_vim",
-               "call RWarningMsg('Error trying to execute the function styler::style_text()')",
+               "g:RWarningMsg('Error trying to execute the function styler::style_text()')",
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -218,7 +218,7 @@ vim_format <- function(l1, l2, wco, sw, txt) {
     }
 
     .C("vimcom_msg_to_vim",
-       paste0("call FinishRFormatCode(", l1, ", ", l2, ", '", txt, "')"),
+       paste0("g:FinishRFormatCode(", l1, ", ", l2, ", '", txt, "')"),
        PACKAGE = "vimcom")
     return(invisible(NULL))
 }
@@ -231,13 +231,13 @@ vim_insert <- function(cmd, howto = "tabnew") {
     try(o <- capture.output(cmd))
     if (inherits(o, "try-error")) {
         .C("vimcom_msg_to_vim",
-           paste0("call RWarningMsg('Error trying to execute the command \"", cmd, "\"')"),
+           paste0("g:RWarningMsg('Error trying to execute the command \"", cmd, "\"')"),
            PACKAGE = "vimcom")
     } else {
         o <- paste0(o, collapse = "\x14")
         o <- gsub("'", "\x13", o)
         .C("vimcom_msg_to_vim",
-           paste0("call FinishRInsert('", howto, "', '", o, "')"),
+           paste0("g:FinishRInsert('", howto, "', '", o, "')"),
            PACKAGE = "vimcom")
     }
     return(invisible(NULL))
@@ -254,7 +254,7 @@ vim.GlobalEnv.fun.args <- function(funcname) {
     txt <- gsub('\\\\\\"', '\005', txt)
     txt <- gsub('"', '\\\\"', txt)
     .C("vimcom_msg_to_vim",
-       paste0('call FinishGlbEnvFunArgs("', funcname, '", "', txt, '")'), PACKAGE = "vimcom")
+       paste0('call g:FinishGlbEnvFunArgs("', funcname, '", "', txt, '")'), PACKAGE = "vimcom")
     return(invisible(NULL))
 }
 
@@ -279,7 +279,7 @@ vim.get.summary <- function(obj, wdth) {
     txt <- paste0(txt, collapse = "\n")
     txt <- gsub("'", "\x13", gsub("\n", "\x14", txt))
 
-    .C("vimcom_msg_to_vim", paste0("call FinishGetSummary('", txt, "')"), PACKAGE = "vimcom")
+    .C("vimcom_msg_to_vim", paste0("g:FinishGetSummary('", txt, "')"), PACKAGE = "vimcom")
     return(invisible(NULL))
 }
 

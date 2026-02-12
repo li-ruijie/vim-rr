@@ -77,7 +77,7 @@ def g:RInitStdout(...args: list<any>)
             return
         endif
     endif
-    if rcmd =~ '^RWarn: ' || rcmd =~ '^let ' || rcmd =~ '^echo ' || rcmd =~ '^call '
+    if rcmd =~ '^RWarn: ' || rcmd =~ '^let ' || rcmd =~ '^echo ' || rcmd =~ '^call ' || rcmd =~ '^g:' || rcmd =~ '^\$'
         if rcmd !~ "\x14"
             # R has sent an incomplete line
             RoutLine ..= rcmd
@@ -96,23 +96,16 @@ def g:RInitStdout(...args: list<any>)
             endif
             if cmd =~ '^RWarn: '
                 RWarn += [substitute(cmd, '^RWarn: ', '', '')]
-            elseif cmd =~ '^let '
+            else
+                var excmd = substitute(cmd, '^let ', '', '')
                 try
-                    execute substitute(cmd, '^let ', '', '')
-                catch
-                    g:RWarningMsg("[Init R] " .. v:exception .. ": " .. cmd)
-                endtry
-            elseif cmd =~ '^echo ' || cmd =~ '^call '
-                try
-                    execute cmd
+                    execute excmd
                 catch
                     g:RWarningMsg("[Init R] " .. v:exception .. ": " .. cmd)
                 endtry
                 if cmd =~ '^echo'
                     redraw
                 endif
-            else
-                RBout += [cmd]
             endif
         endfor
     else
