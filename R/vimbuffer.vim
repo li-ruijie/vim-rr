@@ -25,7 +25,7 @@ def g:SendCmdToR_Buffer(...args: list<any>): number
 
         # Update the width, if necessary
         if g:R_setwidth != 0 && g:R_setwidth != 2
-            var rwnwdth = winwidth(g:rplugin.R_winnr)
+            var rwnwdth = winwidth(win_id2win(g:rplugin.R_winnr))
             if rwnwdth != R_width && rwnwdth != -1 && rwnwdth > 10 && rwnwdth < 999
                 R_width = rwnwdth
                 var Rwidth = R_width + number_col
@@ -58,6 +58,7 @@ def g:StartR_InBuffer()
     g:SendCmdToR = function('g:SendCmdToR_NotYet')
 
     var edbuf = bufname("%")
+    var saved_swb = &switchbuf
     set switchbuf=useopen
 
     if g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + ((&number ? 1 : 0) * &numberwidth))
@@ -108,6 +109,7 @@ def g:StartR_InBuffer()
     # deal with latex errors while compiling the pdf
     b:pdf_is_open = 1
     execute "sbuffer " .. edbuf
+    exe "set switchbuf=" .. saved_swb
     g:WaitVimcomStart()
 enddef
 

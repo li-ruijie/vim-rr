@@ -13,6 +13,9 @@ def g:SourceRFunList(lib: string)
     endif
 
     var fnm = g:rplugin.compldir .. '/fun_' .. lib
+    if !filereadable(fnm)
+        return
+    endif
 
     if has_key(g:rplugin, 'localfun')
         g:UpdateLocalFunctions(g:rplugin.localfun)

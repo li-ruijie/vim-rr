@@ -27,7 +27,7 @@ syn match rdocURLBar contained "|" conceal
 syn keyword rdocNote		note Note NOTE note: Note: NOTE: Notes Notes:
 
 # When using vim as R pager to see the output of help.search():
-syn region rdocPackage start="^[A-Za-z]\S*::" end="[\s\r]" contains=rdocPackName,rdocFuncName transparent
+syn region rdocPackage start="^[A-Za-z]\S*::" end='[ \t\r]' contains=rdocPackName,rdocFuncName transparent
 syn match rdocPackName "^[A-Za-z][A-Za-z0-9\.]*" contained
 syn match rdocFuncName "::[A-Za-z0-9\.\-_]*" contained
 

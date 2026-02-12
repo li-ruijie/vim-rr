@@ -40,66 +40,66 @@ fi
 
 declare -A TEST_MAP=(
 	# test_01 — common_global
-	[R/common_global.vim]="test_01_common_global.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/common_global.vim]="test_01_common_global.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_02 — comment
-	[R/comment.vim]="test_02_comment.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/comment.vim]="test_02_comment.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_03 — vimrcom
-	[R/vimrcom.vim]="test_03_vimrcom.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/vimrcom.vim]="test_03_vimrcom.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_04 — setcompldir
-	[R/setcompldir.vim]="test_04_setcompldir.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/setcompldir.vim]="test_04_setcompldir.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_05 — pdf
-	[R/pdf_init.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_zathura.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_evince.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_okular.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_sumatra.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_qpdfview.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/pdf_generic.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/pdf_init.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_zathura.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_evince.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_okular.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_sumatra.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_qpdfview.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/pdf_generic.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_06 — extern_term
-	[R/extern_term.vim]="test_06_extern_term.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/tmux_split.vim]="test_06_extern_term.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/unix.vim]="test_06_extern_term.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/extern_term.vim]="test_06_extern_term.vim test_13_bugs_lint.vim"
+	[R/tmux.vim]="test_06_extern_term.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/tmux_split.vim]="test_06_extern_term.vim test_13_bugs_lint.vim"
+	[R/unix.vim]="test_06_extern_term.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_07 — start_r
-	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
 
 	# test_08 — rnw, bibcompl, complete
-	[R/rnw_fun.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/bibcompl.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/complete.vim]="test_08_rnw_bibcompl_complete.vim test_10_edge_cases.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/rnw_fun.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim"
+	[R/bibcompl.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim"
+	[R/complete.vim]="test_08_rnw_bibcompl_complete.vim test_10_edge_cases.vim test_13_bugs_lint.vim"
 
 	# test_09 — ftplugin, syntax, gui, windows
-	[ftdetect/r.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/r_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rhelp_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/quarto_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rdoc.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rmd_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rnoweb_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rrst_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[ftplugin/rbrowser.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[syntax/rout.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[syntax/rdoc.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[syntax/rbrowser.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[syntax/rdocpreview.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/gui_running.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/windows.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/start_server.vim]="test_09_ftplugin_syntax_gui.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[ftdetect/r.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[ftplugin/r_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rhelp_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/quarto_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rdoc.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rmd_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rnoweb_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rrst_vimr.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[ftplugin/rbrowser.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[syntax/rout.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[syntax/rdoc.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[syntax/rbrowser.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[syntax/rdocpreview.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
+	[R/gui_running.vim]="test_09_ftplugin_syntax_gui.vim test_10_edge_cases.vim test_13_bugs_lint.vim"
+	[R/windows.vim]="test_09_ftplugin_syntax_gui.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/start_server.vim]="test_09_ftplugin_syntax_gui.vim test_13_bugs_lint.vim"
 
 	# test_10 — edge cases (files not already listed above)
-	[R/vimbuffer.vim]="test_10_edge_cases.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/rstudio.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/vimbuffer.vim]="test_10_edge_cases.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/rstudio.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim"
 
 	# test_11 — vim9 lint (files not already listed above)
-	[R/functions.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/functions_def.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
-	[R/common_buffer.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_callflow.vim"
+	[R/functions.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/functions_def.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/common_buffer.vim]="test_11_vim9_lint.vim test_13_bugs_lint.vim"
 )
 
 # Collect unique test filenames to run

@@ -39,7 +39,5 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: nu
     else
         g:RWarningMsg("Failed to run Okular (SyncTeX forward)...")
     endif
-    if g:rplugin.has_awbt
-        g:RRaiseWindow(pdfname)
-    endif
+    g:RRaiseWindow(pdfname)
 enddef

@@ -357,12 +357,12 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
     endif
 
     if exists("g:RStudio_cmd")
-        if has("win32") && g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos")
+        if has("win32") && g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos") && g:IsJobRunning("Server")
             # ArrangeWindows
             g:JobStdin(g:rplugin.jobs["Server"], "85" .. g:rplugin.compldir .. "\n")
         endif
     elseif has("win32")
-        if g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos")
+        if g:R_arrange_windows && filereadable(g:rplugin.compldir .. "/win_pos") && g:IsJobRunning("Server")
             # ArrangeWindows
             g:JobStdin(g:rplugin.jobs["Server"], "85" .. g:rplugin.compldir .. "\n")
         endif
@@ -413,7 +413,7 @@ def g:RQuit(how: string)
         endif
     endif
 
-    if has("win32")
+    if has("win32") && g:IsJobRunning("Server")
 	if type(g:R_external_term) == v:t_number && g:R_external_term == 1
 	    # SaveWinPos
 	    g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
@@ -637,7 +637,9 @@ def g:RObjBrowser(...args: list<any>)
     running_objbr = 1
 
     # call RealUpdateRGlbEnv(1)
-    g:JobStdin(g:rplugin.jobs["Server"], "31\n")
+    if g:IsJobRunning("Server")
+        g:JobStdin(g:rplugin.jobs["Server"], "31\n")
+    endif
     g:SendToVimcom("A", "RObjBrowser")
 
     g:StartObjBrowser()
@@ -654,7 +656,9 @@ def g:RObjBrowser(...args: list<any>)
 enddef
 
 def g:RBrOpenCloseLs(stt: string)
-    g:JobStdin(g:rplugin.jobs["Server"], "34" .. stt .. g:rplugin.curview .. "\n")
+    if g:IsJobRunning("Server")
+        g:JobStdin(g:rplugin.jobs["Server"], "34" .. stt .. g:rplugin.curview .. "\n")
+    endif
 enddef
 
 
@@ -770,6 +774,7 @@ def g:RDebugJump(fnm: string, lnum: number)
             g:FindDebugFunc(fnm)
         endif
         if func_offset < 0
+            exe 'set so=' .. saved_so
             return
         endif
     endif
@@ -800,6 +805,7 @@ def g:RDebugJump(fnm: string, lnum: number)
             endif
             exe 'edit ' .. fname
         else
+            exe 'set so=' .. saved_so
             return
         endif
     endif
@@ -1088,7 +1094,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     endif
     g:SetRTextWidth(rkeyword)
 
-    var rdoccaption = substitute(rdoctitle, '\', '', "g")
+    var rdoccaption = substitute(rdoctitle, '\\', '', "g")
     if rkeyword =~ "R History"
         rdoccaption = "R_History"
         rdoctitle = "R_History"
@@ -1425,7 +1431,7 @@ def g:SendFunctionToR(e: string, m: string)
     var lastline = i
 
     if startline > lastline
-        setpos(".", [0, firstline - 1, 1])
+        setpos(".", [0, max([firstline - 1, 1]), 1])
         g:SendFunctionToR(e, m)
         setpos(".", save_cursor)
         return
@@ -1606,7 +1612,7 @@ def g:SendFHChunkToR()
     elseif &filetype == "rrst"
         begchk = "^\\.\\. {r"
         endchk = "^\\.\\. \\.\\."
-        chdchk = "^\.\. {r.*child *= *"
+        chdchk = "^\\.\\. {r.*child *= *"
     else
         # Should never happen
         g:RWarningMsg('Strange filetype (SendFHChunkToR): "' .. &filetype .. '"')
@@ -1928,7 +1934,7 @@ enddef
 
 def g:OpenRExample()
     if bufloaded(g:rplugin.tmpdir .. "/example.R")
-        exe "bunload! " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g')
+        exe "bunload! " .. substitute(g:rplugin.tmpdir .. "/example.R", ' ', '\\ ', 'g')
     endif
     if g:R_vimpager == "tabnew" || g:R_vimpager == "tab"
         exe "tabnew " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
@@ -1962,9 +1968,9 @@ def g:RAction(rcmd: string, ...args: list<any>)
         rkeyword = expand('<cword>')
     elseif &filetype == "rbrowser"
         rkeyword = g:RBrowserGetName()
-    elseif len(args) == 1 && args[0] == "v" && line("'<") == line("'>")
+    elseif len(args) >= 1 && args[0] == "v" && line("'<") == line("'>")
         rkeyword = strpart(getline("'>"), col("'<") - 1, col("'>") - col("'<") + 1)
-    elseif len(args) == 1 && args[0] != "v" && args[0] !~ '^,'
+    elseif len(args) >= 1 && args[0] != "v" && args[0] !~ '^,'
         rkeyword = g:RGetKeyword()
     else
         rkeyword = g:RGetKeyword()
@@ -2073,7 +2079,7 @@ def g:RLoadHTML(fullpath: string, browser: string)
     var cmd: list<string>
     if browser == ''
         if has('win32')
-            cmd = ['open', fullpath]
+            cmd = ['cmd', '/c', 'start', '', fullpath]
         else
             cmd = ['xdg-open', fullpath]
         endif

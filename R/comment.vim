@@ -102,7 +102,7 @@ def g:RComment(mode: string)
     endif
 
     var lnum = fline
-    var ind = &tw
+    var ind = 999999
     while lnum <= lline
         var idx = indent(lnum)
         if idx < ind

@@ -83,7 +83,7 @@ if !exists('*g:FixRdoc')
 
         " Clear undo history
         let old_undolevels = &undolevels
-        set undolevels=-1
+        setlocal undolevels=-1
         exe "normal a \<BS>\<Esc>"
         let &undolevels = old_undolevels
         unlet old_undolevels
@@ -139,7 +139,7 @@ setlocal noswapfile
 setlocal buftype=nofile
 autocmd VimResized <buffer> g:R_newsize = 1
 g:FixRdoc()
-autocmd FileType rdoc g:FixRdoc()
+autocmd FileType <buffer> g:FixRdoc()
 
 &cpo = cpo_save
 

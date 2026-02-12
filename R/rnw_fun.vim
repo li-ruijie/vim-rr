@@ -260,6 +260,9 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
         concnum = substitute(concnum, '%', '', 'g')
         concnum = substitute(concnum, '}', '', '')
         var concl = split(concnum)
+        if len(concl) == 0
+            continue
+        endif
         var ii = 0
         var maxii = len(concl) - 2
         var rnwl = str2nr(concl[0])
@@ -441,19 +444,27 @@ def g:SyncTeX_forward(...args: list<any>)
         return
     endif
     var basedir = ''
+    var olddir = ''
     if basenm =~ '/'
         basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
         basenm = substitute(basenm, '.*/', '', '')
-        execute "cd " .. substitute(basedir, ' ', '\\ ', 'g')
+        olddir = getcwd()
+        execute "cd " .. fnameescape(basedir)
     endif
 
     if len(args) > 0 && args[0]
         g:GoToBuf(basenm .. ".tex", basenm .. ".tex", basedir, texln)
+        if olddir != ''
+            execute "cd " .. fnameescape(olddir)
+        endif
         return
     endif
 
     if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".pdf")
         g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.pdf" is missing.')
+        if olddir != ''
+            execute "cd " .. fnameescape(olddir)
+        endif
         return
     endif
     if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".synctex.gz")
@@ -461,10 +472,16 @@ def g:SyncTeX_forward(...args: list<any>)
         if g:R_latexcmd[0] != "default" && join(g:R_latexcmd) !~ "synctex"
             g:RWarningMsg('Note: The string "-synctex=1" is not in your R_latexcmd. Please check your vimrc.')
         endif
+        if olddir != ''
+            execute "cd " .. fnameescape(olddir)
+        endif
         return
     endif
 
     g:SyncTeX_forward2(g:SyncTeX_GetMaster() .. '.tex', b:rplugin_pdfdir .. "/" .. basenm .. ".pdf", texln, 1)
+    if olddir != ''
+        execute "cd " .. fnameescape(olddir)
+    endif
 enddef
 
 def g:SetPDFdir()

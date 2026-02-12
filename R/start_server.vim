@@ -224,6 +224,10 @@ def g:StartNServer()
         endif
     endif
 
+    if nrs_path == ''
+        return
+    endif
+
     var ncspath = substitute(nrs_path, '/vimrserver.*', '', '')
     var ncs = substitute(nrs_path, '.*/vimrserver', 'vimrserver', '')
 
@@ -273,7 +277,7 @@ def g:ListRLibsFromBuffer(): string
     endif
 
     var lines = getline(1, "$")
-    filter(lines, (_, v) => v =~ '^\s*library\|require\s*(')
+    filter(lines, (_, v) => v =~ '^\s*\(library\|require\)\s*(')
     map(lines, (_, v) => substitute(v, '\s*).*', '', ''))
     map(lines, (_, v) => substitute(v, '\s*,.*', '', ''))
     map(lines, (_, v) => substitute(v, '\s*\(library\|require\)\s*(\s*', '', ''))
@@ -294,7 +298,9 @@ enddef
 
 # Get information from vimrserver (currently only the names of loaded libraries).
 def g:RequestNCSInfo()
-    g:JobStdin(g:rplugin.jobs["Server"], "42\n")
+    if g:IsJobRunning("Server")
+        g:JobStdin(g:rplugin.jobs["Server"], "42\n")
+    endif
 enddef
 
 command RGetNCSInfo :call g:RequestNCSInfo()
@@ -322,7 +328,7 @@ def g:ShowBuildOmnilsError(stt: string)
 enddef
 
 def g:BAAExit(...args: list<any>)
-    if args[1] == 0 || args[1] == 512  # ssh success seems to be 512
+    if (args[1] == 0 || args[1] == 512) && g:IsJobRunning("Server")
         g:JobStdin(g:rplugin.jobs["Server"], "41\n")
     endif
 enddef
@@ -404,6 +410,9 @@ def g:AddToRhelpList(lib: string)
     var omf = g:rplugin.compldir .. '/omnils_' .. lib
 
     # List of objects
+    if !filereadable(omf)
+        return
+    endif
     var olist = readfile(omf)
 
     # Library setwidth has no functions

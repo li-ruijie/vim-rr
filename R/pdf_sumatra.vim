@@ -34,12 +34,12 @@ def g:ROpenPDF2(fullpath: string)
     if SumatraInPath()
         var pdir = substitute(fullpath, '\(.*\)/.*', '\1', '')
         var pname = substitute(fullpath, '.*/\(.*\)', '\1', '')
-        var olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
+        var olddir = getcwd()
         execute "cd " .. fnameescape(pdir)
         $VIMR_PORT = string(g:rplugin.myport)
         writefile(['start SumatraPDF.exe -reuse-instance -inverse-search "vimrserver.exe %%f %%l" "' .. fullpath .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
         system(g:rplugin.tmpdir .. "/run_cmd.bat")
-        execute "cd " .. olddir
+        execute "cd " .. fnameescape(olddir)
     endif
 enddef
 
@@ -51,11 +51,11 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: numb
         var tname = substitute(tpath, '.*/\(.*\)', '\1', '')
         var tdir = substitute(tpath, '\(.*\)/.*', '\1', '')
         var pname = substitute(ppath, tdir .. '/', '', '')
-        var olddir = substitute(substitute(getcwd(), '\\', '/', 'g'), ' ', '\\ ', 'g')
-        execute "cd " .. substitute(tdir, ' ', '\\ ', 'g')
+        var olddir = getcwd()
+        execute "cd " .. fnameescape(tdir)
         $VIMR_PORT = string(g:rplugin.myport)
         writefile(['start SumatraPDF.exe -reuse-instance -forward-search "' .. tname .. '" ' .. texln .. ' -inverse-search "vimrserver.exe %%f %%l" "' .. pname .. '"'], g:rplugin.tmpdir .. "/run_cmd.bat")
         system(g:rplugin.tmpdir .. "/run_cmd.bat")
-        execute "cd " .. olddir
+        execute "cd " .. fnameescape(olddir)
     endif
 enddef

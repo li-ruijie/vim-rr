@@ -126,9 +126,12 @@ static int str_here(const char *o, const char *i) {
     return 1;
 }
 
-// Insert `s` at position `p`
+// End of output buffer, set before calling rd_md/insert_str
+static char *buf_end = NULL;
+
+// Insert `s` at position `p`, not exceeding buf_end
 static char *insert_str(char *p, const char *s) {
-    while (*s) {
+    while (*s && p < buf_end) {
         *p = *s;
         p++;
         s++;
@@ -267,6 +270,7 @@ static void rd_md(char **o1, char **o2) {
                 p2 = p3 + 1;
                 *o1 = p1;
                 *o2 = p2;
+                return;
             case 7: // \ifelse{{html|latex}{string1}{string2}} -> string2
                 p2 += rd[i].len + 1;
                 if (*p2 == '{') {
@@ -362,6 +366,7 @@ static void rd_md(char **o1, char **o2) {
 static void pre_rd_md(char **b1, char **b2, char *maxp) {
     char *p1 = *b1;
     char *p2 = *b2;
+    buf_end = maxp;
 
     while (*p2) {
         if (p1 >= maxp) {
@@ -507,6 +512,8 @@ SEXP get_section(SEXP rtxt, SEXP rsec) {
     while (*p) {
         if (*p == '\\') {
             p++;
+            if (*p == 0)
+                break;
             if (str_here(p, sec)) {
                 p = p + strlen(sec) + 1;
                 while (*p == '\n' || *p == '\r' || *p == ' ' || *p == '\t')
@@ -525,17 +532,19 @@ SEXP get_section(SEXP rtxt, SEXP rsec) {
                     p++;
                 }
                 *s = 0;
+                break;
             }
+        } else {
+            p++;
         }
-        p++;
     }
 
     SEXP ans = R_NilValue;
     if (*a) {
         PROTECT(ans = NEW_CHARACTER(1));
         SET_STRING_ELT(ans, 0, mkChar(a));
-        UNPROTECT(1);
         ans = rd2md(ans);
+        UNPROTECT(1);
     }
     free(a);
     free(b);

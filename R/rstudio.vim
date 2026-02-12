@@ -29,7 +29,7 @@ def g:StartRStudio()
     g:WaitVimcomStart()
 enddef
 
-def g:SendCmdToRStudio(...args: list<string>): number
+def g:SendCmdToRStudio(...args: list<any>): number
     if !g:IsJobRunning("RStudio")
         g:RWarningMsg("Is RStudio running?")
         return 0

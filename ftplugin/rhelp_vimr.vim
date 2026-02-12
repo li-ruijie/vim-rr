@@ -82,7 +82,7 @@ endif
 g:RSourceOtherScripts()
 
 if exists("b:undo_ftplugin")
-    b:undo_ftplugin ..= " | unlet! b:IsInRCode"
+    b:undo_ftplugin ..= " | unlet! b:IsInRCode b:rplugin_non_r_omnifunc"
 else
-    b:undo_ftplugin = "unlet! b:IsInRCode"
+    b:undo_ftplugin = "unlet! b:IsInRCode b:rplugin_non_r_omnifunc"
 endif
