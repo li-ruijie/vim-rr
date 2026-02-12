@@ -96,74 +96,76 @@ enddef
 
 g:rplugin.rnw_compl_type = 0
 
-if !exists('*g:RnwNonRCompletion')
-    function g:RnwNonRCompletion(findstart, base)
-        if a:findstart
-            let line = getline('.')
-            let idx = col('.') - 2
-            let widx = idx
+if !exists("g:did_vimr_rnoweb_functions")
+    g:did_vimr_rnoweb_functions = 1
 
-            " Where is the cursor in 'text \command{ } text'?
-            let g:rplugin.rnw_compl_type = 0
+    def g:RnwNonRCompletion(findstart: number, base: string): any
+        if findstart
+            var line = getline('.')
+            var idx = col('.') - 2
+            var widx = idx
+
+            # Where is the cursor in 'text \command{ } text'?
+            g:rplugin.rnw_compl_type = 0
             while idx >= 0
                 if line[idx] =~ '\w'
-                    let widx = idx
+                    widx = idx
                 elseif line[idx] == '\'
-                    let g:rplugin.rnw_compl_type = 1
+                    g:rplugin.rnw_compl_type = 1
                     return idx
                 elseif line[idx] == '{'
-                    let g:rplugin.rnw_compl_type = 2
+                    g:rplugin.rnw_compl_type = 2
                     return widx
                 elseif line[idx] == '}'
                     return widx
                 endif
-                let idx -= 1
+                idx -= 1
             endwhile
         else
             if g:rplugin.rnw_compl_type == 0
                 return []
             elseif g:rplugin.rnw_compl_type == 1
-                return s:CompleteLaTeXCmd(a:base)
+                return CompleteLaTeXCmd(base)
             endif
 
-            let line = getline('.')
-            let cpos = getpos(".")
-            let idx = cpos[2] - 2
-            let piece = line[0:idx]
-            let piece = substitute(piece, ".*\\", "\\", '')
-            let piece = substitute(piece, ".*}", "", '')
+            var line = getline('.')
+            var cpos = getpos(".")
+            var idx = cpos[2] - 2
+            var piece = line[0 : idx]
+            piece = substitute(piece, ".*\\", "\\", '')
+            piece = substitute(piece, ".*}", "", '')
 
-            " Get completions even for 'empty' base
-            if piece =~ '^\\' && a:base == '{'
-                let piece .= '{'
-                let newbase = ''
+            # Get completions even for 'empty' base
+            var newbase: string
+            if piece =~ '^\\' && base == '{'
+                piece ..= '{'
+                newbase = ''
             else
-                let newbase = a:base
+                newbase = base
             endif
 
             if newbase != '' && piece =~ g:rplugin.rnw_cite_ptrn
                 return g:RCompleteBib(newbase)
             elseif piece == '\begin{'
-                let g:rplugin.rnw_compl_type = 9
-                return s:CompleteEnv(newbase)
+                g:rplugin.rnw_compl_type = 9
+                return CompleteEnv(newbase)
             elseif piece == '\ref{' || piece == '\pageref{'
-                return s:CompleteRef(newbase)
+                return CompleteRef(newbase)
             endif
 
             return []
         endif
-    endfunction
-endif
+        return -1
+    enddef
 
-if !exists('*g:RnwOnCompleteDone')
-    function g:RnwOnCompleteDone()
+    def g:RnwOnCompleteDone()
         if g:rplugin.rnw_compl_type == 9
-            let g:rplugin.rnw_compl_type = 0
+            g:rplugin.rnw_compl_type = 0
             if has_key(v:completed_item, 'word')
-                call append(line('.'), [repeat(' ', indent(line('.'))) . '\end{' . v:completed_item['word']])
+                append(line('.'), [repeat(' ', indent(line('.'))) .. '\end{' .. v:completed_item['word']])
             endif
         endif
-    endfunction
+    enddef
 endif
 
 
@@ -220,9 +222,9 @@ if g:R_non_r_compl && index(g:R_bib_compl, 'rnoweb') > -1
 endif
 
 if !exists('*g:RPDFinit')
-    function g:RPDFinit(...)
-        exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_init.vim"
-    endfunction
+    def g:RPDFinit(...args: list<any>)
+        exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/pdf_init.vim"
+    enddef
 endif
 
 timer_start(1, 'g:RPDFinit')

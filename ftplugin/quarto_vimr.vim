@@ -7,18 +7,20 @@ endif
 g:R_quarto_preview_args = get(g:, 'R_quarto_preview_args', '')
 g:R_quarto_render_args = get(g:, 'R_quarto_render_args', '')
 
-if !exists('*g:RQuarto')
-    function g:RQuarto(what)
-        if a:what == "render"
+if !exists("g:did_vimr_quarto_functions")
+    g:did_vimr_quarto_functions = 1
+
+    def g:RQuarto(what: string)
+        if what == "render"
             update
-            call g:SendCmdToR('quarto::quarto_render("' . substitute(expand('%'), '\\', '/', 'g') . '"' . g:R_quarto_render_args . ')')
-        elseif a:what == "preview"
+            g:SendCmdToR('quarto::quarto_render("' .. substitute(expand('%'), '\\', '/', 'g') .. '"' .. g:R_quarto_render_args .. ')')
+        elseif what == "preview"
             update
-            call g:SendCmdToR('quarto::quarto_preview("' . substitute(expand('%'), '\\', '/', 'g') . '"' . g:R_quarto_preview_args . ')')
+            g:SendCmdToR('quarto::quarto_preview("' .. substitute(expand('%'), '\\', '/', 'g') .. '"' .. g:R_quarto_preview_args .. ')')
         else
-            call g:SendCmdToR('quarto::quarto_preview_stop()')
+            g:SendCmdToR('quarto::quarto_preview_stop()')
         endif
-    endfunction
+    enddef
 endif
 
 # Necessary for RCreateMaps():
