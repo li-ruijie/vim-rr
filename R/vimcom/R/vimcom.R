@@ -102,7 +102,11 @@ VimcomEnv$tcb <- FALSE
 run_tcb <- function(...) {
     if (!VimcomEnv$tcb)
         return(invisible(FALSE))
-    .C("vimcom_task", PACKAGE = "vimcom")
+    tryCatch(
+        .C("vimcom_task", PACKAGE = "vimcom"),
+        error = function(e) NULL,
+        interrupt = function(e) NULL
+    )
     return(invisible(TRUE))
 }
 

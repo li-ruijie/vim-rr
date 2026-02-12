@@ -117,6 +117,9 @@ extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
 static int r_is_busy = 1; // Is R executing a top level command? R memory will
 // become corrupted and R will crash afterwards if we execute a function that
 // creates R objects while R is busy.
+static time_t busy_since = 0; // When r_is_busy was last set to 1. Used by the
+// TCP thread to auto-reset a stale r_is_busy flag (e.g. after RStudio
+// interrupt kills the task callback).
 
 // Linked-list queue for deferred eval commands. Replaces the static flag_eval
 // buffer on Windows. Commands are enqueued by the TCP thread (case 'E' / 'L')
@@ -980,7 +983,8 @@ void vimcom_task(void) {
         REprintf("vimcom_task()\n");
 #ifdef WIN32
     FLAG_LOCK();
-    r_is_busy = 1; // Mark busy for entire task duration
+    r_is_busy = 1;
+    busy_since = time(NULL);
     FLAG_UNLOCK();
 #endif
     if (nrs_port[0] != 0) {
@@ -1252,6 +1256,7 @@ static void vimcom_parse_received_msg(char *buf) {
             p += strlen(vimr_id);
             FLAG_LOCK();
             r_is_busy = 1;
+            busy_since = time(NULL);
             FLAG_UNLOCK();
             Rconsolecmd(p);
         }
@@ -1268,8 +1273,10 @@ static void vimcom_parse_received_msg(char *buf) {
             FLAG_LOCK();
             eval_queue_push(lazy_cmd);
             flag_glbenv = 1;
-            if (!r_is_busy)
+            if (!r_is_busy) {
                 r_is_busy = 1;
+                busy_since = time(NULL);
+            }
             FLAG_UNLOCK();
 #else
             FLAG_LOCK();
@@ -1293,8 +1300,19 @@ static void vimcom_parse_received_msg(char *buf) {
             // instead of a garbage ~1.6 GB value (BUG-62).
             FLAG_LOCK();
             int busy = r_is_busy;
-            if (!busy)
-                r_is_busy = 1; // Mark busy BEFORE eval (Gap 2 fix)
+            // Auto-reset stale r_is_busy after 5 seconds. This recovers
+            // from RStudio interrupt killing the task callback, which
+            // would otherwise leave r_is_busy stuck at 1 permanently.
+            if (busy && difftime(time(NULL), busy_since) > 5.0) {
+                if (verbose > 1)
+                    REprintf("vimcom: auto-reset stale r_is_busy "
+                             "(stuck for >5s)\n");
+                busy = 0;
+            }
+            if (!busy) {
+                r_is_busy = 1;
+                busy_since = time(NULL);
+            }
             FLAG_UNLOCK();
             if (!busy) {
                 uintptr_t saved_stack_start = R_CStackStart;
