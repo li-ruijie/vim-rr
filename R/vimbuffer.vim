@@ -100,7 +100,7 @@ def g:StartR_InBuffer()
         ? (g:R_setwidth < 0 && g:R_setwidth > -17 ? g:R_setwidth : -6)
         : 0
     if exists("g:R_hl_term") && g:R_hl_term
-        set syntax=rout
+        setlocal syntax=rout
     endif
     for optn in split(g:R_buffer_opts)
         execute 'setlocal ' .. optn

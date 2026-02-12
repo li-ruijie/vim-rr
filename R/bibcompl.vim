@@ -120,9 +120,9 @@ enddef
 
 def g:GetBibAttachment()
     var oldisk = &iskeyword
-    set iskeyword=@,48-57,_,192-255,@-@
+    setlocal iskeyword=@,48-57,_,192-255,@-@
     var wrd = expand('<cword>')
-    execute 'set iskeyword=' .. oldisk
+    execute 'setlocal iskeyword=' .. oldisk
     if wrd =~ '^@'
         wrd = substitute(wrd, '^@', '', '')
         if wrd != ''
