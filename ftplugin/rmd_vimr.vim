@@ -20,18 +20,20 @@ elseif type(g:R_rmdchunk) == v:t_string
     execute 'inoremap <buffer><silent> ' .. g:R_rmdchunk .. ' <Esc>:call g:RWriteRmdChunk()<CR>a'
 endif
 
-if !exists('*g:RWriteRmdChunk')
-    function g:RWriteRmdChunk()
+if !exists("g:did_vimr_rmd_functions")
+    g:did_vimr_rmd_functions = 1
+
+    def g:RWriteRmdChunk()
         if g:RmdIsInRCode(0) == 0
             if getline(".") =~ "^\\s*$"
-                let curline = line(".")
-                call setline(curline, "```{r}")
+                var curline = line(".")
+                setline(curline, "```{r}")
                 if &filetype == 'quarto'
-                    call append(curline, ["", "```", ""])
-                    call cursor(curline + 1, 1)
+                    append(curline, ["", "```", ""])
+                    cursor(curline + 1, 1)
                 else
-                    call append(curline, ["```", ""])
-                    call cursor(curline, 5)
+                    append(curline, ["```", ""])
+                    cursor(curline, 5)
                 endif
                 return
             else
@@ -42,208 +44,183 @@ if !exists('*g:RWriteRmdChunk')
             endif
         endif
         exe 'normal! a`'
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdGetYamlField')
-    function g:RmdGetYamlField(field)
-        let value = []
-        let lastl = line('$')
-        let idx = 2
+    def g:RmdGetYamlField(field: string): string
+        var value: list<string> = []
+        var lastl = line('$')
+        var idx = 2
         while idx < lastl
-            let line = getline(idx)
+            var line = getline(idx)
             if line == '...' || line == '---'
                 break
             endif
-            if line =~ '^\s*' . a:field . '\s*:'
-                let bstr = substitute(line, '^\s*' . a:field . '\s*:\s*\(.*\)\s*', '\1', '')
+            if line =~ '^\s*' .. field .. '\s*:'
+                var bstr = substitute(line, '^\s*' .. field .. '\s*:\s*\(.*\)\s*', '\1', '')
+                var bibl: list<string> = []
                 if bstr =~ '^".*"$' || bstr =~ "^'.*'$"
-                    let bib = substitute(bstr, '"', '', 'g')
-                    let bib = substitute(bib, "'", '', 'g')
-                    let bibl = [bib]
+                    var bib = substitute(bstr, '"', '', 'g')
+                    bib = substitute(bib, "'", '', 'g')
+                    bibl = [bib]
                 elseif bstr =~ '^\[.*\]$'
                     try
-                        let l:bbl = eval(bstr)
+                        bibl = eval(bstr)
                     catch /.*/
-                        call g:RWarningMsg('YAML line invalid for Vim: ' . line)
-                        let bibl = []
+                        g:RWarningMsg('YAML line invalid for Vim: ' .. line)
+                        bibl = []
                     endtry
-                    if exists('l:bbl')
-                        let bibl = l:bbl
-                    endif
                 else
-                    let bibl = [bstr]
+                    bibl = [bstr]
                 endif
                 for fn in bibl
-                    call add(value, fn)
+                    add(value, fn)
                 endfor
                 break
             endif
-            let idx += 1
+            idx += 1
         endwhile
         if value == []
             return ''
         endif
-        if a:field == "bibliography"
-            call map(value, "expand(v:val)")
+        if field == "bibliography"
+            map(value, (_, v) => expand(v))
         endif
         return join(value, "\x06")
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdIsInPythonCode')
-    function g:RmdIsInPythonCode(vrb)
-        let chunkline = search("^[ \t]*```[ ]*{python", "bncW")
-        let docline = search("^[ \t]*```$", "bncW")
+    def g:RmdIsInPythonCode(vrb: number): number
+        var chunkline = search("^[ \t]*```[ ]*{python", "bncW")
+        var docline = search("^[ \t]*```$", "bncW")
         if chunkline > docline && chunkline != line(".")
             return 1
         else
-            if a:vrb
-                call g:RWarningMsg("Not inside a Python code chunk.")
+            if vrb
+                g:RWarningMsg("Not inside a Python code chunk.")
             endif
             return 0
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdIsInRCode')
-    function g:RmdIsInRCode(vrb)
-        let chunkline = search("^[ \t]*```[ ]*{r", "bncW")
-        let docline = search("^[ \t]*```$", "bncW")
+    def g:RmdIsInRCode(vrb: number): number
+        var chunkline = search("^[ \t]*```[ ]*{r", "bncW")
+        var docline = search("^[ \t]*```$", "bncW")
         if chunkline == line(".")
             return 2
         elseif chunkline > docline
             return 1
         else
-            if a:vrb
-                call g:RWarningMsg("Not inside an R code chunk.")
+            if vrb
+                g:RWarningMsg("Not inside an R code chunk.")
             endif
             return 0
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdPreviousChunk')
-    function g:RmdPreviousChunk() range
-        let rg = range(a:firstline, a:lastline)
-        let chunk = len(rg)
-        for var in range(1, chunk)
-            let curline = line(".")
+    def g:RmdPreviousChunk(count: number = 1)
+        for _ in range(1, count)
+            var curline = line(".")
             if g:RmdIsInRCode(0) == 1 || g:RmdIsInPythonCode(0)
-                let i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "bnW")
+                var i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "bnW")
                 if i != 0
-                    call cursor(i-1, 1)
+                    cursor(i - 1, 1)
                 endif
             endif
-            let i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "bnW")
+            var i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "bnW")
             if i == 0
-                call cursor(curline, 1)
-                call g:RWarningMsg("There is no previous R code chunk to go.")
+                cursor(curline, 1)
+                g:RWarningMsg("There is no previous R code chunk to go.")
                 return
             else
-                call cursor(i+1, 1)
+                cursor(i + 1, 1)
             endif
         endfor
-        return
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdNextChunk')
-    function g:RmdNextChunk() range
-        let rg = range(a:firstline, a:lastline)
-        let chunk = len(rg)
-        for var in range(1, chunk)
-            let i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "nW")
+    def g:RmdNextChunk(count: number = 1)
+        for _ in range(1, count)
+            var i = search("^[ \t]*```[ ]*{\\(r\\|python\\)", "nW")
             if i == 0
-                call g:RWarningMsg("There is no next R code chunk to go.")
+                g:RWarningMsg("There is no next R code chunk to go.")
                 return
             else
-                call cursor(i+1, 1)
+                cursor(i + 1, 1)
             endif
         endfor
-        return
-    endfunction
-endif
+    enddef
 
-# Send Python chunk to R
-if !exists('*g:SendRmdPyChunkToR')
-    function g:SendRmdPyChunkToR(e, m)
-        let chunkline = search("^[ \t]*```[ ]*{python", "bncW") + 1
-        let docline = search("^[ \t]*```", "ncW") - 1
-        let lines = getline(chunkline, docline)
-        let ok = g:RSourceLines(lines, a:e, 'PythonCode')
+    # Send Python chunk to R
+    def g:SendRmdPyChunkToR(e: string, m: string)
+        var chunkline = search("^[ \t]*```[ ]*{python", "bncW") + 1
+        var docline = search("^[ \t]*```", "ncW") - 1
+        var lines = getline(chunkline, docline)
+        var ok = g:RSourceLines(lines, e, 'PythonCode')
         if ok == 0
             return
         endif
-        if a:m == "down"
-            call g:RmdNextChunk()
+        if m == "down"
+            g:RmdNextChunk()
         endif
-    endfunction
-endif
+    enddef
 
-
-# Send R chunk to R
-if !exists('*g:SendRmdChunkToR')
-    function g:SendRmdChunkToR(e, m)
+    # Send R chunk to R
+    def g:SendRmdChunkToR(e: string, m: string)
         if g:RmdIsInRCode(0) == 2
-            call cursor(line(".") + 1, 1)
+            cursor(line(".") + 1, 1)
         endif
         if g:RmdIsInRCode(0) != 1
             if g:RmdIsInPythonCode(0) == 0
-                call g:RWarningMsg("Not inside an R code chunk.")
+                g:RWarningMsg("Not inside an R code chunk.")
             else
-                call g:SendRmdPyChunkToR(a:e, a:m)
+                g:SendRmdPyChunkToR(e, m)
             endif
             return
         endif
-        let chunkline = search("^[ \t]*```[ ]*{r", "bncW") + 1
-        let docline = search("^[ \t]*```", "ncW") - 1
-        let lines = getline(chunkline, docline)
-        let ok = g:RSourceLines(lines, a:e, "chunk")
+        var chunkline = search("^[ \t]*```[ ]*{r", "bncW") + 1
+        var docline = search("^[ \t]*```", "ncW") - 1
+        var lines = getline(chunkline, docline)
+        var ok = g:RSourceLines(lines, e, "chunk")
         if ok == 0
             return
         endif
-        if a:m == "down"
-            call g:RmdNextChunk()
+        if m == "down"
+            g:RmdNextChunk()
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RmdNonRCompletion')
-    function g:RmdNonRCompletion(findstart, base)
+    def g:RmdNonRCompletion(findstart: number, base: string): any
         if g:RmdIsInPythonCode(0) && exists('*jedi#completions')
-            return jedi#completions(a:findstart, a:base)
+            return jedi#completions(findstart, base)
         endif
 
         if b:rplugin_bibf != ''
-            if a:findstart
-                let line = getline(".")
-                let cpos = getpos(".")
-                let idx = cpos[2] -2
+            if findstart
+                var line = getline(".")
+                var cpos = getpos(".")
+                var idx = cpos[2] - 2
                 while line[idx] =~ '\w' && idx > 0
-                    let idx -= 1
+                    idx -= 1
                 endwhile
                 return idx + 1
             else
-                let citekey = substitute(a:base, '^@', '', '')
+                var citekey = substitute(base, '^@', '', '')
                 return g:RCompleteBib(citekey)
             endif
         endif
 
         if exists('*zotcite#CompleteBib')
-            return zotcite#CompleteBib(a:findstart, a:base)
+            return zotcite#CompleteBib(findstart, base)
         endif
 
         if exists('*pandoc#completion#Complete')
-            return pandoc#completion#Complete(a:findstart, a:base)
+            return pandoc#completion#Complete(findstart, base)
         endif
 
-        if a:findstart
+        if findstart
             return 0
         else
             return []
         endif
-    endfunction
+    enddef
 endif
 
 b:rplugin_non_r_omnifunc = "g:RmdNonRCompletion"
@@ -277,8 +254,8 @@ g:RCreateMaps('ni',  'RSendChunk',      'cc', ':call b:SendChunkToR("silent", "s
 g:RCreateMaps('ni',  'RESendChunk',     'ce', ':call b:SendChunkToR("echo", "stay")')
 g:RCreateMaps('ni',  'RDSendChunk',     'cd', ':call b:SendChunkToR("silent", "down")')
 g:RCreateMaps('ni',  'REDSendChunk',    'ca', ':call b:SendChunkToR("echo", "down")')
-g:RCreateMaps('n',   'RNextRChunk',     'gn', ':call b:NextRChunk()')
-g:RCreateMaps('n',   'RPreviousRChunk', 'gN', ':call b:PreviousRChunk()')
+g:RCreateMaps('n',   'RNextRChunk',     'gn', ':call b:NextRChunk(v:count1)')
+g:RCreateMaps('n',   'RPreviousRChunk', 'gN', ':call b:PreviousRChunk(v:count1)')
 
 # Menu R
 if has("gui_running")
@@ -289,9 +266,9 @@ endif
 g:RSourceOtherScripts()
 
 if !exists('*g:RPDFinit')
-    function g:RPDFinit(...)
-        exe "source " . substitute(g:rplugin.home, " ", "\\ ", "g") . "/R/pdf_init.vim"
-    endfunction
+    def g:RPDFinit(...args: list<any>)
+        exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/pdf_init.vim"
+    enddef
 endif
 
 timer_start(1, 'g:RPDFinit')

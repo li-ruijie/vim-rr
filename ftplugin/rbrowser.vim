@@ -35,12 +35,15 @@ if !has_key(g:rplugin, 'ob_hasbrowsermenu')
     g:rplugin.ob_hasbrowsermenu = 0
 endif
 
-if !exists('*g:UpdateOB')
-    function g:UpdateOB(what)
-        if a:what == "both"
-            let wht = g:rplugin.curview
+if !exists("g:did_vimr_rbrowser_functions")
+    g:did_vimr_rbrowser_functions = 1
+
+    def g:UpdateOB(what: string): string
+        var wht: string
+        if what == "both"
+            wht = g:rplugin.curview
         else
-            let wht = a:what
+            wht = what
         endif
         if g:rplugin.curview != wht
             return "curview != what"
@@ -49,53 +52,54 @@ if !exists('*g:UpdateOB')
             echoerr "OB called twice"
             return "OB called twice"
         endif
-        let g:rplugin.ob_upobcnt = 1
+        g:rplugin.ob_upobcnt = 1
 
-        let rplugin_switchedbuf = 0
-        let bufl = execute("buffers")
+        var rplugin_switchedbuf = 0
+        var savesb: string
+        var bufl = execute("buffers")
         if bufl !~ "Object_Browser"
-            let g:rplugin.ob_upobcnt = 0
+            g:rplugin.ob_upobcnt = 0
             return "Object_Browser not listed"
         endif
 
+        var fcntt: list<string>
         try
             if wht == "GlobalEnv"
-                let fcntt = readfile(g:rplugin.localtmpdir . "/globenv_" . $VIMR_ID)
+                fcntt = readfile(g:rplugin.localtmpdir .. "/globenv_" .. $VIMR_ID)
             else
-                let fcntt = readfile(g:rplugin.localtmpdir . "/liblist_" . $VIMR_ID)
+                fcntt = readfile(g:rplugin.localtmpdir .. "/liblist_" .. $VIMR_ID)
             endif
         catch
-            let g:rplugin.ob_upobcnt = 0
-            return "Error reading OB file: " . v:exception
+            g:rplugin.ob_upobcnt = 0
+            return "Error reading OB file: " .. v:exception
         endtry
         if has_key(g:rplugin, "curbuf") && g:rplugin.curbuf != "Object_Browser"
-            let savesb = &switchbuf
+            savesb = &switchbuf
             set switchbuf=useopen,usetab
             sil noautocmd sb Object_Browser
-            let rplugin_switchedbuf = 1
+            rplugin_switchedbuf = 1
         endif
 
         setlocal modifiable
-        let curline = line(".")
-        let curcol = col(".")
-        let save_unnamed_reg = @@
+        var curline = line(".")
+        var curcol = col(".")
+        var save_unnamed_reg = @@
         sil normal! ggdG
-        let @@ = save_unnamed_reg
-        call setline(1, fcntt)
-        call cursor(curline, curcol)
+        @@ = save_unnamed_reg
+        setline(1, fcntt)
+        cursor(curline, curcol)
         if bufname("%") =~ "Object_Browser"
             setlocal nomodifiable
         endif
         if rplugin_switchedbuf
-            exe "sil noautocmd sb " . g:rplugin.curbuf
-            exe "set switchbuf=" . savesb
+            exe "sil noautocmd sb " .. g:rplugin.curbuf
+            exe "set switchbuf=" .. savesb
         endif
-        let g:rplugin.ob_upobcnt = 0
-    endfunction
-endif
+        g:rplugin.ob_upobcnt = 0
+        return ""
+    enddef
 
-if !exists('*g:RBrowserDoubleClick')
-    function g:RBrowserDoubleClick()
+    def g:RBrowserDoubleClick()
         if line(".") == 2
             return
         endif
@@ -103,173 +107,167 @@ if !exists('*g:RBrowserDoubleClick')
             return
         endif
 
-        " Toggle view: Objects in the workspace X List of libraries
+        # Toggle view: Objects in the workspace X List of libraries
         if line(".") == 1
             if g:rplugin.curview == "libraries"
-                let g:rplugin.curview = "GlobalEnv"
-                call g:JobStdin(g:rplugin.jobs["Server"], "31\n")
+                g:rplugin.curview = "GlobalEnv"
+                g:JobStdin(g:rplugin.jobs["Server"], "31\n")
             else
-                let g:rplugin.curview = "libraries"
-                call g:JobStdin(g:rplugin.jobs["Server"], "321\n")
+                g:rplugin.curview = "libraries"
+                g:JobStdin(g:rplugin.jobs["Server"], "321\n")
             endif
             return
         endif
 
-        " Toggle state of list or data.frame: open X closed
-        let key = g:RBrowserGetName()
-        let curline = getline(".")
+        # Toggle state of list or data.frame: open X closed
+        var key = g:RBrowserGetName()
+        var curline = getline(".")
         if g:rplugin.curview == "GlobalEnv"
             if curline =~ "&#.*\t"
-                call g:SendToVimcom("L", key)
+                g:SendToVimcom("L", key)
             elseif curline =~ "\[#.*\t" || curline =~ "\$#.*\t" || curline =~ "<#.*\t" || curline =~ ":#.*\t"
-                let key = substitute(key, '`', '', 'g')
-                call g:JobStdin(g:rplugin.jobs["Server"], "33G" . key . "\n")
+                key = substitute(key, '`', '', 'g')
+                g:JobStdin(g:rplugin.jobs["Server"], "33G" .. key .. "\n")
             else
-                call g:SendCmdToR("str(" . key . ")")
+                g:SendCmdToR("str(" .. key .. ")")
             endif
         else
             if curline =~ "(#.*\t"
-                let key = substitute(key, '`', '', 'g')
-                call g:AskRDoc(key, g:RBGetPkgName(), 0)
+                key = substitute(key, '`', '', 'g')
+                g:AskRDoc(key, g:RBGetPkgName(), 0)
             else
                 if key =~ ":$" || curline =~ "\[#.*\t" || curline =~ "\$#.*\t" || curline =~ "<#.*\t" || curline =~ ":#.*\t"
-                    call g:JobStdin(g:rplugin.jobs["Server"], "33L" . key . "\n")
+                    g:JobStdin(g:rplugin.jobs["Server"], "33L" .. key .. "\n")
                 else
-                    call g:SendCmdToR("str(" . key . ")")
+                    g:SendCmdToR("str(" .. key .. ")")
                 endif
             endif
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RBrowserRightClick')
-    function g:RBrowserRightClick()
+    def g:RBrowserRightClick()
         if line(".") == 1
             return
         endif
 
-        let key = g:RBrowserGetName()
+        var key = g:RBrowserGetName()
         if key == ""
             return
         endif
 
-        let line = getline(".")
+        var line = getline(".")
         if line =~ "^   ##"
             return
         endif
-        let isfunction = 0
+        var isfunction = 0
         if line =~ "(#.*\t"
-            let isfunction = 1
+            isfunction = 1
         endif
 
         if g:rplugin.ob_hasbrowsermenu == 1
             aunmenu ]RBrowser
         endif
-        let key = substitute(key, '\.', '\\.', "g")
-        let key = substitute(key, ' ', '\\ ', "g")
+        key = substitute(key, '\.', '\\.', "g")
+        key = substitute(key, ' ', '\\ ', "g")
 
-        exe 'amenu ]RBrowser.summary('. key . ') :call g:RAction("summary")<CR>'
-        exe 'amenu ]RBrowser.str('. key . ') :call g:RAction("str")<CR>'
-        exe 'amenu ]RBrowser.names('. key . ') :call g:RAction("names")<CR>'
-        exe 'amenu ]RBrowser.plot('. key . ') :call g:RAction("plot")<CR>'
-        exe 'amenu ]RBrowser.print(' . key . ') :call g:RAction("print")<CR>'
+        exe 'amenu ]RBrowser.summary(' .. key .. ') :call g:RAction("summary")<CR>'
+        exe 'amenu ]RBrowser.str(' .. key .. ') :call g:RAction("str")<CR>'
+        exe 'amenu ]RBrowser.names(' .. key .. ') :call g:RAction("names")<CR>'
+        exe 'amenu ]RBrowser.plot(' .. key .. ') :call g:RAction("plot")<CR>'
+        exe 'amenu ]RBrowser.print(' .. key .. ') :call g:RAction("print")<CR>'
         amenu ]RBrowser.-sep01- <nul>
-        exe 'amenu ]RBrowser.example('. key . ') :call g:RAction("example")<CR>'
-        exe 'amenu ]RBrowser.help('. key . ') :call g:RAction("help")<CR>'
+        exe 'amenu ]RBrowser.example(' .. key .. ') :call g:RAction("example")<CR>'
+        exe 'amenu ]RBrowser.help(' .. key .. ') :call g:RAction("help")<CR>'
         if isfunction
-            exe 'amenu ]RBrowser.args('. key . ') :call g:RAction("args")<CR>'
+            exe 'amenu ]RBrowser.args(' .. key .. ') :call g:RAction("args")<CR>'
         endif
         popup ]RBrowser
-        let g:rplugin.ob_hasbrowsermenu = 1
-    endfunction
-endif
+        g:rplugin.ob_hasbrowsermenu = 1
+    enddef
 
-if !exists('*g:RBGetPkgName')
-    function g:RBGetPkgName()
-        let lnum = line(".")
+    def g:RBGetPkgName(): string
+        var lnum = line(".")
         while lnum > 0
-            let line = getline(lnum)
+            var line = getline(lnum)
             if line =~ '.*##[0-9a-zA-Z\.]*\t'
-                let line = substitute(line, '.*##\(.\{-}\)\t.*', '\1', "")
-                return line
+                return substitute(line, '.*##\(.\{-}\)\t.*', '\1', "")
             endif
-            let lnum -= 1
+            lnum -= 1
         endwhile
         return ""
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RBrowserFindParent')
-    function g:RBrowserFindParent(word, curline, curpos)
-        let curline = a:curline
-        let curpos = a:curpos
-        while curline > 1 && curpos >= a:curpos
-            let curline -= 1
-            let line = substitute(getline(curline), "\x09.*", "", "")
-            let curpos = stridx(line, '[#')
-            if curpos == -1
-                let curpos = stridx(line, '$#')
-                if curpos == -1
-                    let curpos = stridx(line, '<#')
-                    if curpos == -1
-                        let curpos = a:curpos
+    def g:RBrowserFindParent(word: string, curline: number, curpos: number): string
+        var cl = curline
+        var cp = curpos
+        var line: string
+        while cl > 1 && cp >= curpos
+            cl -= 1
+            line = substitute(getline(cl), "\x09.*", "", "")
+            cp = stridx(line, '[#')
+            if cp == -1
+                cp = stridx(line, '$#')
+                if cp == -1
+                    cp = stridx(line, '<#')
+                    if cp == -1
+                        cp = curpos
                     endif
                 endif
             endif
         endwhile
 
+        var spacelimit: number
         if g:rplugin.curview == "GlobalEnv"
-            let spacelimit = 3
+            spacelimit = 3
         else
             if g:rplugin.ob_isutf8
-                let spacelimit = 10
+                spacelimit = 10
             else
-                let spacelimit = 6
+                spacelimit = 6
             endif
         endif
-        if curline > 1
+        if cl > 1
+            var suffix: string
             if line =~ ' <#'
-                let suffix = '@'
+                suffix = '@'
             else
-                let suffix = '$'
+                suffix = '$'
             endif
-            let thisword = substitute(line, '^.\{-}#', '', '')
+            var thisword = substitute(line, '^.\{-}#', '', '')
             if thisword =~ " " || thisword =~ '^[0-9_]' || thisword =~ g:rplugin.ob_punct
-                let thisword = '`' . thisword . '`'
+                thisword = '`' .. thisword .. '`'
             endif
-            let word = thisword . suffix . a:word
-            if curpos != spacelimit
-                let word = g:RBrowserFindParent(word, curline, curpos)
+            var result = thisword .. suffix .. word
+            if cp != spacelimit
+                result = g:RBrowserFindParent(result, cl, cp)
             endif
-            return word
+            return result
         else
-            " Didn't find the parent: should never happen.
-            let msg = "R-plugin Error: " . a:word . ":" . curline
+            # Didn't find the parent: should never happen.
+            var msg = "R-plugin Error: " .. word .. ":" .. string(cl)
             echoerr msg
         endif
         return ""
-    endfunction
-endif
+    enddef
 
-if !exists('*g:RBrowserGetName')
-    function g:RBrowserGetName()
-        let line = getline(".")
+    def g:RBrowserGetName(): string
+        var line = getline(".")
         if line =~ "^$" || line(".") < 3
             return ""
         endif
 
-        let curpos = stridx(line, "#")
-        let word = substitute(line, '.\{-}\(.#\)\(.\{-}\)\t.*', '\2', '')
+        var curpos = stridx(line, "#")
+        var word = substitute(line, '.\{-}\(.#\)\(.\{-}\)\t.*', '\2', '')
 
-        if word =~ ' ' || word =~ '^[0-9]' || word =~ g:rplugin.ob_punct || word =~ '^' . g:rplugin.ob_reserved . '$'
-            let word = '`' . word . '`'
+        if word =~ ' ' || word =~ '^[0-9]' || word =~ g:rplugin.ob_punct || word =~ '^' .. g:rplugin.ob_reserved .. '$'
+            word = '`' .. word .. '`'
         endif
 
         if curpos == 4
-            " top level object
-            let word = substitute(word, '\$\[\[', '[[', "g")
+            # top level object
+            word = substitute(word, '\$\[\[', '[[', "g")
             if g:rplugin.curview == "libraries"
-                return word . ':'
+                return word .. ':'
             else
                 return word
             endif
@@ -277,43 +275,39 @@ if !exists('*g:RBrowserGetName')
             if g:rplugin.curview == "libraries"
                 if g:rplugin.ob_isutf8
                     if curpos == 11
-                        let word = substitute(word, '\$\[\[', '[[', "g")
+                        word = substitute(word, '\$\[\[', '[[', "g")
                         return word
                     endif
                 elseif curpos == 7
-                    let word = substitute(word, '\$\[\[', '[[', "g")
+                    word = substitute(word, '\$\[\[', '[[', "g")
                     return word
                 endif
             endif
             if curpos > 4
-                " Find the parent data.frame or list
-                let word = g:RBrowserFindParent(word, line("."), curpos - 1)
-                let word = substitute(word, '\$\[\[', '[[', "g")
+                # Find the parent data.frame or list
+                word = g:RBrowserFindParent(word, line("."), curpos - 1)
+                word = substitute(word, '\$\[\[', '[[', "g")
                 return word
             else
-                " Wrong object name delimiter: should never happen.
-                let msg = "R-plugin Error: (curpos = " . curpos . ") " . word
+                # Wrong object name delimiter: should never happen.
+                var msg = "R-plugin Error: (curpos = " .. string(curpos) .. ") " .. word
                 echoerr msg
                 return ""
             endif
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:OnOBBufUnload')
-    function g:OnOBBufUnload()
+    def g:OnOBBufUnload()
         if g:rplugin.update_glbenv == 0 && exists('*g:SendToVimcom')
-            call g:SendToVimcom("N", "OnOBBufUnload")
+            g:SendToVimcom("N", "OnOBBufUnload")
         endif
-    endfunction
-endif
+    enddef
 
-if !exists('*g:PrintListTree')
-    function g:PrintListTree()
+    def g:PrintListTree()
         if g:IsJobRunning("Server")
-            call g:JobStdin(g:rplugin.jobs["Server"], "37\n")
+            g:JobStdin(g:rplugin.jobs["Server"], "37\n")
         endif
-    endfunction
+    enddef
 endif
 
 nnoremap <buffer><silent> <CR> :call g:RBrowserDoubleClick()<CR>

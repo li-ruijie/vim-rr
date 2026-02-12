@@ -6,59 +6,56 @@ endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
 execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
-if !exists('*g:GetRCmdBatchOutput')
-    function g:GetRCmdBatchOutput(routfile, ...)
-        if filereadable(a:routfile)
+
+if !exists("g:did_vimr_r_functions")
+    g:did_vimr_r_functions = 1
+
+    def g:GetRCmdBatchOutput(routfile: string, ...extra: list<any>)
+        if filereadable(routfile)
             if g:R_routnotab == 1
-                exe "split " . a:routfile
-                set filetype=rout
+                exe "split " .. routfile
+                setlocal filetype=rout
                 exe "normal! \<c-w>\<c-p>"
             else
-                exe "tabnew " . a:routfile
-                set filetype=rout
+                exe "tabnew " .. routfile
+                setlocal filetype=rout
                 normal! gT
             endif
         else
-            call g:RWarningMsg("The file '" . a:routfile . "' either does not exist or not readable.")
+            g:RWarningMsg("The file '" .. routfile .. "' either does not exist or not readable.")
         endif
-    endfunction
-endif
+    enddef
 
-# Run R CMD BATCH on current file and load the resulting .Rout in a split
-# window
-if !exists('*g:ShowRout')
-    function g:ShowRout()
-        let l:routfile = expand("%:r") . ".Rout"
-        if bufloaded(l:routfile)
-            exe "bunload " . l:routfile
-            call delete(l:routfile)
+    # Run R CMD BATCH on current file and load the resulting .Rout in a split
+    # window
+    def g:ShowRout()
+        var routfile = expand("%:r") .. ".Rout"
+        if bufloaded(routfile)
+            exe "bunload " .. routfile
+            delete(routfile)
         endif
 
-        " if not silent, the user will have to type <Enter>
+        # if not silent, the user will have to type <Enter>
         silent update
 
-        let rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"),  l:routfile]
-        let Cb = function('g:GetRCmdBatchOutput', [l:routfile])
-        let rjob = job_start(rcmd, {'close_cb': Cb})
-        let g:rplugin.jobs["R_CMD"] = rjob
-    endfunction
-endif
+        var rcmd = [g:rplugin.Rcmd, "CMD", "BATCH", "--no-restore", "--no-save", expand("%"), routfile]
+        var Cb = function('g:GetRCmdBatchOutput', [routfile])
+        var rjob = job_start(rcmd, {close_cb: Cb})
+        g:rplugin.jobs["R_CMD"] = rjob
+    enddef
 
-# Convert R script into Rmd, md and, then, html -- using knitr::spin()
-if !exists('*g:RSpin')
-    function g:RSpin()
+    # Convert R script into Rmd, md and, then, html -- using knitr::spin()
+    def g:RSpin()
         update
-        let l:dir = substitute(expand("%:p:h"), '"', '\\"', 'g')
-        let l:fname = substitute(expand("%:t"), '"', '\\"', 'g')
-        call g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' . l:dir . '"); spin("' . l:fname . '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
-    endfunction
-endif
+        var dir = substitute(expand("%:p:h"), '"', '\\"', 'g')
+        var fname = substitute(expand("%:t"), '"', '\\"', 'g')
+        g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' .. dir .. '"); spin("' .. fname .. '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
+    enddef
 
-# Default IsInRCode function when the plugin is used as a global plugin
-if !exists('*g:DefaultIsInRCode')
-    function g:DefaultIsInRCode(vrb)
+    # Default IsInRCode function when the plugin is used as a global plugin
+    def g:DefaultIsInRCode(vrb: number): number
         return 1
-    endfunction
+    enddef
 endif
 
 b:IsInRCode = function('g:DefaultIsInRCode')
