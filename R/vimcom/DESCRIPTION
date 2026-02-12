@@ -10,5 +10,5 @@ Imports: methods, tools
 Encoding: UTF-8
 Description: Provide a service to intermediate the communication between R and Vim.
 License: GPL (>= 3)
-URL: https://github.com/li-ruijie/vim-r
+URL: https://github.com/li-ruijie/vim-rr
 Note: Based on original work by Jakson Aquino (https://github.com/jalvesaq/Vim-R)

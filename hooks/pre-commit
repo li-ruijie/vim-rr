@@ -3,6 +3,11 @@
 # Redirect output to stderr.
 exec 1>&2
 
+# Remove build artifacts
+find R/vimcom/src -name '*.o' -o -name '*.dll' -o -name '*.exe' 2>/dev/null | xargs rm -f
+find R/vimcom -name '*.tar.gz' 2>/dev/null | xargs rm -f
+find R -maxdepth 1 -name '*.tar.gz' 2>/dev/null | xargs rm -f
+
 # Check for clang-format
 if ! [ -x "$(command -v clang-format)" ]; then
 	echo "clang-format is not installed. install and rerun"
@@ -18,9 +23,9 @@ for FILE in $(git diff --staged --name-only --diff-filter=ACMR "*.c" "*.h"); do
 	git add "$FILE"
 done
 
-# Sync vimcom version in vim-r.txt with DESCRIPTION
+# Sync vimcom version in vim-rr.txt with DESCRIPTION
 DESC="R/vimcom/DESCRIPTION"
-DOC="doc/vim-r.txt"
+DOC="doc/vim-rr.txt"
 if [ -f "$DESC" ] && [ -f "$DOC" ]; then
 	VER=$(sed -n 's/^Version: *//p' "$DESC")
 	if [ -n "$VER" ]; then
