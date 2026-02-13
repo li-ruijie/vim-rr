@@ -1,0 +1,39 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "unknown": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "gsl": {
+      "type": "article",
+      "fields": {},
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Brian"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Gough"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{et al.}"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

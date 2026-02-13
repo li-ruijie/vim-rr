@@ -1,0 +1,27 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "i_am_jackie": {
+      "type": "book",
+      "fields": {
+        "title": "I Am Jackie Chan: My Life in Action"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Jackie"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Chan"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

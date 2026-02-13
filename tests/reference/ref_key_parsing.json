@@ -1,0 +1,26 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "test(parens1))": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "test(parens2)": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "test(braces1)": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "test(braces2)": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    }
+  }
+}

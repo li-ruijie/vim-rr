@@ -1,0 +1,15 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "Mastering": {
+      "type": "mastersthesis",
+      "fields": {
+        "year": "1364",
+        "title": "Mastering Thesis Writing",
+        "school": "Charles University in Prague"
+      },
+      "persons": {}
+    }
+  }
+}

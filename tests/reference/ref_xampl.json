@@ -1,0 +1,1064 @@
+{
+  "preamble": "\\newcommand{\\noopsort}[1]{} \\newcommand{\\printfirst}[2]{#1} \\newcommand{\\singleletter}[1]{#1} \\newcommand{\\switchargs}[2]{#2#1}",
+  "preamble_list": [
+    "\\newcommand{\\noopsort}[1]{} \\newcommand{\\printfirst}[2]{#1} \\newcommand{\\singleletter}[1]{#1} \\newcommand{\\switchargs}[2]{#2#1}"
+  ],
+  "entries": {
+    "article-minimal": {
+      "type": "article",
+      "fields": {
+        "title": "The Gnats and Gnus Document Preparation System",
+        "journal": "\\mbox{G-Animal's} Journal",
+        "year": "1986"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "L[eslie]"
+            ],
+            "middle_names": [
+              "A."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Aamport"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "article-full": {
+      "type": "article",
+      "fields": {
+        "title": "The Gnats and Gnus Document Preparation System",
+        "journal": "\\mbox{G-Animal's} Journal",
+        "year": "1986",
+        "volume": "41",
+        "number": "7",
+        "pages": "73+",
+        "month": "July",
+        "note": "This is a full ARTICLE entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "L[eslie]"
+            ],
+            "middle_names": [
+              "A."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Aamport"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "article-crossref": {
+      "type": "article",
+      "fields": {
+        "crossref": "WHOLE-JOURNAL",
+        "key": "",
+        "title": "The Gnats and Gnus Document Preparation System",
+        "pages": "73+",
+        "note": "This is a cross-referencing ARTICLE entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "L[eslie]"
+            ],
+            "middle_names": [
+              "A."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Aamport"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "whole-journal": {
+      "type": "article",
+      "fields": {
+        "key": "GAJ",
+        "journal": "\\mbox{G-Animal's} Journal",
+        "year": "1986",
+        "volume": "41",
+        "number": "7",
+        "month": "July",
+        "note": "The entire issue is devoted to gnats and gnus (this entry is a cross-referenced ARTICLE (journal))"
+      },
+      "persons": {}
+    },
+    "inbook-minimal": {
+      "type": "inbook",
+      "fields": {
+        "title": "Fundamental Algorithms",
+        "publisher": "Addison-Wesley",
+        "year": "{\\noopsort{1973b}}1973",
+        "chapter": "1.2"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Donald"
+            ],
+            "middle_names": [
+              "E."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knuth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inbook-full": {
+      "type": "inbook",
+      "fields": {
+        "title": "Fundamental Algorithms",
+        "volume": "1",
+        "series": "The Art of Computer Programming",
+        "publisher": "Addison-Wesley",
+        "address": "Reading, Massachusetts",
+        "edition": "Second",
+        "month": "10~January",
+        "year": "{\\noopsort{1973b}}1973",
+        "type": "Section",
+        "chapter": "1.2",
+        "pages": "10--119",
+        "note": "This is a full INBOOK entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Donald"
+            ],
+            "middle_names": [
+              "E."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knuth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inbook-crossref": {
+      "type": "inbook",
+      "fields": {
+        "crossref": "whole-set",
+        "title": "Fundamental Algorithms",
+        "volume": "1",
+        "series": "The Art of Computer Programming",
+        "edition": "Second",
+        "year": "{\\noopsort{1973b}}1973",
+        "type": "Section",
+        "chapter": "1.2",
+        "note": "This is a cross-referencing INBOOK entry"
+      },
+      "persons": {}
+    },
+    "book-minimal": {
+      "type": "book",
+      "fields": {
+        "title": "Seminumerical Algorithms",
+        "publisher": "Addison-Wesley",
+        "year": "{\\noopsort{1973c}}1981"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Donald"
+            ],
+            "middle_names": [
+              "E."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knuth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "book-full": {
+      "type": "book",
+      "fields": {
+        "title": "Seminumerical Algorithms",
+        "volume": "2",
+        "series": "The Art of Computer Programming",
+        "publisher": "Addison-Wesley",
+        "address": "Reading, Massachusetts",
+        "edition": "Second",
+        "month": "10~January",
+        "year": "{\\noopsort{1973c}}1981",
+        "note": "This is a full BOOK entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Donald"
+            ],
+            "middle_names": [
+              "E."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knuth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "book-crossref": {
+      "type": "book",
+      "fields": {
+        "crossref": "whole-set",
+        "title": "Seminumerical Algorithms",
+        "volume": "2",
+        "series": "The Art of Computer Programming",
+        "edition": "Second",
+        "year": "{\\noopsort{1973c}}1981",
+        "note": "This is a cross-referencing BOOK entry"
+      },
+      "persons": {}
+    },
+    "whole-set": {
+      "type": "book",
+      "fields": {
+        "publisher": "Addison-Wesley",
+        "title": "The Art of Computer Programming",
+        "series": "Four volumes",
+        "year": "{\\noopsort{1973a}}{\\switchargs{--90}{1968}}",
+        "note": "Seven volumes planned (this is a cross-referenced set of BOOKs)"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Donald"
+            ],
+            "middle_names": [
+              "E."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knuth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "booklet-minimal": {
+      "type": "booklet",
+      "fields": {
+        "key": "Kn{\\printfirst{v}{1987}}",
+        "title": "The Programming of Computer Art"
+      },
+      "persons": {}
+    },
+    "booklet-full": {
+      "type": "booklet",
+      "fields": {
+        "title": "The Programming of Computer Art",
+        "howpublished": "Vernier Art Center",
+        "address": "Stanford, California",
+        "month": "February",
+        "year": "1988",
+        "note": "This is a full BOOKLET entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Jill"
+            ],
+            "middle_names": [
+              "C."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Knvth"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "incollection-minimal": {
+      "type": "incollection",
+      "fields": {
+        "title": "Semigroups of Recurrences",
+        "booktitle": "High Speed Computer and Algorithm Organization",
+        "publisher": "Academic Press",
+        "year": "1977"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Daniel"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lincoll"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "incollection-full": {
+      "type": "incollection",
+      "fields": {
+        "title": "Semigroups of Recurrences",
+        "booktitle": "High Speed Computer and Algorithm Organization",
+        "number": "23",
+        "series": "Fast Computers",
+        "chapter": "3",
+        "type": "Part",
+        "pages": "179--183",
+        "publisher": "Academic Press",
+        "address": "New York",
+        "edition": "Third",
+        "month": "September",
+        "year": "1977",
+        "note": "This is a full INCOLLECTION entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Daniel"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lincoll"
+            ],
+            "lineage_names": []
+          }
+        ],
+        "editor": [
+          {
+            "first_names": [
+              "David"
+            ],
+            "middle_names": [
+              "J."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lipcoll"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "D."
+            ],
+            "middle_names": [
+              "H."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lawrie"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "A."
+            ],
+            "middle_names": [
+              "H."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Sameh"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "incollection-crossref": {
+      "type": "incollection",
+      "fields": {
+        "crossref": "whole-collection",
+        "title": "Semigroups of Recurrences",
+        "pages": "179--183",
+        "note": "This is a cross-referencing INCOLLECTION entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Daniel"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lincoll"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "whole-collection": {
+      "type": "book",
+      "fields": {
+        "title": "High Speed Computer and Algorithm Organization",
+        "booktitle": "High Speed Computer and Algorithm Organization",
+        "number": "23",
+        "series": "Fast Computers",
+        "publisher": "Academic Press",
+        "address": "New York",
+        "edition": "Third",
+        "month": "September",
+        "year": "1977",
+        "note": "This is a cross-referenced BOOK (collection) entry"
+      },
+      "persons": {
+        "editor": [
+          {
+            "first_names": [
+              "David"
+            ],
+            "middle_names": [
+              "J."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lipcoll"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "D."
+            ],
+            "middle_names": [
+              "H."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lawrie"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "A."
+            ],
+            "middle_names": [
+              "H."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Sameh"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "manual-minimal": {
+      "type": "manual",
+      "fields": {
+        "key": "Manmaker",
+        "title": "The Definitive Computer Manual"
+      },
+      "persons": {}
+    },
+    "manual-full": {
+      "type": "manual",
+      "fields": {
+        "title": "The Definitive Computer Manual",
+        "organization": "Chips-R-Us",
+        "address": "Silicon Valley",
+        "edition": "Silver",
+        "month": "April-May",
+        "year": "1986",
+        "note": "This is a full MANUAL entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Larry"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Manmaker"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "mastersthesis-minimal": {
+      "type": "mastersthesis",
+      "fields": {
+        "title": "Mastering Thesis Writing",
+        "school": "Stanford University",
+        "year": "1988"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "{\\'{E}}douard"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Masterly"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "mastersthesis-full": {
+      "type": "mastersthesis",
+      "fields": {
+        "title": "Mastering Thesis Writing",
+        "school": "Stanford University",
+        "type": "Master's project",
+        "address": "English Department",
+        "month": "June-August",
+        "year": "1988",
+        "note": "This is a full MASTERSTHESIS entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "{\\'{E}}douard"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Masterly"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "misc-minimal": {
+      "type": "misc",
+      "fields": {
+        "key": "Missilany",
+        "note": "This is a minimal MISC entry"
+      },
+      "persons": {}
+    },
+    "misc-full": {
+      "type": "misc",
+      "fields": {
+        "title": "Handing out random pamphlets in airports",
+        "howpublished": "Handed out at O'Hare",
+        "month": "October",
+        "year": "1984",
+        "note": "This is a full MISC entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Joe-Bob"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Missilany"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inproceedings-minimal": {
+      "type": "inproceedings",
+      "fields": {
+        "title": "On Notions of Information Transfer in {VLSI} Circuits",
+        "booktitle": "Proc. Fifteenth Annual ACM Symposium on the Theory of Computing",
+        "year": "1983"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Alfred"
+            ],
+            "middle_names": [
+              "V."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Oaho"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Jeffrey"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Ullman"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Mihalis"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Yannakakis"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inproceedings-full": {
+      "type": "inproceedings",
+      "fields": {
+        "title": "On Notions of Information Transfer in {VLSI} Circuits",
+        "booktitle": "Proc. Fifteenth Annual ACM Symposium on the Theory of Computing",
+        "number": "17",
+        "series": "All ACM Conferences",
+        "pages": "133--139",
+        "month": "March",
+        "year": "1983",
+        "address": "Boston",
+        "organization": "The OX Association for Computing Machinery",
+        "publisher": "Academic Press",
+        "note": "This is a full INPROCEDINGS entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Alfred"
+            ],
+            "middle_names": [
+              "V."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Oaho"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Jeffrey"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Ullman"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Mihalis"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Yannakakis"
+            ],
+            "lineage_names": []
+          }
+        ],
+        "editor": [
+          {
+            "first_names": [
+              "Wizard"
+            ],
+            "middle_names": [
+              "V."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Oz"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Mihalis"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Yannakakis"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inproceedings-crossref": {
+      "type": "inproceedings",
+      "fields": {
+        "crossref": "whole-proceedings",
+        "title": "On Notions of Information Transfer in {VLSI} Circuits",
+        "organization": "",
+        "pages": "133--139",
+        "note": "This is a cross-referencing INPROCEEDINGS entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Alfred"
+            ],
+            "middle_names": [
+              "V."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Oaho"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Jeffrey"
+            ],
+            "middle_names": [
+              "D."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Ullman"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Mihalis"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Yannakakis"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "proceedings-minimal": {
+      "type": "proceedings",
+      "fields": {
+        "key": "OX{\\singleletter{stoc}}",
+        "title": "Proc. Fifteenth Annual Symposium on the Theory of Computing",
+        "year": "1983"
+      },
+      "persons": {}
+    },
+    "proceedings-full": {
+      "type": "proceedings",
+      "fields": {
+        "title": "Proc. Fifteenth Annual Symposium on the Theory of Computing",
+        "number": "17",
+        "series": "All ACM Conferences",
+        "month": "March",
+        "year": "1983",
+        "address": "Boston",
+        "organization": "The OX Association for Computing Machinery",
+        "publisher": "Academic Press",
+        "note": "This is a full PROCEEDINGS entry"
+      },
+      "persons": {
+        "editor": [
+          {
+            "first_names": [
+              "Wizard"
+            ],
+            "middle_names": [
+              "V."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Oz"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Mihalis"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Yannakakis"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "whole-proceedings": {
+      "type": "proceedings",
+      "fields": {
+        "key": "OX{\\singleletter{stoc}}",
+        "organization": "The OX Association for Computing Machinery",
+        "title": "Proc. Fifteenth Annual Symposium on the Theory of Computing",
+        "address": "Boston",
+        "year": "1983",
+        "booktitle": "Proc. Fifteenth Annual ACM Symposium on the Theory of Computing",
+        "note": "This is a cross-referenced PROCEEDINGS"
+      },
+      "persons": {}
+    },
+    "phdthesis-minimal": {
+      "type": "phdthesis",
+      "fields": {
+        "title": "Fighting Fire with Fire: Festooning {F}rench Phrases",
+        "school": "Fanstord University",
+        "year": "1988"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "F."
+            ],
+            "middle_names": [
+              "Phidias"
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Phony-Baloney"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "phdthesis-full": {
+      "type": "phdthesis",
+      "fields": {
+        "title": "Fighting Fire with Fire: Festooning {F}rench Phrases",
+        "school": "Fanstord University",
+        "type": "{PhD} Dissertation",
+        "address": "Department of French",
+        "month": "June-August",
+        "year": "1988",
+        "note": "This is a full PHDTHESIS entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "F."
+            ],
+            "middle_names": [
+              "Phidias"
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Phony-Baloney"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "techreport-minimal": {
+      "type": "techreport",
+      "fields": {
+        "title": "An {$O(n \\log n / \\! \\log\\log n)$} Sorting Algorithm",
+        "institution": "Fanstord University",
+        "year": "1988"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Tom"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Terrific"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "techreport-full": {
+      "type": "techreport",
+      "fields": {
+        "title": "An {$O(n \\log n / \\! \\log\\log n)$} Sorting Algorithm",
+        "institution": "Fanstord University",
+        "type": "Wishful Research Result",
+        "number": "7",
+        "address": "Computer Science Department, Fanstord, California",
+        "month": "October",
+        "year": "1988",
+        "note": "This is a full TECHREPORT entry"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Tom"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "T{\\'{e}}rrific"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "unpublished-minimal": {
+      "type": "unpublished",
+      "fields": {
+        "title": "Lower Bounds for Wishful Research Results",
+        "note": "Talk at Fanstord University (this is a minimal UNPUBLISHED entry)"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Ulrich"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\\"{U}}nderwood"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Ned"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\~N}et"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Paul"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\={P}}ot"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "unpublished-full": {
+      "type": "unpublished",
+      "fields": {
+        "title": "Lower Bounds for Wishful Research Results",
+        "month": "November, December",
+        "year": "1988",
+        "note": "Talk at Fanstord University (this is a full UNPUBLISHED entry)"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Ulrich"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\\"{U}}nderwood"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Ned"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\~N}et"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Paul"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{\\={P}}ot"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "random-note-crossref": {
+      "type": "misc",
+      "fields": {
+        "key": "Volume-2",
+        "note": "Volume~2 is listed under Knuth \\cite{book-full}"
+      },
+      "persons": {}
+    }
+  }
+}

@@ -229,7 +229,7 @@ if !exists('b:rplugin_bibf')
 endif
 
 if g:R_non_r_compl && index(g:R_bib_compl, &filetype) > -1
-    timer_start(1, 'g:CheckPyBTeX')
+    timer_start(1, 'g:InitBibComplete')
 endif
 
 b:IsInRCode = function('g:RmdIsInRCode')

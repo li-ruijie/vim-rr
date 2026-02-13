@@ -140,7 +140,7 @@ def g:IsJobRunning(key: string): number
     return jstt == "run" ? 1 : 0
 enddef
 
-g:rplugin.jobs = {Server: "no", R: "no", "Terminal emulator": "no", BibComplete: "no"}
+g:rplugin.jobs = {Server: "no", R: "no", "Terminal emulator": "no"}
 g:rplugin.job_handlers = {
             out_cb: 'g:ROnJobStdout',
             err_cb: 'g:ROnJobStderr',

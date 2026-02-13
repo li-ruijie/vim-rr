@@ -1,0 +1,160 @@
+{
+  "preamble": "%%% pybtex example file",
+  "preamble_list": [
+    "%%% pybtex example file"
+  ],
+  "entries": {
+    "ruckenstein-diffusion": {
+      "type": "article",
+      "fields": {
+        "language": "english",
+        "title": "Predicting the Diffusion Coefficient in Supercritical Fluids",
+        "journal": "Ind. Eng. Chem. Res.",
+        "volume": "36",
+        "year": "1997",
+        "pages": "888-895"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Hongquin"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Liu"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Eli"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Ruckenstein"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "viktorov-metodoj": {
+      "type": "book",
+      "fields": {
+        "publisher": "Л.: <<Химия>>",
+        "title": "Методы вычисления физико-химических величин и прикладные расчёты",
+        "language": "russian",
+        "year": "1977",
+        "isbn": "000-0000000000"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Михаил"
+            ],
+            "middle_names": [
+              "Маркович"
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Викторов"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "test-inbook": {
+      "type": "inbook",
+      "fields": {
+        "publisher": "Some Publisher",
+        "language": "english",
+        "title": "Some Title",
+        "series": "Some series",
+        "booktitle": "Some Good Book",
+        "number": "3",
+        "edition": "Second",
+        "year": "1933",
+        "pages": "44--59",
+        "url": "https://example.com/Peter%20Jackson.html"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "P\\'eter"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Jackson"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "inbook-editor": {
+      "type": "inbook",
+      "fields": {
+        "title": "Lesbian Nurses",
+        "publisher": "Yale University Press",
+        "year": "1914",
+        "chapter": "8"
+      },
+      "persons": {
+        "editor": [
+          {
+            "first_names": [
+              "Vladimir"
+            ],
+            "middle_names": [
+              "Ilyich"
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "Lenin"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "test-booklet": {
+      "type": "booklet",
+      "fields": {
+        "language": "english",
+        "title": "Just a booklet",
+        "year": "2006",
+        "month": "January",
+        "address": "Moscow",
+        "howpublished": "Published by Foo"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "First"
+            ],
+            "middle_names": [
+              "Middle"
+            ],
+            "prelast_names": [
+              "de"
+            ],
+            "last_names": [
+              "Last"
+            ],
+            "lineage_names": [
+              "Jr."
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

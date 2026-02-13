@@ -73,41 +73,49 @@ var quarto_chunk = GenerateRmdChunk('quarto')
 g:AssertEqual(len(quarto_chunk), 4, 'GenerateRmdChunk quarto: has extra blank line')
 
 # ========================================================================
-# BibComplete parsing
+# BibComplete author formatting
 # ========================================================================
-def ParseBibCompletionLine(line: string): dict<string>
-  var tmp = split(line, "\x09")
-  if len(tmp) >= 3
-    return {'word': tmp[0], 'abbr': tmp[1], 'menu': tmp[2]}
-  endif
-  return {}
+def FormatAuthorNames(last_names: list<list<string>>): string
+  var isetal = len(last_names) > 3
+  var cit = ''
+  for lname_parts in last_names
+    var lname = join(lname_parts, ' ')
+    if lname == 'others'
+      cit ..= ' et al.'
+      break
+    endif
+    cit ..= ', ' .. substitute(lname, '\<\(\w\)\(\w*\)\>', '\u\1\L\2', 'g')
+    if isetal
+      cit ..= ' et al.'
+      break
+    endif
+  endfor
+  return substitute(cit, '^, ', '', '')
 enddef
 
-var bib_line = "smith2020\tSmith (2020)\tMachine Learning" .. "\x09"
-# Manually construct with tabs
-bib_line = "smith2020\tSmith (2020)\tMachine Learning"
-var parsed = ParseBibCompletionLine(bib_line)
-g:AssertEqual(parsed.word, 'smith2020', 'ParseBibCompletionLine: word')
-g:AssertEqual(parsed.abbr, 'Smith (2020)', 'ParseBibCompletionLine: abbr')
-g:AssertEqual(parsed.menu, 'Machine Learning', 'ParseBibCompletionLine: menu')
-
-g:AssertEqual(ParseBibCompletionLine('incomplete'), {}, 'ParseBibCompletionLine: incomplete line')
+g:AssertEqual(FormatAuthorNames([['smith']]), 'Smith', 'FormatAuthorNames: single author')
+g:AssertEqual(FormatAuthorNames([['smith'], ['jones']]), 'Smith, Jones', 'FormatAuthorNames: two authors')
+g:AssertEqual(FormatAuthorNames([['smith'], ['jones'], ['doe']]), 'Smith, Jones, Doe', 'FormatAuthorNames: three authors')
+g:AssertEqual(FormatAuthorNames([['smith'], ['jones'], ['doe'], ['lee']]), 'Smith et al.', 'FormatAuthorNames: four+ authors truncated')
+g:AssertEqual(FormatAuthorNames([['others']]), ' et al.', 'FormatAuthorNames: "others" alone has leading space')
+g:AssertEqual(FormatAuthorNames([['von', 'humboldt']]), 'Von Humboldt', 'FormatAuthorNames: multi-word last name')
+g:AssertEqual(FormatAuthorNames([]), '', 'FormatAuthorNames: empty list')
 
 # ========================================================================
-# HasPython3 logic
+# BibComplete completion item format
 # ========================================================================
-def CheckPython3Binary(): string
-  if executable('python3')
-    return 'python3'
-  elseif executable('python')
-    return 'python'
-  else
-    return ''
-  endif
+def BuildComplItem(citekey: string, author: string, year: string, title: string): dict<string>
+  return {word: citekey, abbr: strcharpart(author, 0, 40), menu: '(' .. year .. ') ' .. title}
 enddef
 
-var py = CheckPython3Binary()
-g:AssertType(py, v:t_string, 'CheckPython3Binary: returns string')
+var item = BuildComplItem('smith2020', 'Smith, Jones', '2020', 'Machine Learning')
+g:AssertEqual(item.word, 'smith2020', 'BuildComplItem: word is citekey')
+g:AssertEqual(item.abbr, 'Smith, Jones', 'BuildComplItem: abbr is author')
+g:AssertEqual(item.menu, '(2020) Machine Learning', 'BuildComplItem: menu is (year) title')
+
+var long_author = repeat('A', 50)
+var item2 = BuildComplItem('key', long_author, '2021', 'Title')
+g:AssertEqual(strcharlen(item2.abbr), 40, 'BuildComplItem: long author truncated to 40')
 
 # ========================================================================
 # RmdGetYamlField logic

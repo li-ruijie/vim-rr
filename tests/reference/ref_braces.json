@@ -1,0 +1,13 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "test": {
+      "type": "article",
+      "fields": {
+        "title": "Polluted with {DDT}."
+      },
+      "persons": {}
+    }
+  }
+}

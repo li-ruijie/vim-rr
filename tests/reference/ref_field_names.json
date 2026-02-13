@@ -1,0 +1,56 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "2010": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "2011": {
+      "type": "article",
+      "fields": {
+        "_author": "Me"
+      },
+      "persons": {}
+    },
+    "2012": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "2013": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "2014": {
+      "type": "article",
+      "fields": {
+        ".name": "Myself"
+      },
+      "persons": {}
+    },
+    "2015": {
+      "type": "article",
+      "fields": {
+        "+name": "Myself"
+      },
+      "persons": {}
+    },
+    "2016": {
+      "type": "article",
+      "fields": {
+        "-name": "Myself"
+      },
+      "persons": {}
+    },
+    "2017": {
+      "type": "article",
+      "fields": {
+        "@name": "Myself"
+      },
+      "persons": {}
+    }
+  }
+}

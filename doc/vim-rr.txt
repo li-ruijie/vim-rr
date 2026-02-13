@@ -1950,9 +1950,6 @@ Currently, there is only one script known to extend vim-rr features:
 
 Rnoweb:
 
-The omni completion of bibliographic data from bib files requires Python 3 and
-the PyBTeX library for Python 3.
-
 For Rnoweb documents, omni completion of citation keys gathers data from
 `.bib` files in the same directory of the current Rnoweb document, and the
 completion works only if a pattern similar to "\cite{" precedes the cursor
@@ -1974,8 +1971,7 @@ and cmp-zotcite for completing citation keys directly from Zotero database:
    https://github.com/jalvesaq/cmp-zotcite
 
 If zotcite is not installed, vim-rr will do omni completion of bibliographic
-citation keys from `.bib` files, requiring Python 3 and the PyBTeX library for
-Python 3 to work. Then, vim-rr will look for bibliographic data in any `.bib`
+citation keys from `.bib` files. vim-rr will look for bibliographic data in any `.bib`
 file listed in the `bibliography` field of the YAML header. If the
 `bibliography` field is not defined, it will use all `.bib` files that are in
 the same directory of the RMarkdown document as bibliography sources. The list
@@ -2253,8 +2249,8 @@ Quarto document. If vim-rr fails to find the file, you can set the value of
    let g:R_quarto_intel = '~/Downloads/quarto-1.1.251/share/editor/tools/yaml/yaml-intelligence-resources.json'
 <
 Omni completion in Rnoweb files will include results from bib files entries
-(requiring Python 3 and python3-pybtex): required for omni completion of
-citation keys (following |R_cite_pattern|) in Rnoweb documents.
+for omni completion of citation keys (following |R_cite_pattern|) in Rnoweb
+documents.
 
 Completion of bib file entries might also be enabled to `rmd` and `quarto`
 file types if you include them in the list `R_bib_compl`. Example:
