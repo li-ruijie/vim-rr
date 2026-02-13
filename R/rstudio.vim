@@ -8,12 +8,12 @@ g:did_vimr_rstudio = 1
 var ps_script_path = ''
 
 def g:StartRStudio()
-    if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
+    if g:IsJobRunning("RStudio")
+        g:RWarningMsg("RStudio is already running")
         return
     endif
 
     g:SendCmdToR = function('g:SendCmdToR_NotYet')
-
     if has("win32")
         g:SetRHome()
     endif
@@ -66,6 +66,8 @@ def EnsureWindowVisible(pid: number)
             '    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
             '    [DllImport("user32.dll")]',
             '    public static extern bool IsWindowVisible(IntPtr hWnd);',
+            '    [DllImport("user32.dll")]',
+            '    public static extern IntPtr GetForegroundWindow();',
             '}',
             '"@',
             'function ShowAllWindows {',
@@ -109,11 +111,21 @@ def EnsureWindowVisible(pid: number)
             '    ShowAllWindows',
             '    if ($anyFound) { $found = $true }',
             '    if ($anyVisible) {',
-            '        for ($g = 0; $g -lt 50; $g++) {',
-            '            Start-Sleep -Milliseconds 100',
-            '            ShowAllWindows',
-            '        }',
             '        Write-Output "OK"',
+            '        # Guard phase (5s) + focus wait (10s) = 15s total.',
+            '        # Re-show windows during guard; check for RStudio focus',
+            '        # throughout.  Exit the moment RStudio has focus.',
+            '        for ($g = 0; $g -lt 150; $g++) {',
+            '            Start-Sleep -Milliseconds 100',
+            '            if ($g -lt 50) { ShowAllWindows }',
+            '            $fg = [RStudioWin]::GetForegroundWindow()',
+            '            [uint32]$fgpid = 0',
+            '            [RStudioWin]::GetWindowThreadProcessId($fg, [ref]$fgpid) | Out-Null',
+            '            if ($pidSet.ContainsKey([int]$fgpid)) {',
+            '                Write-Output "RAISE_VIM"',
+            '                exit 0',
+            '            }',
+            '        }',
             '        exit 0',
             '    }',
             '}',
@@ -127,7 +139,9 @@ def EnsureWindowVisible(pid: number)
         '-File', script, string(pid)], {
         out_cb: (ch: channel, msg: string) => {
             var m = trim(msg)
-            if m ==# 'TIMEOUT'
+            if m ==# 'RAISE_VIM'
+                g:RaiseVimWindow()
+            elseif m ==# 'TIMEOUT'
                 g:RWarningMsg('RStudio window did not appear within 20 seconds')
             elseif m ==# 'SHOW_FAILED'
                 g:RWarningMsg('RStudio window found but could not be made visible')
@@ -135,6 +149,7 @@ def EnsureWindowVisible(pid: number)
         },
         exit_cb: (j: job, status: number) => {
             delete(script)
+            ps_script_path = ''
         },
     })
 enddef

@@ -161,3 +161,160 @@ enddef
 g:AssertEqual(BuildRmdTarget('default', 'rmd'), '', 'BuildRmdTarget: default')
 g:AssertEqual(BuildRmdTarget('pdf', 'quarto'), ', output_format = "pdf"', 'BuildRmdTarget: quarto pdf')
 g:AssertEqual(BuildRmdTarget('pdf_document', 'rmd'), ', output_format = "pdf_document"', 'BuildRmdTarget: rmd pdf_document')
+
+# ========================================================================
+# StartRStudio guard must use IsJobRunning, not SendCmdToR (restart bug)
+# ========================================================================
+var rstudio_lines = readfile(expand('<sfile>:p:h:h') .. '/R/rstudio.vim')
+var in_startrstudio = false
+var guard_uses_isjobrunning = false
+for rstline in rstudio_lines
+  if rstline =~ 'def g:StartRStudio()'
+    in_startrstudio = true
+  elseif in_startrstudio && rstline =~ '^\s*enddef\s*$'
+    break
+  elseif in_startrstudio && rstline =~ 'IsJobRunning.*RStudio'
+    guard_uses_isjobrunning = true
+  endif
+endfor
+g:Assert(guard_uses_isjobrunning, 'StartRStudio guard must use IsJobRunning("RStudio")')
+
+# ========================================================================
+# SetSendCmdToR must check R_pid before activating (stale timer guard)
+# ========================================================================
+var start_r_lines = readfile(expand('<sfile>:p:h:h') .. '/R/start_r.vim')
+var in_setsendcmd = false
+var rpid_guard_found = false
+for srline in start_r_lines
+  if srline =~ 'def g:SetSendCmdToR('
+    in_setsendcmd = true
+  elseif in_setsendcmd && srline =~ '^\s*enddef\s*$'
+    break
+  elseif in_setsendcmd && srline =~ 'R_pid\s*==\s*0'
+    rpid_guard_found = true
+  endif
+endfor
+g:Assert(rpid_guard_found, 'SetSendCmdToR must guard against stale timers via R_pid check')
+
+# ========================================================================
+# SetVimcomInfo must cancel the vimcom timeout timer
+# ========================================================================
+var in_setvimcominfo = false
+var cancels_timeout = false
+for svline in start_r_lines
+  if svline =~ 'def g:SetVimcomInfo('
+    in_setvimcominfo = true
+  elseif in_setvimcominfo && svline =~ '^\s*enddef\s*$'
+    break
+  elseif in_setvimcominfo && svline =~ 'timer_stop(vimcom_timeout_timer)'
+    cancels_timeout = true
+  endif
+endfor
+g:Assert(cancels_timeout, 'SetVimcomInfo must cancel vimcom_timeout_timer')
+
+# ========================================================================
+# SetVimcomInfo calls SetSendCmdToR synchronously (no timer)
+# ========================================================================
+var in_setvimcominfo2 = false
+var has_setsend_timer = false
+var has_setsend_direct = false
+for sv2line in start_r_lines
+  if sv2line =~ 'def g:SetVimcomInfo('
+    in_setvimcominfo2 = true
+  elseif in_setvimcominfo2 && sv2line =~ '^\s*enddef\s*$'
+    break
+  elseif in_setvimcominfo2 && sv2line =~ 'timer_start.*SetSendCmdToR'
+    has_setsend_timer = true
+  elseif in_setvimcominfo2 && sv2line =~ '^\s*g:SetSendCmdToR()\s*$'
+    has_setsend_direct = true
+  endif
+endfor
+g:Assert(!has_setsend_timer, 'SetVimcomInfo must not use timer for SetSendCmdToR')
+g:Assert(has_setsend_direct, 'SetVimcomInfo must call SetSendCmdToR() directly')
+
+# ========================================================================
+# RQuit must not use a sleep-poll loop for RStudio exit
+# ========================================================================
+var in_rquit = false
+var has_sleep_poll = false
+for rqline in start_r_lines
+  if rqline =~ 'def g:RQuit('
+    in_rquit = true
+  elseif in_rquit && rqline =~ '^\s*enddef\s*$'
+    break
+  elseif in_rquit && rqline =~ 'while.*IsJobRunning.*RStudio'
+    has_sleep_poll = true
+  endif
+endfor
+g:Assert(!has_sleep_poll, 'RQuit must not use while/sleep loop for RStudio exit')
+
+# ========================================================================
+# RQuit bunload must not be followed by sleep
+# ========================================================================
+var in_rquit2 = false
+var saw_bunload = false
+var sleep_after_bunload = false
+for rq2line in start_r_lines
+  if rq2line =~ 'def g:RQuit('
+    in_rquit2 = true
+  elseif in_rquit2 && rq2line =~ '^\s*enddef\s*$'
+    break
+  elseif in_rquit2 && rq2line =~ 'bunload.*Object_Browser'
+    saw_bunload = true
+  elseif in_rquit2 && saw_bunload && rq2line =~ '^\s*sleep\b'
+    sleep_after_bunload = true
+    saw_bunload = false
+  elseif in_rquit2 && saw_bunload && rq2line =~ '\S'
+    saw_bunload = false
+  endif
+endfor
+g:Assert(!sleep_after_bunload, 'RQuit must not sleep after bunload')
+
+# ========================================================================
+# ClearRInfo must chain restart via restart_pending flag
+# ========================================================================
+var in_clearrinfo = false
+var has_restart_chain = false
+for crline in start_r_lines
+  if crline =~ 'def g:ClearRInfo('
+    in_clearrinfo = true
+  elseif in_clearrinfo && crline =~ '^\s*enddef\s*$'
+    break
+  elseif in_clearrinfo && crline =~ 'restart_pending'
+    has_restart_chain = true
+  endif
+endfor
+g:Assert(has_restart_chain, 'ClearRInfo must check restart_pending flag')
+
+# ========================================================================
+# ROnJobExit must call OnRStudioQuitComplete for RStudio key
+# ========================================================================
+var vimrcom_lines = readfile(expand('<sfile>:p:h:h') .. '/R/vimrcom.vim')
+var in_ronjobxit = false
+var has_rstudio_quit_hook = false
+for vjline in vimrcom_lines
+  if vjline =~ 'def g:ROnJobExit('
+    in_ronjobxit = true
+  elseif in_ronjobxit && vjline =~ '^\s*enddef\s*$'
+    break
+  elseif in_ronjobxit && vjline =~ 'RStudio.*OnRStudioQuitComplete'
+    has_rstudio_quit_hook = true
+  endif
+endfor
+g:Assert(has_rstudio_quit_hook, 'ROnJobExit must call OnRStudioQuitComplete for RStudio')
+
+# ========================================================================
+# RRestart must not use timer_start to delay StartR
+# ========================================================================
+var in_rrestart = false
+var has_restart_timer = false
+for rrline in start_r_lines
+  if rrline =~ 'def g:RRestart('
+    in_rrestart = true
+  elseif in_rrestart && rrline =~ '^\s*enddef\s*$'
+    break
+  elseif in_rrestart && rrline =~ 'timer_start'
+    has_restart_timer = true
+  endif
+endfor
+g:Assert(!has_restart_timer, 'RRestart must not use timer_start (uses restart_pending instead)')

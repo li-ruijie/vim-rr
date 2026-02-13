@@ -125,6 +125,9 @@ def g:ROnJobExit(job_id: any, stts: number)
     if key ==# 'R'
         g:ClearRInfo()
     endif
+    if key ==# 'RStudio' && exists('*g:OnRStudioQuitComplete')
+        g:OnRStudioQuitComplete()
+    endif
     if key ==# 'Server'
         g:rplugin.nrs_running = 0
     endif
