@@ -99,7 +99,7 @@ Main dependencies:
        installed and updated whenever necessary. The package requires
        compilation by a C compiler (e.g. `gcc` or `clang`).
 
-     - You do not need to load vimcom in your .Rprofile because the Vim-R
+     - You do not need to load vimcom in your .Rprofile because the vim-rr
        plugin sets the environment variable `R_DEFAULT_PACKAGES`, including
        `vimcom` in the list of packages to be loaded on R startup. However,
        if you set the option `defaultPackages` in a .Rprofile, you should
@@ -213,7 +213,7 @@ the option `defaultPackages` in your .Rprofile or in a .Rprofile in the
 current directory, the environment variable will be overridden. Thus, if you
 have to set the option `defaultPackages`, you should include "vimcom" among
 the packages to be loaded. You might want to include "vimcom" only if R was
-started by Vim-R, as in the example below:
+started by vim-rr, as in the example below:
 >r
    if(Sys.getenv("VIMR_TMPDIR") == ""){
        options(defaultPackages = c("utils", "grDevices", "graphics", "stats", "methods"))
@@ -484,7 +484,7 @@ in each case:
    summary(x)
    summary(m)
 <
-Vim-R will not check the class of the first object if the `=` operator is
+vim-rr will not check the class of the first object if the `=` operator is
 present. For example, in the two cases below you would get the generic help
 for `summary`:
 >r
@@ -514,7 +514,7 @@ values separated by tab characters and display this file. The command
 horizontal split that opens above the current window. This behavior can be
 customized, and you can configure vim-rr to call an external application to
 display the data.frame or matrix (see |vim-rr-df-view|). All files involved in
-these operations are created in Vim-R's temporary directory and deleted when
+these operations are created in vim-rr's temporary directory and deleted when
 R quits.
 
 You can source all .R files in a directory with the Normal mode command
@@ -590,11 +590,11 @@ In any case, the pdf viewer must be started by the vim-rr plugin. See
 ------------------------------------------------------------------------------
 4.3. Omni completion
 
-Vim-R sets 'omnifunc' so that CTRL-X CTRL-O triggers R completion. To get
+vim-rr sets 'omnifunc' so that CTRL-X CTRL-O triggers R completion. To get
 automatic (as-you-type) completion, pair vim-rr with an auto-completion plugin
 such as vim-mucomplete (see |vim-rr-mucomplete|).
 
-Vim-R does not complete the names of all functions of all installed packages
+vim-rr does not complete the names of all functions of all installed packages
 (see |R_start_libs|).
 
 For both `library()` and `require()`, when completing the first argument, the
@@ -769,7 +769,7 @@ defined by your colorscheme, but you can change them in your |vimrc| (see
 You can set both foreground and background colors of R output in your `vimrc`.
 The example below is for either a GUI version of Vim or a terminal interface
 of Vim with 'termguicolors' (see |true-color|):
->r
+>vim
    if has('gui_running') || &termguicolors
      let g:rout_color_input    = 'guifg=#9e9e9e'
      let g:rout_color_normal   = 'guifg=#ff5f00'
@@ -821,7 +821,7 @@ of
 ------------------------------------------------------------------------------
 5.2. The menu may not reflect some of your custom key bindings
 
-If you have created a custom key binding for Vim-R, the menu in GVim will not
+If you have created a custom key binding for vim-rr, the menu in GVim will not
 always reflect the correct key binding if it is not the same for Normal,
 Visual and Insert modes.
 
@@ -899,6 +899,7 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_hi_fun_paren|        Highlight R functions only if followed by a `(`
 |R_routnotab|           Show output of R CMD BATCH in new window
 |R_notmuxconf|          Don't use a specially built Tmux config file
+|R_tmux_title|          Title of the Tmux window
 |R_rconsole_height|     Number of lines of R Console
 |R_rconsole_width|      Number of columns of R Console
 |R_min_editor_width|    Minimum number of columns of editor after R start
@@ -928,6 +929,9 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_insert_mode_cmds|    Allow R commands in insert mode
 |R_rmhidden|            Remove hidden objects from R workspace
 |R_source|              Source additional Vim scripts
+|R_enable_comment|      Enable comment/uncomment key bindings
+|R_indent_commented|    Indent commented lines
+|R_rcomment_string|     String used to comment lines
 |R_non_r_compl|         Bibliography completion
 |R_wait|                Time to wait for vimcom loading
 |R_wait_reply|          Time to wait for R reply
@@ -1043,11 +1047,11 @@ within R Console, put in your |vimrc|:
 Then, you will have to press the default <C-\><C-N> to go from Terminal to
 Normal mode.
 
-Vim-R sets the option "editor" to a function that makes the object to be
+vim-rr sets the option "editor" to a function that makes the object to be
 edited in a new tab when `R_esc_term` = 1 (the default value).
 
                                                                *R_close_term*
-Vim-R closes the terminal buffer when R quits. If you prefer that the
+vim-rr closes the terminal buffer when R quits. If you prefer that the
 terminal remains open after R quits, put in your |vimrc|:
 >vim
    let g:R_close_term = 0
@@ -1087,7 +1091,7 @@ is, the width will be outdated for the first command executed after a change
 in the number of columns of the R Console window.
 
                                                                *R_buffer_opts*
-Vim-R sets the options 'winfixwidth' and 'winfixheight' in the window where R
+vim-rr sets the options 'winfixwidth' and 'winfixheight' in the window where R
 runs. This prevents the window of being automatically resized in some
 circumstances. It also sets the option 'nobuflisted'. You can set the value of
 `R_buffer_opts` to define what options should be set in the R Console buffer.
@@ -1280,7 +1284,7 @@ the object browser's default width by setting the value of |R_objbr_w| in your
 >vim
    let g:R_objbr_w = 30
 <
-If the Object Browser is being created bellow or at the top of the existing
+If the Object Browser is being created below or at the top of the existing
 window, it will be 10 lines high, unless you set its height in your |vimrc|:
 >vim
    let g:R_objbr_h = 20
@@ -1306,7 +1310,7 @@ When building the list of objects for auto completion and for the Object
 Browser, `vimcom` inspects lists only as deep as 12 levels. When the time to
 build the completion data is higher than 100 ms `vimcom` decreases the number
 of levels it inspects in lists. Even if `vimcom` can build the completion
-data in less than 100 ms, it also decrease the maximum level of list
+data in less than 100 ms, it also decreases the maximum level of list
 inspection if the resulting completion data is bigger than 1,000,000 bytes
 because big data may take a noticeably long time to be transmitted through the
 TCP connection. When `vimcom` automatically decreases the depth of list
@@ -1314,12 +1318,12 @@ inspection, if `vimcom.verbose` is > 1, it outputs information like the
 following on R Console:
 
    vimcom:
-       Time to buiild list of objects: 7.582 ms (max_time = 100 ms)
+       Time to build list of objects: 7.582 ms (max_time = 100 ms)
        List size: 1611734 bytes (max_size = 1000000 bytes)
        New max_depth: 9
 
 You can set different values for `time_limit`, `size_limit`, and `max_depth`
-in the Lua table `compl_data` in your |vimrc|. Below are the default values:
+in the dictionary `R_compl_data` in your |vimrc|. Below are the default values:
 >
    let g:R_compl_data = { 'max_depth': 12, 'max_size': 1000000, 'max_time': 100 }
 <
@@ -1522,7 +1526,7 @@ from packages, but you can set a different highlight command for them in your
    hi rGlobEnvFun ctermfg=117 guifg=#87d7ff cterm=italic gui=italic
 <
 If you prefer to completely disable the syntax highlighting of R functions by
-Vim-R put in your |vimrc|:
+vim-rr, put in your |vimrc|:
 >vim
    let g:R_hi_fun = 0
 <
@@ -1640,7 +1644,7 @@ If you want to run RStudio instead of R set in your |vimrc| the value of
    let g:R_external_term = 1
    let g:RStudio_cmd = 'C:\Program Files\RStudio\bin\rstudio'
 <
-Note: You must manually run a successful comand in RStudio Console before
+Note: You must manually run a successful command in RStudio Console before
 sending code from Vim to RStudio. The command might be something as simple as
 the number `1`.
 
@@ -1657,7 +1661,7 @@ arguments of its methods. If you want that the plugin calls the function
    let g:R_listmethods = 1
 <
 By default, R makes a scatter plot of numeric vectors. The function
-`vim.plot()` do both a histogram and a box plot. The function can be called by
+`vim.plot()` does both a histogram and a box plot. The function can be called by
 the plugin after <LocalLeader>rg if you put the following line in your
 |vimrc|:
 >vim
@@ -1694,7 +1698,7 @@ useful when you are using a version of R which is compiled against readline
 <
 Some versions of R's console interpret <C-L> as a command to clear the console
 while others have no command to clear the console. You should set the value of
-`R_clear_console`  as `0` if you see `^L` printed in the R's console after
+`R_clear_console` as `0` if you see `^L` printed in the R's console after
 <LocalLeader>rm:
 >vim
    let g:R_clear_console = 0
@@ -1820,7 +1824,7 @@ put in your |vimrc|:
 >vim
    let g:R_clear_line = 1
 <
-Vim-R reads your `~/.inputrc` and, if it finds the string "set editing-mode
+vim-rr reads your `~/.inputrc` and, if it finds the string "set editing-mode
 vi" it will send to R <Esc>0Da instead of <C-a><C-k>. If vim-rr fails to
 detect that R is running in vi editing mode, you have to put this line in your
 |vimrc|:
@@ -1869,7 +1873,7 @@ Server and on Sway Window Manager and 1 on other Wayland compositors.
 On Windows, vim-rr will call Sumatra to open the PDF. On Linux, you can change
 the value of `R_pdfviewer` in your
 |vimrc| to define what PDF viewer will be called. Valid values are "zathura"
-(default, and the one best integrated with Vim-R), "evince" and "okular".
+(default, and the one best integrated with vim-rr), "evince" and "okular".
 
 On Linux, if running on the X server (not on Wayland), the application
 `wmctrl` is required to raise both the PDF viewer and Vim windows. If using
@@ -1893,7 +1897,7 @@ call `open` on Windows, and `xdg-open` on Linux.
 
 Most browser will open a new tab each time they are called instead of
 refreshing a document that is already open. So, if you rather prefer that
-Vim-R never tries to open the web browser, put in your |vimrc|:
+vim-rr never tries to open the web browser, put in your |vimrc|:
 >vim
    let g:R_openhtml = 0
 <
@@ -1929,7 +1933,7 @@ to R function knit2pdf), and `R_knitargs` (arguments to be passed to
 ------------------------------------------------------------------------------
 6.25. Allow R commands in insert mode                     *R_insert_mode_cmds*
 
-Vim-R commands are enabled for Normal mode, but most of them can also be
+vim-rr commands are enabled for Normal mode, but most of them can also be
 enabled in Insert mode. However, depending on your <LocalLeader>, this can
 make it very difficult to write R packages or Sweave files.  For example, if
 <LocalLeader> is set to the `\` character, typing `\dQuote` in a .Rd file
@@ -1961,8 +1965,8 @@ https://unix.stackexchange.com/questions/104094/is-there-any-way-to-enable-ctrll
 6.27. Source additional Vim scripts                                 *R_source*
 
 This variable should contain a comma separated list of Vim scripts to be
-sourced by Vim-R. These scripts may provide additional
-functionality and/or change the behavior of Vim-R. If you have such
+sourced by vim-rr. These scripts may provide additional
+functionality and/or change the behavior of vim-rr. If you have such
 scripts, put in your |vimrc|:
 >vim
    let g:R_source = '~/path/to/MyScript.vim,/path/to/AnotherScript.vim'
@@ -2035,14 +2039,14 @@ variable `b:rplugin_non_r_omnifunc`. Example:
 >vim
    autocmd FileType rmd let b:rplugin_non_r_omnifunc = "pandoc#completion#Complete"
 <
-Note: On Windows, Vim-R's bibliographic completion works only with ascii
+Note: On Windows, vim-rr's bibliographic completion works only with ascii
 letters. See also |R_bib_compl|.
 
 
 ------------------------------------------------------------------------------
 6.29. Time to wait for vimcom loading                                *R_wait*
 
-Vim-R asynchronously waits 60 seconds for the vimcom package to be loaded
+vim-rr asynchronously waits 60 seconds for the vimcom package to be loaded
 during R startup. If 60 seconds are not enough to your R startup, then set a
 higher value for the variable in your |vimrc|. Example:
 >vim
@@ -2095,11 +2099,11 @@ started by vim-rr as in the example below:
    if (Sys.getenv("VIMR_TMPDIR") != "")
        cat("~/Rprofile: R was called by vim-rr\n", file = stderr())
 <
-However, if for any reason you `~/.Rprofile` is not being sourced, you can
+However, if for any reason your `~/.Rprofile` is not being sourced, you can
 include in `R_after_start` R commands that should be executed during R startup
 (more precisely, during `vimcom` loading). Example:
 >vim
-   let g:R_after_start = ['R: cat("R_after_start: R was called by Vim-R\n", file = stderr())']
+   let g:R_after_start = ['R: cat("R_after_start: R was called by vim-rr\n", file = stderr())']
 <
 Note: The loading of `vimcom` will fail if the command to be executed is
 invalid. In the example above, we have had to use `\n` to indicate a new line.
@@ -2109,7 +2113,7 @@ right after R startup, put in your |vimrc|:
 >vim
    let g:R_after_start = [':hide']
 <
-Vim-R stores the environment variable $WINDOWID of the terminal where R is
+vim-rr stores the environment variable $WINDOWID of the terminal where R is
 running as $RCONSOLE. Thus, if you are running R in a external terminal
 emulator on the X server (not on Wayland) on Linux, `~/bin` is in your path,
 and you want to resize and change the positions of the terminals containing
@@ -2141,7 +2145,7 @@ debugged will also be disabled.
 >vim
    let g:R_debug = 0
 <
-Vim-R puts the cursor in the R Console when the debugging starts. If you do
+vim-rr puts the cursor in the R Console when the debugging starts. If you do
 not want this, put in your |vimrc|:
 >vim
    let g:R_dbg_jump = 0
@@ -2167,7 +2171,7 @@ use those key-bindings specified by the user, put in your |vimrc|:
 <
 If you want to disable only some of vim-rr commands, create a Vim list with
 their key bindings names in your |vimrc|. The complete list of key bindings
-names is shown at the Custom key bindings section (Vim-R-key-bindings).
+names is shown at the Custom key bindings section |vim-rr-key-bindings|.
 Below is an example on how to disable the commands that sends `setwd()` and
 `dput()` to R Console:
 >vim
@@ -2209,11 +2213,11 @@ want to know what they are, while editing an R file, do in Normal mode:
                                                               *R_quarto_intel*
                                                               *R_bib_compl*
 
-Vim-R provides omni completion for R objects via 'omnifunc'. For automatic
+vim-rr provides omni completion for R objects via 'omnifunc'. For automatic
 (as-you-type) completion, use an auto-completion plugin such as
 vim-mucomplete (see |vim-rr-mucomplete|).
 
-The advantage of Vim-R's built-in system is the ability to complete objects
+The advantage of vim-rr's built-in system is the ability to complete objects
 of the R's workspace (`.GlobalEnv`), including column names of data.frames.
 
 If you are also using the `languageserver` R package
@@ -2224,12 +2228,12 @@ omni completion feature in your `~/.Rprofile` to avoid conflicts:
            list(completionProvider = FALSE,
                 completionItemResolve = FALSE))
 <
-If you prefer to get completions from the language server instead of Vim-R,
+If you prefer to get completions from the language server instead of vim-rr,
 set `R_set_omnifunc` as an empty list in your |vimrc|:
 >vim
    let g:R_set_omnifunc = []
 <
-You can define in your |vimrc| the list of file types supported by Vim-R
+You can define in your |vimrc| the list of file types supported by vim-rr
 that should have omni completion enabled. Example:
 >vim
    let g:R_set_omnifunc = ["r",  "rmd", "quarto", "rnoweb", "rhelp", "rrst"]
@@ -2241,7 +2245,7 @@ below sets `R_fun_data_1` to its default value:
 >vim
    let g:R_fun_data_1 = ['select', 'rename', 'mutate', 'filter']
 
-Vim-R can also include column names from a data.frame passed as the first
+vim-rr can also include column names from a data.frame passed as the first
 argument of the parent function. For example, if you were typing
 >r
    with(my_data_frame, lm(
@@ -2264,7 +2268,7 @@ very simple and would wrongly recognize `data` as the name of the
 >r
    ggplot(data = my_data_frame, mapping = aes(
 <
-Vim-R receives the list of objects for omni completion from the vimrserver
+vim-rr receives the list of objects for omni completion from the vimrserver
 job running in the background. If the list is too big to be transmitted
 through vimrserver's `stdout`, the completion might be aborted.
 
@@ -2286,7 +2290,7 @@ file types if you include them in the list `R_bib_compl`. Example:
    let g:R_bib_compl = ['rnoweb', 'rmd', 'quarto']
 <
 However, there are many alternative plugins for completing bib keys that work
-better than Vim-R. Examples:
+better than vim-rr. Examples:
 
    - `zotcite` with `cmp-zotcite` (for Markdown, Rmd and Quarto):
      https://github.com/jalvesaq/zotcite
@@ -2299,7 +2303,7 @@ better than Vim-R. Examples:
 ------------------------------------------------------------------------------
 6.37. Integration with vim-mucomplete                      *vim-rr-mucomplete*
 
-Vim-R sets 'omnifunc' for R file types, so CTRL-X CTRL-O triggers R
+vim-rr sets 'omnifunc' for R file types, so CTRL-X CTRL-O triggers R
 completion out of the box. For automatic (as-you-type) completion, install
 vim-mucomplete (https://github.com/lifepillar/vim-mucomplete).
 
@@ -2309,7 +2313,7 @@ Minimal setup in your |vimrc|:
    let g:mucomplete#enable_auto_at_startup = 1
 <
 This is enough: vim-mucomplete's default completion chain already includes
-`'omni'`, so it will call Vim-R's 'omnifunc' automatically.
+`'omni'`, so it will call vim-rr's 'omnifunc' automatically.
 
 If you want to customize the chain for R file types, you can specify which
 completion methods to try and in what order. For example, to try omni
@@ -2325,7 +2329,7 @@ Available methods include `'omni'`, `'keyn'` (keyword forward), `'keyp'`
 (keyword backward), `'path'` (file paths), `'dict'` (dictionary), and
 `'uspl'` (spelling). See mucomplete's documentation for the full list.
 
-Note: Vim-R's omni completion contacts the vimrserver process and may take
+Note: vim-rr's omni completion contacts the vimrserver process and may take
 longer than keyword completion. If you find the automatic triggering too
 slow, you can remove `'omni'` from the automatic chain and trigger it
 manually with CTRL-X CTRL-O.
@@ -2433,7 +2437,7 @@ mounted locally. Below is an example of how to achieve this goal.
        remote machine, and install the package. Example:
 >sh
        cd /tmp
-       R CMD build /path/to/Vim-R/R/vimcom
+       R CMD build /path/to/vim-rr/R/vimcom
        scp vimcom_0.9-191.tar.gz remotelogin@remotehost:/tmp
        ssh remotelogin@remotehost
        cd /tmp
@@ -2444,10 +2448,10 @@ Alternative: vimcmdline~
 
 Running R on a remote machine will make a lot of data to be transferred
 through a TCP connection between the R package `vimcom` and the application
-`vimrserver` run by Vim-R. If your connection is not fast enough or its
+`vimrserver` run by vim-rr. If your connection is not fast enough or its
 latency is too high, you could consider using vimcmdline
 (https://github.com/jalvesaq/vimcmdline) or a similar plugin. Of course,
-none of Vim-R's features that depend on information on R's workspace will be
+none of vim-rr's features that depend on information on R's workspace will be
 available.
 
 Below is an example for your |vimrc| of how to configure vimcmdline for
@@ -2455,7 +2459,7 @@ accessing R remotely:
 >vim
    let g:cmdline_app = {'r': 'ssh -t user@remote-machine R --no-save'}
 <
-Most of Vim-R's key bindings call functions that send code to R, and,
+Most of vim-rr's key bindings call functions that send code to R, and,
 because they will not be used, it is better to disable them:
 >vim
    let g:R_user_maps_only = 1
@@ -2588,10 +2592,153 @@ etc. Example of how to change it:
    let g:R_cite_pattern = '\C\\\a*cite\a*\*\?\(\[[^\]]*\]\)*\_\s*{'
 <
 
+------------------------------------------------------------------------------
+6.42. Integration with Tmux                                    *R_tmux_title*
+
+As an alternative to running R in Vim's built-in terminal, you can run R in a
+Tmux split pane. This feature is unsupported and may be removed in the future.
+To enable it, source the tmux split script via |R_source| in your |vimrc|:
+>vim
+   let g:R_source = '/path/to/vim-rr/R/tmux_split.vim'
+<
+Then, start Tmux before starting Vim:
+>
+   tmux
+   vim filename.R
+   exit
+<
+When you start R, the terminal window is split into two regions: one for Vim
+and the other for R. When you are done editing, type `exit` to quit the Tmux
+session.
+
+Note: The old method of enabling Tmux split by setting `R_tmux_split` no
+longer works.
+
+Tmux automatically renames window titles to the currently running command.
+vim-rr sets the title to "VimR". You can change this or let Tmux set it
+automatically:
+>vim
+   let g:R_tmux_title = 'VimR'
+   let g:R_tmux_title = 'automatic'
+<
+
+Tmux configuration ~
+
+You should create a ~/.tmux.conf if one does not exist. Below is a starting
+point:
+>
+   # Use <C-a> instead of the default <C-b> as Tmux prefix
+   set-option -g prefix C-a
+   unbind-key C-b
+   bind-key C-a send-prefix
+
+   # Mouse support
+   set -g terminal-overrides 'xterm*:smcup@:rmcup@'
+   set -g mouse on
+
+   # Escape time for libtermkey
+   set -sg escape-time 10
+
+   # Vi-style key bindings
+   set-window-option -g mode-keys vi
+   bind h select-pane -L
+   bind j select-pane -D
+   bind k select-pane -U
+   bind l select-pane -R
+   unbind p
+   bind p paste-buffer
+<
+See also |R_notmuxconf| for the Tmux configuration used when R runs in an
+external terminal emulator.
+
+Key bindings ~
+
+With <C-a> as the Tmux prefix:
+
+   <C-a> arrow keys      Switch to adjacent pane
+   <C-a> <C-Up>          Resize pane (repeat <C-Up> to continue)
+   <C-a> [               Enter copy/scroll back mode (q to quit)
+   <C-a> ]               Paste from Tmux paste buffer
+   <C-a> z               Toggle zoom (hide/show other panes)
+
+In copy/scroll back mode:
+
+   q                     Quit copy mode
+   <Space>               Start text selection
+   v <Space>             Start rectangular text selection
+   <Enter>               Copy selection to Tmux paste buffer
+
+Note: Because <C-a> is the Tmux prefix, it is not passed to applications.
+To send <C-a> to Vim or R, type <C-a> <C-a>.
+
+Copying and pasting ~
+
+You do not need to copy code from Vim to R because the plugin's key bindings
+send code directly. To paste R output into Vim, use |:Rinsert|. Within Tmux,
+use the copy/scroll back mode to select and paste text between panes.
+
+To copy text to an application outside Tmux, hold <Shift> while selecting with
+the mouse — this bypasses Tmux's mouse capture and makes the selection
+available in the system clipboard. Paste into a Tmux window with <Shift> and
+the middle mouse button.
+
+
+------------------------------------------------------------------------------
+6.43. Comment and uncomment code                            *R_enable_comment*
+                                                           *R_indent_commented*
+                                                            *R_rcomment_string*
+
+vim-rr can comment and uncomment R code, but this feature is disabled by
+default because most users prefer a general-purpose comment plugin. To enable
+it, put in your |vimrc|:
+>vim
+   let g:R_enable_comment = 1
+<
+With the feature enabled, the following key bindings are available:
+
+   <LocalLeader>xc  Comment the current line (add comment string)
+   <LocalLeader>xu  Uncomment the current line (remove comment string)
+   <LocalLeader>xx  Toggle the commented state of the current line
+   <LocalLeader>;   Add a right-aligned comment to the current line
+
+The comment string used by <LocalLeader>xc, <LocalLeader>xu, <LocalLeader>xx
+and <LocalLeader>o is defined by `R_rcomment_string`. Default:
+>vim
+   let g:R_rcomment_string = '# '
+<
+The toggle command (<LocalLeader>xx) uses "# ", "## " or "### " depending on
+the values of `R_indent_commented` and `r_indent_ess_comments`. If
+`r_indent_ess_comments` is 1, `R_rcomment_string` is overridden and the
+comment string changes according to `R_indent_commented` ("## " if 0 and
+"### " if 1; see |ft-r-indent|).
+
+To disable the automatic indentation of commented lines:
+>vim
+   let g:R_indent_commented = 0
+<
+The right-aligned comment (<LocalLeader>;) starts at column 40 by default.
+Change this with `r_indent_comment_column`:
+>vim
+   let r_indent_comment_column = 20
+<
+If the line is longer than 38 characters, the comment starts two columns after
+the last character. When applied to a visual selection, comments are aligned
+according to the longest line.
+
+Note: While typing comments, the comment string is automatically added to new
+lines when you reach 'textwidth' but not when you press <Enter>. See
+'formatoptions' and |fo-table|. Example:
+>vim
+   autocmd FileType r setlocal formatoptions-=t formatoptions+=croql
+<
+The names for custom key bindings are: `RSimpleComment`,
+`RSimpleUnComment`, `RToggleComment`, and `RRightComment`.
+
+
 ==============================================================================
 7. Custom key bindings                                   *vim-rr-key-bindings*
 
-When creating custom key bindings for Vim-R, it is necessary to create three
+When creating custom key bindings for vim-rr, it is necessary to create three
 maps for most functions because the way the function is called is different in
 each Vim mode. Thus, key bindings must be made for Normal mode, Insert mode,
 and Visual mode.
@@ -2728,6 +2875,12 @@ the list of the names for custom key bindings (the prefix RE means "echo"; RD,
    RUpdateObjBrowser
    ROpenLists
    RCloseLists
+
+   Comment/uncomment (requires |R_enable_comment|):
+   RSimpleComment
+   RSimpleUnComment
+   RToggleComment
+   RRightComment
 
 See also: |R_user_maps_only| and |R_disable_cmds|.
 
