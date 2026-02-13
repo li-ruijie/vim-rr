@@ -1,6 +1,6 @@
 # R may break strings while sending them even if they are short
 out <- function(x) {
-    # Vim-R will wait for more input if the string doesn't end with "\x14"
+    # vim-rr will wait for more input if the string doesn't end with "\x14"
     y <- paste0(x, "\x14\n")
     cat(y)
     flush(stdout())
@@ -33,7 +33,7 @@ cat(libp, sep = "\n", colapse = "\n", file = "libPaths")
 R_version <- paste0(version[c("major", "minor")], collapse = ".")
 
 if (R_version < "4.0.0")
-    out("RWarn: Vim-R requires R >= 4.0.0")
+    out("RWarn: vim-rr requires R >= 4.0.0")
 
 R_version <- sub("[0-9]$", "", R_version)
 
@@ -63,7 +63,7 @@ check_vimcom_installation <- function() {
 }
 
 # The vimcom directory will not exist if vimcom was packaged separately from
-# the rest of Vim-R. I will also not be found if running Vim in MSYS2 and R
+# the rest of vim-rr. I will also not be found if running Vim in MSYS2 and R
 # on Windows because the directory names change between the two systems.
 if (!is.null(needed_vimcom_version)) {
     np <- find.package("vimcom", quiet = TRUE, verbose = FALSE)
@@ -138,7 +138,7 @@ if (!is.null(needed_vimcom_version)) {
 }
 
 
-# Save ~/.cache/Vim-R/vimcom_info
+# Save ~/.cache/vim-rr/vimcom_info
 np <- find.package("vimcom", quiet = TRUE, verbose = FALSE)
 if (length(np) == 1) {
     nd <- utils::packageDescription("vimcom")

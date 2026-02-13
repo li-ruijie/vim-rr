@@ -47,13 +47,13 @@ def DetermineComplDir(): string
   if exists("g:R_compldir")
     return expand(g:R_compldir)
   elseif has("win32") && $APPDATA != "" && isdirectory($APPDATA)
-    return $APPDATA .. "\\Vim-R"
+    return $APPDATA .. "\\vim-rr"
   elseif $XDG_CACHE_HOME != "" && isdirectory($XDG_CACHE_HOME)
-    return $XDG_CACHE_HOME .. "/Vim-R"
+    return $XDG_CACHE_HOME .. "/vim-rr"
   elseif isdirectory(expand("~/.cache"))
-    return expand("~/.cache/Vim-R")
+    return expand("~/.cache/vim-rr")
   elseif isdirectory(expand("~/Library/Caches"))
-    return expand("~/Library/Caches/Vim-R")
+    return expand("~/Library/Caches/vim-rr")
   else
     return "fallback"
   endif

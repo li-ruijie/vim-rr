@@ -2180,7 +2180,7 @@ stored by setting in your |vimrc| the values of `R_tmpdir` and
 `R_compldir`, as in the example below:
 >vim
    let g:R_tmpdir = '/dev/shm/R_tmp_dir'
-   let g:R_compldir = '~/.cache/Vim-R'
+   let g:R_compldir = '~/.cache/vim-rr'
 <
 The default paths of these directories depend on the operating system. If you
 want to know what they are, while editing an R file, do in Normal mode:
@@ -2361,7 +2361,7 @@ mounted locally. Below is an example of how to achieve this goal.
        `remotehost` with valid values for your case):
 >sh
        #!/bin/sh
-       sshfs remotelogin@remotehost:/home/remotelogin/.cache/Vim-R ~/.remoteR
+       sshfs remotelogin@remotehost:/home/remotelogin/.cache/vim-rr ~/.remoteR
 <
      - Create the shell script `~/bin/sshR` with the following contents,
        and make it executable (replace `remotelogin` and `remotehost` with
@@ -2406,7 +2406,7 @@ mounted locally. Below is an example of how to achieve this goal.
        let g:R_app = '/home/locallogin/bin/sshR'
        let g:R_cmd = '/home/locallogin/bin/sshR'
        let g:R_compldir = '/home/locallogin/.remoteR'
-       let g:R_remote_compldir = '/home/remotelogin/.cache/Vim-R'
+       let g:R_remote_compldir = '/home/remotelogin/.cache/vim-rr'
        let g:R_local_R_library_dir = '/path/to/local/R/library'
 <
      - Mount the remote directory:

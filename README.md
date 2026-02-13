@@ -33,10 +33,10 @@ mkdir -p ~/.vim/pack/plugins/start
 git clone https://github.com/li-ruijie/vim-rr ~/.vim/pack/plugins/start/vim-rr
 
 # Windows
-git clone https://github.com/li-ruijie/vim-rr %USERPROFILE%\vimfiles\pack\plugins\start\vim-r
+git clone https://github.com/li-ruijie/vim-rr %USERPROFILE%\vimfiles\pack\plugins\start\vim-rr
 ```
 
-See the full [documentation](doc/vim-r.txt) for configuration and usage.
+See the full [documentation](doc/vim-rr.txt) for configuration and usage.
 
 ## Software Architecture
 
@@ -216,48 +216,56 @@ Bridging Vim and R involves complex concurrency, particularly on Windows where R
 
 Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows) directly through the TCP link to RGui.
 
-## Changelog
+## Changes from upstream
 
 ### Features
 
-- Add `RRestart()` function and `<Plug>RRestart` mapping
-- Launch RStudio as a Vim job with automatic window visibility on Windows (Electron starts hidden via `job_start`; a PowerShell script polls for the Chrome_WidgetWin_1 window and calls `ShowWindow(SW_RESTORE)`)
-- Detect vimcom TCP disconnect: vimrserver notifies Vim when the connection drops, Vim warns the user, and `RQuit`/`RRestart` force-kill the R process instead of silently failing
-- Add `R_force_quit_on_close` option: when set alongside `R_quit_on_close`, force-kills R/RStudio on Vim exit if the TCP connection is already broken
+- `RRestart()` function and `<Plug>RRestart` mapping
+- RStudio launched as a Vim job with automatic window visibility on Windows (Electron starts hidden via `job_start`; a PowerShell script polls for the `Chrome_WidgetWin_1` window and calls `ShowWindow(SW_RESTORE)`)
+- TCP disconnect detection: vimrserver notifies Vim when the vimcom connection drops; `RQuit`/`RRestart` force-kill the R process instead of silently failing
+- `R_force_quit_on_close` option: force-kills R/RStudio on Vim exit when the TCP connection is already broken (requires `R_quit_on_close`)
+- BibTeX bibliography completion rewritten in pure Vim9script, removing the Python 3 / pybtex dependency (not yet rigorously tested)
+- Evince SyncTeX forward/inverse search rewritten in pure Vim9script using gdbus + dbus-monitor, removing the Python / python-dbus dependency (not yet rigorously tested)
+
+### Reliability
+
+- Extensive bug fixes across Vim9script porting, call-flow review, and C source audit
+- C source audit covering buffer overflows, null-terminator guards, thread safety, PROTECT/UNPROTECT balancing
+- Injection vulnerabilities fixed: `shellescape()` for shell-out paths, list-form `job_start()`, quote escaping in R/Vim/C layers
+- C stack overflow from R API calls on Windows TCP thread — `R_CStackStart` save/restore
+- Heap overflow in `hi_glbenv_fun` when R has many functions
+- `\x11` size-prefix protocol for large Vim commands preventing TCP fragmentation
+- 8-byte hex length-prefix protocol for vimrserver-to-vimcom messages preventing TCP concatenation
+- Mutex-protected linked-list eval queue replacing static flag-based command deferral
+- `r_is_busy` stuck after RStudio interrupt — tryCatch in R task callback + 5-second timeout auto-reset
 
 ### Security and performance
 
-- Validate tmpdir (symlink, permissions, type) with fallback to randomised path
-- Bind vimrserver to localhost; generate 128-bit secret via OS crypto APIs
-- Cache `TmuxOption()` result to avoid `system()` call on every `SendCmdToR_Term`
+- tmpdir validated (symlink, permissions, type) with fallback to randomised path
+- vimrserver bound to localhost; 128-bit secret via OS crypto APIs (`/dev/urandom`, `BCryptGenRandom`)
+- `TmuxOption()` result cached to avoid `system()` call on every `SendCmdToR_Term`
+- Windows foreground lock bypassed with `ForceForegroundWindow()` (`AttachThreadInput` + `BringWindowToTop`)
 
 ### Platform changes
 
-- Remove Neovim support
-- Remove macOS support
-- Remove Python dependency: BibTeX parsing and Evince SyncTeX are now pure Vim9script (not yet rigorously tested)
-
-### Bug fixes
-
-- Fix C stack overflow from R API calls on Windows TCP thread
-- Fix heap overflow in `hi_glbenv_fun` when R has many functions
-- Fix `\x11` size-prefix protocol for large Vim commands
-- Fix 14 injection vulnerabilities: `shellescape()`, list-form `job_start()`, quote escaping
-- Fix 32 type mismatches, regex precedence, and missing guards from deep call-flow review
+- Neovim support removed
+- macOS support removed
+- Python dependency removed (BibTeX parsing and Evince SyncTeX — not yet rigorously tested)
 
 ### Vim9script port
 
-- Port all 40 source `.vim` files to Vim9script (`def`/`enddef`, typed parameters, `var` declarations)
-- Add `delfunc` re-source guard pattern for `start_r.vim` (62 global functions)
-- Add variable-based re-source guards to all 18 vim9 files with `def g:`
-- Replace `legacy execute` with vim9 `execute` in job callbacks
-- Port syntax files (rdocpreview, rdoc, rbrowser, rout)
+- All 40 source `.vim` files ported to Vim9script (`def`/`enddef`, typed parameters, `var` declarations)
+- `delfunc` re-source guard pattern for `start_r.vim` (62 global functions)
+- Variable-based re-source guards for all 18 vim9 files with `def g:`
+- `legacy execute` replaced with vim9 `execute` in job callbacks
+- Syntax files ported (rdocpreview, rdoc, rbrowser, rout)
+- C/R command dispatch updated: `g:` prefix on all 43 call sites, bare vim9 function call syntax
 
-### Testing and linting
+### Testing
 
-- Add test suite (13 files, 304 assertions) and pre-commit test gate
-- Add vim9script lint rules (E114, E117, E477, E700, E1012, E1073)
-- Add startup integration test for all syntax and ftplugin files
-- Add callflow static analysis tests
-- Add pre-commit hook to sync vimcom version in help docs
-
+- Test suite: 14 files, 378 assertions, pre-commit test gate
+- Vim9script lint rules: E114, E117, E477, E700, E1012, E1073
+- Startup integration test for all syntax and ftplugin files
+- Callflow static analysis and generic bug-pattern lint
+- BibTeX parser deep-comparison tests (23 reference files via pybtex)
+- Pre-commit hook syncs vimcom version in help docs

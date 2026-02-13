@@ -786,9 +786,9 @@ if exists("g:R_tmpdir")
 else
     if has("win32")
         if isdirectory($TMP)
-            g:rplugin.tmpdir = $TMP .. "/Vim-R-" .. g:rplugin.userlogin
+            g:rplugin.tmpdir = $TMP .. "/vim-rr-" .. g:rplugin.userlogin
         elseif isdirectory($TEMP)
-            g:rplugin.tmpdir = $TEMP .. "/Vim-R-" .. g:rplugin.userlogin
+            g:rplugin.tmpdir = $TEMP .. "/vim-rr-" .. g:rplugin.userlogin
         else
             g:rplugin.tmpdir = g:rplugin.uservimfiles .. "/R/tmp"
         endif
@@ -796,14 +796,14 @@ else
     else
         if isdirectory($TMPDIR)
             if $TMPDIR =~ "/$"
-                g:rplugin.tmpdir = $TMPDIR .. "Vim-R-" .. g:rplugin.userlogin
+                g:rplugin.tmpdir = $TMPDIR .. "vim-rr-" .. g:rplugin.userlogin
             else
-                g:rplugin.tmpdir = $TMPDIR .. "/Vim-R-" .. g:rplugin.userlogin
+                g:rplugin.tmpdir = $TMPDIR .. "/vim-rr-" .. g:rplugin.userlogin
             endif
         elseif isdirectory("/dev/shm")
-            g:rplugin.tmpdir = "/dev/shm/Vim-R-" .. g:rplugin.userlogin
+            g:rplugin.tmpdir = "/dev/shm/vim-rr-" .. g:rplugin.userlogin
         elseif isdirectory("/tmp")
-            g:rplugin.tmpdir = "/tmp/Vim-R-" .. g:rplugin.userlogin
+            g:rplugin.tmpdir = "/tmp/vim-rr-" .. g:rplugin.userlogin
         else
             g:rplugin.tmpdir = g:rplugin.uservimfiles .. "/R/tmp"
         endif
@@ -830,7 +830,7 @@ if !isdirectory(g:rplugin.localtmpdir)
     mkdir(g:rplugin.localtmpdir, "p", 0700)
 endif
 if isdirectory(g:rplugin.localtmpdir) && !g:ValidateTmpdir(g:rplugin.localtmpdir)
-    g:rplugin.localtmpdir = fnamemodify(tempname(), ':h') .. '/Vim-R-' .. localtime()
+    g:rplugin.localtmpdir = fnamemodify(tempname(), ':h') .. '/vim-rr-' .. localtime()
     mkdir(g:rplugin.localtmpdir, "p", 0700)
     if !exists("g:R_remote_compldir")
         g:rplugin.tmpdir = g:rplugin.localtmpdir
