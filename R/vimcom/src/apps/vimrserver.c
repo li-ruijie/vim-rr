@@ -324,7 +324,7 @@ static void ParseMsg(char *b) // Parse the message from R
             b++;
             update_glblenv_buffer(b);
             if (auto_obbr) // Update the Object Browser after sending the
-                           // message to Vim-R to
+                           // message to vim-rr to
                 omni2ob(); // avoid unnecessary delays in omni completion
             break;
         case 'L':
@@ -370,7 +370,7 @@ static void ParseMsg(char *b) // Parse the message from R
         return;
     }
 
-    // Send the command to Vim-R
+    // Send the command to vim-rr
     lock_stdout();
     printf("\x11%" PRI_SIZET "\x11%s\n", strlen(b), b);
     fflush(stdout);
@@ -1363,7 +1363,7 @@ void update_inst_libs(void) {
         lp = lp->next;
     }
 
-    // New libraries found. Overwrite ~/.cache/Vim-R/inst_libs
+    // New libraries found. Overwrite ~/.cache/vim-rr/inst_libs
     if (n) {
         char fname[1032];
         snprintf(fname, 1031, "%s/inst_libs", compldir);
@@ -1533,7 +1533,7 @@ static void finish_bol() {
     }
 
     // Finally create a list of built omnils_ because libnames_ might have
-    // already changed and Vim-R would try to read omnils_ files not built yet.
+    // already changed and vim-rr would try to read omnils_ files not built yet.
     snprintf(buf, 511, "%s/libs_in_nrs_%s", localtmpdir, getenv("VIMR_ID"));
     FILE *f = fopen(buf, "w");
     if (f) {

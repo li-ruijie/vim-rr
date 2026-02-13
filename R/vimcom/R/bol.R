@@ -519,7 +519,7 @@ filter.objlist <- function(x) {
     x[!grepl("^[\\[\\(\\{:-@%/=+\\$<>\\|~\\*&!\\^\\-]", x) & !grepl("^\\.__", x)]
 }
 
-#' Build in Vim-R's cache directory the `args_` file with arguments of
+#' Build in vim-rr's cache directory the `args_` file with arguments of
 #' functions.
 #' @param afile Full path of the `args_` file.
 #' @param pkg Library name.
@@ -563,7 +563,7 @@ vim.buildargs <- function(afile, pkg) {
     return(invisible(NULL))
 }
 
-#' Build Omni List and list of functions for syntax highlighting in Vim-R's
+#' Build Omni List and list of functions for syntax highlighting in vim-rr's
 #' cache directory.
 #' @param omnilist Full path of `omnils_` file to be built.
 #' @param packlist Library name.
@@ -645,7 +645,7 @@ vim.bol <- function(omnilist, packlist, allnames = FALSE) {
     return(invisible(NULL))
 }
 
-#' This function calls vim.bol which writes two files in `~/.cache/Vim-R`:
+#' This function calls vim.bol which writes two files in `~/.cache/vim-rr`:
 #'   - `fun_`    : function names for syntax highlighting
 #'   - `omnils_` : data for omni completion and object browser
 #' @param p Character vector with names of libraries.
