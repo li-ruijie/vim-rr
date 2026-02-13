@@ -157,7 +157,11 @@ static int find_matching_sqrbrckt(const char *p) {
 
 // Consider that there is an opening curly brace just before `p` and find the
 // matching closing brace. There is no check for escaped braces.
+// Returns the index of the closing brace, or the index of the null terminator
+// if no match is found (never returns negative).
 static int find_matching_bracket(const char *p) {
+    if (!*p)
+        return 0;
     int n = 1;
     int i = 0;
     while (n > 0 && p[i]) {
@@ -304,20 +308,22 @@ static void rd_md(char **o1, char **o2) {
                     if (str_here(p2, "\\link{")) {
                         p2 += 6;
                         p2a = p2 + find_matching_bracket(p2);
-                        while (p2 != p2a) {
+                        while (p2 != p2a && p1 < buf_end) {
                             *p1 = *p2;
                             p1++;
                             p2++;
                         }
                         p2++;
-                        while (p2 != p3) {
+                        while (p2 != p3 && p1 < buf_end) {
                             *p1 = *p2;
                             p1++;
                             p2++;
                         }
                     } else {
-                        *p1 = *p2;
-                        p1++;
+                        if (p1 < buf_end) {
+                            *p1 = *p2;
+                            p1++;
+                        }
                         p2++;
                     }
                 }
@@ -543,8 +549,8 @@ SEXP get_section(SEXP rtxt, SEXP rsec) {
     if (*a) {
         PROTECT(ans = NEW_CHARACTER(1));
         SET_STRING_ELT(ans, 0, mkChar(a));
-        ans = rd2md(ans);
-        UNPROTECT(1);
+        PROTECT(ans = rd2md(ans));
+        UNPROTECT(2);
     }
     free(a);
     free(b);

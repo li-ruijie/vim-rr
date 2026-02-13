@@ -54,6 +54,7 @@ static void ForceForegroundWindow(HWND hwnd) {
 #include <signal.h>
 #include <stdint.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #define PRI_SIZET "zu"
 #endif
 
@@ -66,9 +67,9 @@ static int allnames; // Flag for showing all names, including starting with '.'
 
 static char compl_cb[64];      // Completion callback buffer
 static char compl_info[64];    // Completion info buffer
-static char compldir[256];     // Directory for completion files
-static char tmpdir[256];       // Temporary directory
-static char localtmpdir[256];  // Local temporary directory
+static char compldir[512];     // Directory for completion files
+static char tmpdir[512];       // Temporary directory
+static char localtmpdir[512];  // Local temporary directory
 static char liblist[576];      // Library list buffer
 static char globenv[576];      // Global environment buffer
 static int auto_obbr;          // Auto object browser flag
@@ -150,10 +151,15 @@ static int VimSecretLen;    // Length of Vim secret
 #ifdef WIN32
 static int Tid;                       // Thread ID
 static CRITICAL_SECTION stdout_mutex; // Mutex for stdout writes
+static CRITICAL_SECTION state_mutex;  // Mutex for shared state
+                                      // (compl_buffer, glbnv_buffer,
+                                      // pkgList, connfd, r_conn)
 #else
 static pthread_t Tid; // Thread ID
 static pthread_mutex_t stdout_mutex =
     PTHREAD_MUTEX_INITIALIZER; // Mutex for stdout writes
+static pthread_mutex_t state_mutex =
+    PTHREAD_MUTEX_INITIALIZER; // Mutex for shared state
 #endif
 
 static void lock_stdout(void) {
@@ -169,6 +175,22 @@ static void unlock_stdout(void) {
     LeaveCriticalSection(&stdout_mutex);
 #else
     pthread_mutex_unlock(&stdout_mutex);
+#endif
+}
+
+static void lock_state(void) {
+#ifdef WIN32
+    EnterCriticalSection(&state_mutex);
+#else
+    pthread_mutex_lock(&state_mutex);
+#endif
+}
+
+static void unlock_state(void) {
+#ifdef WIN32
+    LeaveCriticalSection(&state_mutex);
+#else
+    pthread_mutex_unlock(&state_mutex);
 #endif
 }
 struct sockaddr_in servaddr; // Server address structure
@@ -228,11 +250,17 @@ static char *grow_buffer(char **b, unsigned long *sz,
 {
     Log("grow_buffer(%lu, %lu) [%lu, %lu]", *sz, inc, compl_buffer_size,
         fb_size);
-    *sz += inc;
-    char *tmp = calloc(*sz, sizeof(char));
+    unsigned long new_sz = *sz + inc;
+    char *tmp = calloc(new_sz, sizeof(char));
+    if (!tmp) {
+        fprintf(stderr, "grow_buffer: calloc failed (%lu bytes)\n", new_sz);
+        fflush(stderr);
+        return *b + strlen(*b);
+    }
     strcpy(tmp, *b);
     free(*b);
     *b = tmp;
+    *sz = new_sz;
     return tmp;
 }
 
@@ -272,7 +300,7 @@ int str_here(const char *o,
 static void
 HandleSigTerm(__attribute__((unused)) int s) // Signal handler for SIGTERM
 {
-    exit(0);
+    _exit(0);
 }
 
 static void RegisterPort(int bindportn) // Function to register port number to R
@@ -287,6 +315,7 @@ static void RegisterPort(int bindportn) // Function to register port number to R
 static void ParseMsg(char *b) // Parse the message from R
 {
     Log("ParseMsg(): strlen(b) = %" PRI_SIZET "", strlen(b));
+    lock_state();
 
     if (*b == '+') {
         b++;
@@ -301,7 +330,9 @@ static void ParseMsg(char *b) // Parse the message from R
         case 'L':
             b++;
             update_pkg_list(b);
-            build_omnils();
+            unlock_state(); // Release before blocking R process
+            build_omnils(); // Manages its own locking internally
+            lock_state();   // Re-acquire for lib2ob
             if (auto_obbr)
                 lib2ob();
             break;
@@ -335,6 +366,7 @@ static void ParseMsg(char *b) // Parse the message from R
             complete(id, base, fnm, args);
             break;
         }
+        unlock_state();
         return;
     }
 
@@ -343,6 +375,7 @@ static void ParseMsg(char *b) // Parse the message from R
     printf("\x11%" PRI_SIZET "\x11%s\n", strlen(b), b);
     fflush(stdout);
     unlock_stdout();
+    unlock_state();
 }
 
 // Adapted from
@@ -423,12 +456,26 @@ static void init_listening() // Initialise listening for incoming connections
     Log("init_listening: accept succeeded");
 }
 
+/**
+ * @brief Read exactly n bytes from a socket, looping on partial reads.
+ * @return n on success, 0 on clean close, -1 on error.
+ */
+static int recv_exact_vrs(int fd, char *buf, int n) {
+    int total = 0;
+    while (total < n) {
+        int r = recv(fd, buf + total, n - total, 0);
+        if (r <= 0)
+            return r;
+        total += r;
+    }
+    return total;
+}
+
 static void get_whole_msg(char *b) // Get the whole message from the socket
 {
     Log("get_whole_msg()");
     char *p;
-    char tmp[1];
-    int msg_size;
+    unsigned long msg_size;
 
     if (strstr(b, VimSecret) != b) {
         fprintf(stderr, "Rejected message: authentication failed\n");
@@ -437,46 +484,45 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
     }
     p = b + VimSecretLen;
 
-    // Get the message size
+    // Get the message size using strtoul for validation
     p[9] = 0;
-    msg_size = atoi(p);
-    p += 10;
+    char *endptr;
+    msg_size = strtoul(p, &endptr, 10);
+    if (endptr == p || msg_size == 0 || msg_size > 100000000UL) {
+        fprintf(stderr, "Invalid TCP message size: %s\n", p);
+        fflush(stderr);
+        return;
+    }
 
     // Allocate enough memory to the final buffer
     if (finalbuffer) {
         memset(finalbuffer, 0, fb_size);
-        if (msg_size > fb_size)
-            finalbuffer =
-                grow_buffer(&finalbuffer, &fb_size, msg_size - fb_size + 1024);
+        if (msg_size + 1 > fb_size)
+            finalbuffer = grow_buffer(&finalbuffer, &fb_size,
+                                      msg_size + 1 - fb_size + 1024);
     } else {
-        if (msg_size > fb_size)
+        if (msg_size + 1 > fb_size)
             fb_size = msg_size + 1024;
         finalbuffer = calloc(fb_size, sizeof(char));
-    }
-
-    p = finalbuffer;
-    for (;;) {
-        if ((recv(connfd, tmp, 1, 0) == 1))
-            *p = *tmp;
-        else
-            break;
-        if (*p == '\x11')
-            break;
-        p++;
-        if ((size_t)(p - finalbuffer) >= fb_size - 1) {
-            fprintf(stderr, "recv loop: message exceeds buffer size\n");
+        if (!finalbuffer) {
+            fprintf(stderr, "get_whole_msg: calloc failed\n");
             fflush(stderr);
-            break;
+            return;
         }
     }
-    *p = 0;
 
-    // FIXME: Delete this check when the code proved to be reliable
-    if (strlen(finalbuffer) != msg_size) {
-        fprintf(stderr, "Divergent TCP message size: %" PRI_SIZET " x %d\n",
-                strlen(finalbuffer), msg_size);
+    // Bulk read exactly msg_size bytes
+    if (recv_exact_vrs(connfd, finalbuffer, (int)msg_size) <= 0) {
+        fprintf(stderr, "Failed to recv message body (%lu bytes)\n", msg_size);
         fflush(stderr);
+        finalbuffer[0] = 0;
+        return;
     }
+    finalbuffer[msg_size] = 0;
+
+    // Consume trailing \x11 byte
+    char trail;
+    recv(connfd, &trail, 1, 0);
 
     ParseMsg(finalbuffer);
 }
@@ -499,13 +545,16 @@ static void *receive_msg() // Thread function to receive messages on Unix
             Log("TCP in [%" PRI_SIZET " bytes] (message header): %s", blen, b);
             get_whole_msg(b);
         } else {
+            lock_state();
             r_conn = 0;
+            connfd = -1;
 #ifdef WIN32
             closesocket(sockfd);
             WSACleanup();
 #else
             close(sockfd);
 #endif
+            unlock_state();
             if (rlen != -1 && rlen != 0) {
                 fprintf(stderr, "TCP socket -1: restarting...\n");
                 fprintf(stderr,
@@ -527,6 +576,7 @@ void send_to_vimcom(
     char *msg) // Function to send messages to R (vimcom package)
 {
     Log("TCP out: %s", msg);
+    lock_state();
     if (connfd >= 0) {
         size_t len = strlen(msg);
         char header[9];
@@ -534,17 +584,20 @@ void send_to_vimcom(
         if (send(connfd, header, 8, 0) != 8) {
             fprintf(stderr, "Failed to send header to vimcom.\n");
             fflush(stderr);
+            unlock_state();
             return;
         }
         if (send(connfd, msg, len, 0) != (ssize_t)len) {
             fprintf(stderr, "Partial/failed write to vimcom.\n");
             fflush(stderr);
+            unlock_state();
             return;
         }
     } else {
         fprintf(stderr, "vimcom is not connected");
         fflush(stderr);
     }
+    unlock_state();
 }
 
 #ifdef WIN32
@@ -741,7 +794,7 @@ void Windows_setup() // Setup Windows-specific configurations
 #endif
     } else {
         // $WINDOWID may not be defined in all environments
-        VimHwnd = FindWindow(NULL, "vim");
+        VimHwnd = FindWindow("Vim", NULL);
         if (!VimHwnd) {
             VimHwnd = FindWindow(NULL, "GVIM");
             if (!VimHwnd) {
@@ -1103,26 +1156,67 @@ static int run_R_code(const char *s, int senderror) {
     return 1;
 
 #else
-    char b[1024];
-    snprintf(b, 1023,
-             "VIMR_TMPDIR=%s VIMR_COMPLDIR=%s '%s' --quiet --no-restore "
-             "--no-save --no-echo --slave -f \"%s/bo_code.R\""
-             " > \"%s/run_R_stdout\" 2> \"%s/run_R_stderr\"",
-             getenv("VIMR_REMOTE_TMPDIR"), getenv("VIMR_REMOTE_COMPLDIR"),
-             getenv("VIMR_RPATH"), tmpdir, tmpdir, tmpdir);
-    Log("R command: %s", b);
-
-    int stt = system(b);
-    if (stt != 0 && stt != 512) { // ssh success status seems to be 512
-        if (senderror) {
-            lock_stdout();
-            printf("g:ShowBuildOmnilsError('%d')\n", stt);
-            fflush(stdout);
-            unlock_stdout();
-        }
+    // Use fork()+exec() instead of system() to avoid shell injection risks.
+    // The Windows path already uses CreateProcess() (no shell).
+    const char *rpath = getenv("VIMR_RPATH");
+    const char *remote_tmpdir = getenv("VIMR_REMOTE_TMPDIR");
+    const char *remote_compldir = getenv("VIMR_REMOTE_COMPLDIR");
+    if (!rpath || !remote_tmpdir || !remote_compldir) {
+        fprintf(stderr, "Missing VIMR_RPATH, VIMR_REMOTE_TMPDIR, or "
+                        "VIMR_REMOTE_COMPLDIR\n");
+        fflush(stderr);
         return 0;
     }
-    return 1;
+
+    char stdout_path[1024];
+    char stderr_path[1024];
+    snprintf(stdout_path, sizeof(stdout_path), "%s/run_R_stdout", tmpdir);
+    snprintf(stderr_path, sizeof(stderr_path), "%s/run_R_stderr", tmpdir);
+
+    Log("R command: %s --quiet --no-restore --no-save --no-echo --slave -f %s",
+        rpath, fnm);
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child: set env vars, redirect stdout/stderr, exec R
+        setenv("VIMR_TMPDIR", remote_tmpdir, 1);
+        setenv("VIMR_COMPLDIR", remote_compldir, 1);
+
+        int fd_out = open(stdout_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd_out >= 0) {
+            dup2(fd_out, STDOUT_FILENO);
+            close(fd_out);
+        }
+        int fd_err = open(stderr_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd_err >= 0) {
+            dup2(fd_err, STDERR_FILENO);
+            close(fd_err);
+        }
+
+        execlp(rpath, rpath, "--quiet", "--no-restore", "--no-save",
+               "--no-echo", "--slave", "-f", fnm, (char *)NULL);
+        _exit(127); // exec failed
+    } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+        int exit_code = -1;
+        if (WIFEXITED(status))
+            exit_code = WEXITSTATUS(status);
+        if (exit_code != 0 && exit_code != 2) {
+            if (senderror) {
+                lock_stdout();
+                printf("g:ShowBuildOmnilsError('%d')\n", exit_code);
+                fflush(stdout);
+                unlock_stdout();
+            }
+            return 0;
+        }
+        return 1;
+    } else {
+        fprintf(stderr, "fork() failed\n");
+        fflush(stderr);
+        return 0;
+    }
 #endif
 }
 
@@ -1329,6 +1423,8 @@ static void build_omnils(void) {
 
     char buf[1024];
 
+    lock_state(); // Protect pkgList traversal and compl_buffer mutation
+
     memset(compl_buffer, 0, compl_buffer_size);
     char *p = compl_buffer;
 
@@ -1367,8 +1463,21 @@ static void build_omnils(void) {
 
         n_omnils_build++;
         p = str_cat(p, ")\nvimcom:::vim.buildomnils(p)\n");
-        run_R_code(compl_buffer, 1);
+
+        // Copy command before releasing lock — run_R_code reads the buffer
+        char *r_code = strdup(compl_buffer);
+        unlock_state(); // Release before blocking R process
+
+        if (r_code) {
+            run_R_code(r_code, 1); // Blocks for seconds — no lock held
+            free(r_code);
+        }
+
+        lock_state(); // Re-acquire for finish_bol (reads pkgList)
         finish_bol();
+        unlock_state();
+    } else {
+        unlock_state();
     }
     building_omnils = 0;
 
@@ -1392,8 +1501,11 @@ static void build_omnils(void) {
         unlink(buf);
     }
 
-    if (has_args_to_read)
+    if (has_args_to_read) {
+        lock_state(); // read_args traverses pkgList
         read_args();
+        unlock_state();
+    }
 }
 
 // Called asynchronously and only if an omnils_ file was actually built.
@@ -1507,10 +1619,16 @@ void update_pkg_list(char *libnms) {
             }
 
             pkg = get_pkg(nm);
-            if (pkg)
+            if (pkg) {
                 pkg->loaded = 1;
-            else
+                // If version changed (e.g. devtools::load_all), re-add
+                if (strcmp(pkg->version, vrsn) != 0) {
+                    pkg->loaded = 0; // mark for deletion below
+                    add_pkg(nm, vrsn);
+                }
+            } else {
                 add_pkg(nm, vrsn);
+            }
         }
     } else {
         // Called during the initialization with libnames_ created by
@@ -1660,7 +1778,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
             p++;
         p++;
     }
-    while (*p != '\n' && *p != 0)
+    while (*p != '\n' && *p)
         p++;
     if (*p == '\n')
         p++;
@@ -1736,9 +1854,10 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
 
         if (get_list_status(bsnm, df) == 0) {
             while (str_here(p, base1) || str_here(p, base2)) {
-                while (*p != '\n')
+                while (*p != '\n' && *p)
                     p++;
-                p++;
+                if (*p)
+                    p++;
                 nLibObjs--;
             }
             return p;
@@ -1786,9 +1905,10 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
         while (str_here(p, base1) || str_here(p, base2)) {
             // Check if this is the last element in the list
             s = p;
-            while (*s != '\n')
+            while (*s != '\n' && *s)
                 s++;
-            s++;
+            if (*s)
+                s++;
             ne--;
             if (ne == 0) {
                 snprintf(prefix, 112, "%s%s", newprfx, strL);
@@ -1834,9 +1954,10 @@ void hi_glbenv_fun(void) {
             p = str_cat(p, g);
             p = str_cat(p, " ");
         }
-        while (*g != '\n')
+        while (*g != '\n' && *g)
             g++;
-        g++;
+        if (*g)
+            g++;
     }
     p = str_cat(p, "')");
     lock_stdout();
@@ -2056,9 +2177,7 @@ static int validate_dir(const char *path) {
     if (lstat(path, &st) != 0)
         return 0;
     if (!S_ISDIR(st.st_mode))
-        return 0; // not a directory
-    if (S_ISLNK(st.st_mode))
-        return 0; // symlink
+        return 0; // not a directory (lstat + S_ISDIR also rejects symlinks)
     if (st.st_uid != getuid())
         return 0; // wrong owner
     if ((st.st_mode & 0777) != 0700)
@@ -2115,8 +2234,8 @@ static void init(void) {
         strncat(envstr, getenv("LC_ALL"), sizeof(envstr) - strlen(envstr) - 1);
     if (getenv("LANG"))
         strncat(envstr, getenv("LANG"), sizeof(envstr) - strlen(envstr) - 1);
-    int len = strlen(envstr);
-    for (int i = 0; i < len; i++)
+    size_t len = strlen(envstr);
+    for (size_t i = 0; i < len; i++)
         envstr[i] = toupper(envstr[i]);
     if (strstr(envstr, "UTF-8") != NULL || strstr(envstr, "UTF8") != NULL) {
         vimcom_is_utf8 = 1;
@@ -2142,17 +2261,17 @@ static void init(void) {
         strncpy(compl_info, getenv("VIMR_COMPLInfo"), 63);
     compl_info[63] = '\0';
     if (getenv("VIMR_COMPLDIR"))
-        strncpy(compldir, getenv("VIMR_COMPLDIR"), 255);
-    compldir[255] = '\0';
+        strncpy(compldir, getenv("VIMR_COMPLDIR"), 511);
+    compldir[511] = '\0';
     if (getenv("VIMR_TMPDIR"))
-        strncpy(tmpdir, getenv("VIMR_TMPDIR"), 255);
-    tmpdir[255] = '\0';
+        strncpy(tmpdir, getenv("VIMR_TMPDIR"), 511);
+    tmpdir[511] = '\0';
     if (getenv("VIMR_LOCAL_TMPDIR")) {
-        strncpy(localtmpdir, getenv("VIMR_LOCAL_TMPDIR"), 255);
+        strncpy(localtmpdir, getenv("VIMR_LOCAL_TMPDIR"), 511);
     } else if (getenv("VIMR_TMPDIR")) {
-        strncpy(localtmpdir, getenv("VIMR_TMPDIR"), 255);
+        strncpy(localtmpdir, getenv("VIMR_TMPDIR"), 511);
     }
-    localtmpdir[255] = '\0';
+    localtmpdir[511] = '\0';
 #ifndef WIN32
     if (tmpdir[0] && !validate_dir(tmpdir)) {
         fprintf(stderr, "Unsafe tmpdir: %s\n", tmpdir);
@@ -2196,7 +2315,7 @@ static void init(void) {
     char *b = read_file(fname, 1);
     if (b) {
 #ifdef WIN32
-        for (int i = 0; i < strlen(b); i++)
+        for (size_t i = 0, blen = strlen(b); i < blen; i++)
             if (b[i] == '\\')
                 b[i] = '/';
 #endif
@@ -2236,10 +2355,12 @@ static void init(void) {
 int count_twice(const char *b1, const char *b2, const char ch) {
     int n1 = 0;
     int n2 = 0;
-    for (unsigned long i = 0; i < strlen(b1); i++)
+    size_t len1 = strlen(b1);
+    size_t len2 = strlen(b2);
+    for (size_t i = 0; i < len1; i++)
         if (b1[i] == ch)
             n1++;
-    for (unsigned long i = 0; i < strlen(b2); i++)
+    for (size_t i = 0; i < len2; i++)
         if (b2[i] == ch)
             n2++;
     return n1 == n2;
@@ -2332,9 +2453,10 @@ void completion_info(const char *wrd, const char *pkg) {
             unlock_stdout();
             return;
         }
-        while (*s != '\n')
+        while (*s != '\n' && *s)
             s++;
-        s++;
+        if (*s)
+            s++;
     }
     lock_stdout();
     {
@@ -2445,9 +2567,10 @@ char *parse_omnils(const char *s, const char *base, const char *pkg, char *p) {
             p = str_cat(p, "'}}, "); // Don't include fields 4, 5 and 6 because
                                      // big data will be truncated.
         } else {
-            while (*s != '\n')
+            while (*s != '\n' && *s)
                 s++;
-            s++;
+            if (*s)
+                s++;
         }
     }
     return p;
@@ -2488,9 +2611,10 @@ char *complete_args(char *p, char *funcnm) {
                     p = str_cat(p, "]},");
                     break;
                 } else {
-                    while (*s != '\n')
+                    while (*s != '\n' && *s)
                         s++;
-                    s++;
+                    if (*s)
+                        s++;
                 }
             }
         }
@@ -2593,7 +2717,7 @@ void stdin_loop() {
 
     while (fgets(line, 1023, stdin)) {
 
-        for (unsigned int i = 0; i < strlen(line); i++)
+        for (unsigned int i = 0; line[i]; i++)
             if (line[i] == '\n' || line[i] == '\r')
                 line[i] = 0;
         Log("stdin:   %s", line);
@@ -2609,6 +2733,7 @@ void stdin_loop() {
             break;
         case '3':
             msg++;
+            lock_state();
             switch (*msg) {
             case '1': // Update GlobalEnv
                 auto_obbr = 1;
@@ -2646,9 +2771,11 @@ void stdin_loop() {
                 fclose(f);
                 break;
             }
+            unlock_state();
             break;
         case '4': // Miscellaneous commands
             msg++;
+            lock_state();
             switch (*msg) {
             case '1':
                 read_args();
@@ -2662,12 +2789,18 @@ void stdin_loop() {
                     omni2ob();
                 break;
             }
+            unlock_state();
             break;
         case '5':
             msg++;
+            lock_state();
             char *id = msg;
-            while (*msg != '\003')
+            while (*msg != '\003' && *msg)
                 msg++;
+            if (*msg == 0) {
+                unlock_state();
+                break;
+            }
             *msg = 0;
             msg++;
             if (*msg == '\004') {
@@ -2676,25 +2809,36 @@ void stdin_loop() {
             } else if (*msg == '\005') {
                 msg++;
                 char *base = msg;
-                while (*msg != '\005')
+                while (*msg != '\005' && *msg)
                     msg++;
+                if (*msg == 0) {
+                    unlock_state();
+                    break;
+                }
                 *msg = 0;
                 msg++;
                 complete(id, base, msg, NULL);
             } else {
                 complete(id, msg, NULL, NULL);
             }
+            unlock_state();
             break;
         case '6':
             msg++;
+            lock_state();
             char *wrd = msg;
-            while (*msg != '\002')
+            while (*msg != '\002' && *msg)
                 msg++;
+            if (*msg == 0) {
+                unlock_state();
+                break;
+            }
             *msg = 0;
             msg++;
             if (strstr(wrd, "::"))
                 wrd = strstr(wrd, "::") + 2;
             completion_info(wrd, msg);
+            unlock_state();
             break;
 #ifdef WIN32
         case '8':
@@ -2752,6 +2896,7 @@ void stdin_loop() {
 int main(int argc, char **argv) {
 #ifdef WIN32
     InitializeCriticalSection(&stdout_mutex);
+    InitializeCriticalSection(&state_mutex);
 #endif
     init();
 #ifdef WIN32
