@@ -37,6 +37,11 @@ enddef
 # use EnumWindows + GetWindowThreadProcessId to find Chrome_WidgetWin_1
 # windows across all rstudio.exe processes.  SW_RESTORE (9) is required
 # because SW_SHOW (5) has no effect on windows started with SW_HIDE.
+# Only windows with a non-empty title are targeted (Electron helper windows
+# have empty titles).  Every titled Chrome_WidgetWin_1 in the process tree
+# gets ShowWindow if not already visible, with IsWindowVisible confirmation.
+# Once any window is visible, a 5-second guard phase re-enumerates all
+# windows and re-shows any that Electron's startup sequence hides again.
 # A single PowerShell invocation loops internally (100ms x 200 = 20s).
 def EnsureWindowVisible(pid: number)
     if ps_script_path == ''
@@ -59,18 +64,13 @@ def EnsureWindowVisible(pid: number)
             '    public static extern int GetWindowText(IntPtr hWnd, StringBuilder buf, int max);',
             '    [DllImport("user32.dll")]',
             '    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
+            '    [DllImport("user32.dll")]',
+            '    public static extern bool IsWindowVisible(IntPtr hWnd);',
             '}',
             '"@',
-            '$pidSet = @{ $RootPid = $true }',
-            'for ($i = 0; $i -lt 200; $i++) {',
-            '    Start-Sleep -Milliseconds 100',
-            '    $cim = Get-CimInstance Win32_Process -Filter "Name=''rstudio.exe''" -EA SilentlyContinue',
-            '    foreach ($p in $cim) {',
-            '        if ($pidSet.ContainsKey([int]$p.ParentProcessId)) {',
-            '            $pidSet[[int]$p.ProcessId] = $true',
-            '        }',
-            '    }',
-            '    if ($pidSet.Count -lt 2) { continue }',
+            'function ShowAllWindows {',
+            '    $script:anyVisible = $false',
+            '    $script:anyFound = $false',
             '    [void][RStudioWin]::EnumWindows({',
             '        param($hWnd, $lParam)',
             '        [uint32]$wpid = 0',
@@ -81,15 +81,43 @@ def EnsureWindowVisible(pid: number)
             '            if ($cls.ToString() -eq "Chrome_WidgetWin_1") {',
             '                $ttl = New-Object System.Text.StringBuilder 256',
             '                [RStudioWin]::GetWindowText($hWnd, $ttl, 256) | Out-Null',
-            '                [RStudioWin]::ShowWindow($hWnd, 9) | Out-Null',
-            '                Write-Output "OK"',
-            '                exit 0',
+            '                if ($ttl.ToString().Length -gt 0) {',
+            '                    $script:anyFound = $true',
+            '                    if (-not [RStudioWin]::IsWindowVisible($hWnd)) {',
+            '                        [RStudioWin]::ShowWindow($hWnd, 9) | Out-Null',
+            '                    }',
+            '                    if ([RStudioWin]::IsWindowVisible($hWnd)) {',
+            '                        $script:anyVisible = $true',
+            '                    }',
+            '                }',
             '            }',
             '        }',
             '        return $true',
             '    }, [IntPtr]::Zero)',
             '}',
-            'Write-Output "TIMEOUT"',
+            '$pidSet = @{ $RootPid = $true }',
+            '$found = $false',
+            'for ($i = 0; $i -lt 200; $i++) {',
+            '    Start-Sleep -Milliseconds 100',
+            '    $cim = Get-CimInstance Win32_Process -Filter "Name=''rstudio.exe''" -EA SilentlyContinue',
+            '    foreach ($p in $cim) {',
+            '        if ($pidSet.ContainsKey([int]$p.ParentProcessId)) {',
+            '            $pidSet[[int]$p.ProcessId] = $true',
+            '        }',
+            '    }',
+            '    if ($pidSet.Count -lt 2) { continue }',
+            '    ShowAllWindows',
+            '    if ($anyFound) { $found = $true }',
+            '    if ($anyVisible) {',
+            '        for ($g = 0; $g -lt 50; $g++) {',
+            '            Start-Sleep -Milliseconds 100',
+            '            ShowAllWindows',
+            '        }',
+            '        Write-Output "OK"',
+            '        exit 0',
+            '    }',
+            '}',
+            'if ($found) { Write-Output "SHOW_FAILED" } else { Write-Output "TIMEOUT" }',
         ]
         writefile(code, ps_script_path)
     endif
@@ -98,8 +126,11 @@ def EnsureWindowVisible(pid: number)
     job_start(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
         '-File', script, string(pid)], {
         out_cb: (ch: channel, msg: string) => {
-            if trim(msg) ==# 'TIMEOUT'
+            var m = trim(msg)
+            if m ==# 'TIMEOUT'
                 g:RWarningMsg('RStudio window did not appear within 20 seconds')
+            elseif m ==# 'SHOW_FAILED'
+                g:RWarningMsg('RStudio window found but could not be made visible')
             endif
         },
         exit_cb: (j: job, status: number) => {
