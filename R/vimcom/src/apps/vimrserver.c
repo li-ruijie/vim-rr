@@ -2895,20 +2895,8 @@ void stdin_loop() {
                 RClearConsole();
                 break;
             case '7': // RaiseVimWindow
-                if (VimHwnd) {
+                if (VimHwnd)
                     ForceForegroundWindow(VimHwnd);
-                    if (GetForegroundWindow() == VimHwnd) {
-                        lock_stdout();
-                        printf("g:OnVimRaiseDone()\n");
-                        fflush(stdout);
-                        unlock_stdout();
-                    } else {
-                        lock_stdout();
-                        printf("g:OnVimRaiseFailed()\n");
-                        fflush(stdout);
-                        unlock_stdout();
-                    }
-                }
                 break;
             }
             break;
