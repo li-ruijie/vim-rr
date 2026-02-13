@@ -12,7 +12,6 @@ if exists('*g:SanitizeRLine')
             'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
             'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit',
             'RStudioQuitTimeout', 'OnRStudioQuitComplete',
-            'OnVimRaiseDone', 'OnVimRaiseFailed',
             'RRestart', 'QuitROnClose',
             'ClearRInfo', 'SendToVimcom', 'UpdateLocalFunctions',
             'ShowRObj', 'EditRObject', 'StartObjBrowser', 'RObjBrowser',
@@ -392,8 +391,8 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
     endif
     g:SetSendCmdToR()
     # Raise Vim window after R starts in an external window.
-    # For RStudio on Windows, EnsureWindowVisible handles this via the
-    # RAISE_VIM callback after confirming RStudio has taken focus.
+    # RStudio is excluded: EnsureWindowVisible prevents focus steal via
+    # LockSetForegroundWindow, so Vim never loses focus.
     if !exists("g:RStudio_cmd") && !(type(g:R_external_term) == v:t_number && g:R_external_term == 0)
         timer_start(500, "g:RaiseVimWindow")
     endif
@@ -509,23 +508,6 @@ def g:OnRStudioQuitComplete()
         rstudio_quit_timer = -1
     endif
     g:ClearRInfo()
-enddef
-
-# Called by vimrserver after ForceForegroundWindow.
-# OnVimRaiseDone: focus confirmed — reset retry flag.
-# OnVimRaiseFailed: retry once after 500ms.  The flag prevents infinite
-# fail→retry→fail loops; it resets on success.
-var vim_raise_can_retry = 1
-def g:OnVimRaiseDone()
-    vim_raise_can_retry = 1
-enddef
-
-def g:OnVimRaiseFailed()
-    if !vim_raise_can_retry
-        return
-    endif
-    vim_raise_can_retry = 0
-    timer_start(500, (_) => g:RaiseVimWindow())
 enddef
 
 def g:RRestart()

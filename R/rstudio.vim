@@ -32,16 +32,20 @@ def g:StartRStudio()
     g:WaitVimcomStart()
 enddef
 
-# Poll for RStudio's Electron window and call ShowWindow(hwnd, SW_RESTORE).
+# Poll for RStudio's Electron window and show it without stealing focus.
 # Electron apps are multi-process and don't set MainWindowHandle — we must
 # use EnumWindows + GetWindowThreadProcessId to find Chrome_WidgetWin_1
-# windows across all rstudio.exe processes.  SW_RESTORE (9) is required
-# because SW_SHOW (5) has no effect on windows started with SW_HIDE.
-# Only windows with a non-empty title are targeted (Electron helper windows
-# have empty titles).  Every titled Chrome_WidgetWin_1 in the process tree
-# gets ShowWindow if not already visible, with IsWindowVisible confirmation.
-# Once any window is visible, a 5-second guard phase re-enumerates all
-# windows and re-shows any that Electron's startup sequence hides again.
+# windows across all rstudio.exe processes.  SW_SHOWNOACTIVATE (4) shows
+# the window without activating it.  Only windows with a non-empty title
+# are targeted (Electron helper windows have empty titles).
+#
+# Focus-steal prevention: LockSetForegroundWindow(LSFW_LOCK) is called the
+# moment any RStudio window becomes visible.  This prevents Electron's
+# internal startup sequence from stealing focus to its own window.  The lock
+# is held until a stability check passes: RStudio must be visible AND not
+# the foreground window for 5 consecutive 100ms checks (500ms).  The lock
+# is then released with LockSetForegroundWindow(LSFW_UNLOCK).
+#
 # A single PowerShell invocation loops internally (100ms x 200 = 20s).
 def EnsureWindowVisible(pid: number)
     if ps_script_path == ''
@@ -68,6 +72,8 @@ def EnsureWindowVisible(pid: number)
             '    public static extern bool IsWindowVisible(IntPtr hWnd);',
             '    [DllImport("user32.dll")]',
             '    public static extern IntPtr GetForegroundWindow();',
+            '    [DllImport("user32.dll")]',
+            '    public static extern bool LockSetForegroundWindow(uint uLockCode);',
             '}',
             '"@',
             'function ShowAllWindows {',
@@ -86,7 +92,7 @@ def EnsureWindowVisible(pid: number)
             '                if ($ttl.ToString().Length -gt 0) {',
             '                    $script:anyFound = $true',
             '                    if (-not [RStudioWin]::IsWindowVisible($hWnd)) {',
-            '                        [RStudioWin]::ShowWindow($hWnd, 9) | Out-Null',
+            '                        [RStudioWin]::ShowWindow($hWnd, 4) | Out-Null',
             '                    }',
             '                    if ([RStudioWin]::IsWindowVisible($hWnd)) {',
             '                        $script:anyVisible = $true',
@@ -111,21 +117,32 @@ def EnsureWindowVisible(pid: number)
             '    ShowAllWindows',
             '    if ($anyFound) { $found = $true }',
             '    if ($anyVisible) {',
-            '        Write-Output "OK"',
-            '        # Guard phase (5s) + focus wait (10s) = 15s total.',
-            '        # Re-show windows during guard; check for RStudio focus',
-            '        # throughout.  Exit the moment RStudio has focus.',
-            '        for ($g = 0; $g -lt 150; $g++) {',
+            '        [RStudioWin]::LockSetForegroundWindow(1) | Out-Null',
+            '        # Guard phase: re-show windows Electron might hide.',
+            '        # Keep foreground lock until RStudio has been visible',
+            '        # AND without focus for 5 consecutive checks (500ms).',
+            '        $stableCount = 0',
+            '        for ($g = 0; $g -lt 50; $g++) {',
             '            Start-Sleep -Milliseconds 100',
-            '            if ($g -lt 50) { ShowAllWindows }',
-            '            $fg = [RStudioWin]::GetForegroundWindow()',
-            '            [uint32]$fgpid = 0',
-            '            [RStudioWin]::GetWindowThreadProcessId($fg, [ref]$fgpid) | Out-Null',
-            '            if ($pidSet.ContainsKey([int]$fgpid)) {',
-            '                Write-Output "RAISE_VIM"',
-            '                exit 0',
+            '            ShowAllWindows',
+            '            if ($anyVisible) {',
+            '                $fg = [RStudioWin]::GetForegroundWindow()',
+            '                [uint32]$fgpid = 0',
+            '                [RStudioWin]::GetWindowThreadProcessId($fg, [ref]$fgpid) | Out-Null',
+            '                if (-not $pidSet.ContainsKey([int]$fgpid)) {',
+            '                    $stableCount++',
+            '                    if ($stableCount -ge 5) {',
+            '                        [RStudioWin]::LockSetForegroundWindow(2) | Out-Null',
+            '                        Write-Output "OK"',
+            '                        exit 0',
+            '                    }',
+            '                } else {',
+            '                    $stableCount = 0',
+            '                }',
             '            }',
             '        }',
+            '        [RStudioWin]::LockSetForegroundWindow(2) | Out-Null',
+            '        Write-Output "OK"',
             '        exit 0',
             '    }',
             '}',
@@ -139,9 +156,7 @@ def EnsureWindowVisible(pid: number)
         '-File', script, string(pid)], {
         out_cb: (ch: channel, msg: string) => {
             var m = trim(msg)
-            if m ==# 'RAISE_VIM'
-                g:RaiseVimWindow()
-            elseif m ==# 'TIMEOUT'
+            if m ==# 'TIMEOUT'
                 g:RWarningMsg('RStudio window did not appear within 20 seconds')
             elseif m ==# 'SHOW_FAILED'
                 g:RWarningMsg('RStudio window found but could not be made visible')
