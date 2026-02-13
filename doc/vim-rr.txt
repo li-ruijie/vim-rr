@@ -867,9 +867,12 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_force_quit_on_close| Force-kill R on exit if connection is broken
 |R_objbr_auto_start|    Start the Object Browser automatically
 |R-built-in-terminal|   Options to control Vim's built-in terminal
+|R_esc_term|            Map <Esc> to exit Terminal mode
+|R_close_term|          Close terminal window when R quits
 |R_external_term|       Command to run R in an external terminal emulator
 |R_silent_term|         Do not show terminal errors
 |R_set_home_env|        Set the value of $HOME for R (Windows only)
+|R_i386|                Use 32-bit R (Windows only)
 |R_save_win_pos|        Save positions of R and GVim windows (Windows only)
 |R_arrange_windows|     Restore positions of R and GVim windows (Windows only)
 |R_assign|              Convert '_' into ' <- '
@@ -907,7 +910,6 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_bracketed_paste|     Bracket R code in special escape sequences
 |R_clear_console|       Send <C-L> to clear R's console
 |R_source_args|         Arguments to R `source()` function
-|R_commented_lines|     (Removed — see note in section 6.17)
 |R_latexcmd|            Command to run on .tex files
 |R_texerr|              Show a summary of LaTeX errors after compilation
 |R_sweaveargs|          Arguments to `Sweave()`
@@ -922,6 +924,7 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_openpdf|             Open PDF after processing rnoweb file
 |R_openhtml|            Open HTML after processing either Rrst or Rmd
 |R_strict_rst|          Code style for generated rst files
+|R_knitargs|            Arguments to knit2pdf (RRst only)
 |R_insert_mode_cmds|    Allow R commands in insert mode
 |R_rmhidden|            Remove hidden objects from R workspace
 |R_source|              Source additional Vim scripts
@@ -932,6 +935,8 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |R_after_start|         Commands to be executed after R startup
 |R_after_ob_open|       Commands executed after the Object Browser opening
 |R_debug|               Support for debugging functions
+|R_debug_center|        Center the debugged line
+|R_dbg_jump|            Jump to R Console when debugging
 |R_user_maps_only|      Only user specified key bindings
 |R_disable_cmds|        List of commands to be disabled
 |R_tmpdir|              Where temporary files are created
@@ -944,7 +949,12 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 |vim-rr-mucomplete|      Integration with vim-mucomplete
 |R_remote_compldir|     Mount point of remote cache directory
 |vim-rr-df-view|         Options for visualizing a data.frame or matrix
+|R_csv_app|             External application to view data.frames
+|R_csv_delim|           Delimiter for temporary csv files
+|R_df_viewer|           R function to view data.frames
 |vim-rr-synctex|         Options for SyncTeX
+|R_rm_knit_cache|       Enable mapping to remove knitr cache
+|R_cite_pattern|        Pattern to trigger bibliographic completion
 
 
 ------------------------------------------------------------------------------
@@ -1152,6 +1162,7 @@ put in your |vimrc|:
                                                            *R_save_win_pos*
                                                            *R_arrange_windows*
                                                            *R_set_home_env*
+                                                           *R_i386*
                                                            *Rtools-path*
 If R cannot find either `make` or `gcc` while trying to compile vimcom, you
 should add their directories to the beginning of the `PATH` environment
@@ -1178,6 +1189,11 @@ yourself with the intention of changing the default value of `$HOME` assumed
 by R, you will want to put in your |vimrc|:
 >vim
    let g:R_set_home_env = 0
+<
+By default, vim-rr uses the 64-bit version of R if available. If you want to
+force the use of the 32-bit version, put in your |vimrc|:
+>vim
+   let g:R_i386 = 1
 <
 
 ------------------------------------------------------------------------------
@@ -1687,7 +1703,6 @@ while others have no command to clear the console. You should set the value of
 ------------------------------------------------------------------------------
 6.17. Arguments to R source() function
                                                            *R_source_args*
-                                                           *R_commented_lines*
 
 When you send multiple lines of code to R (a selection of lines, a paragraph,
 code between two marks or an R chunk of code), vim-rr saves the lines in a
@@ -1702,11 +1717,6 @@ change the arguments passed to it. Examples:
    let g:R_source_args = 'echo = TRUE'
    let g:R_source_args = 'print.eval = FALSE, echo = TRUE, spaced = TRUE'
 <
-The option `R_commented_lines` was dropped because it unduly removed lines from
-multi-line raw strings if they included a hashtag. See:
-
-   https://github.com/jalvesaq/Vim-R/issues/743
-
 
 ------------------------------------------------------------------------------
 6.18. LaTeX options
@@ -1901,6 +1911,7 @@ options (see |R_quarto_render_args|).
                                                               *R_strict_rst*
                                                               *R_rst2pdfpath*
                                                               *R_rst2pdfargs*
+                                                              *R_knitargs*
 
 By default, vim-rr sends the command `render_rst(strict=TRUE)` to R
 before using R's `knit()` function to convert an Rrst file into an rst one. If
@@ -1910,8 +1921,9 @@ you prefer the non strict rst code, put the following in your |vimrc|:
 <
 You can also set the value of `R_rst2pdfpath` (the path to rst2pdf
 application), `R_rrstcompiler` (the compiler argument to be passed to R
-function knit2pdf), and `R_rst2pdfargs` (further arguments to be passed
-to R function knit2pdf).
+function knit2pdf), `R_rst2pdfargs` (further arguments to be passed
+to R function knit2pdf), and `R_knitargs` (arguments to be passed to
+`knit2pdf`'s `...` argument, typically passed to `knit`).
 
 
 ------------------------------------------------------------------------------
@@ -2555,6 +2567,25 @@ in order to have the terminal window raised on SyncTeX backward events.
 Example:
 >vim
    let g:R_term_title = 'Terminal'
+<
+
+------------------------------------------------------------------------------
+6.41. Rnoweb options                                         *R_rm_knit_cache*
+                                                             *R_cite_pattern*
+
+If you want to enable the mapping <LocalLeader>kr to remove the cache directory
+created by the `knitr` package, put in your |vimrc|:
+>vim
+   let g:R_rm_knit_cache = 1
+<
+Note: The directory to be removed is the one defined in `knitr::opts_chunk$get("cache.path")`.
+
+The completion of bibliographic keys in Rnoweb files is triggered by the pattern
+defined by `R_cite_pattern`. You can change this pattern in your |vimrc|.
+The default pattern matches standard LaTeX commands like `\cite{`, `\citep{`,
+etc. Example of how to change it:
+>vim
+   let g:R_cite_pattern = '\C\\\a*cite\a*\*\?\(\[[^\]]*\]\)*\_\s*{'
 <
 
 ==============================================================================
