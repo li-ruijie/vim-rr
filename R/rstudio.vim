@@ -108,6 +108,19 @@ def EnsureWindowVisible(pid: number)
     })
 enddef
 
+def g:SignalToRStudio()
+    if g:IsJobRunning("RStudio")
+        var pid = job_info(g:rplugin.jobs['RStudio']).process
+        if has("win32")
+            # /T kills the entire Electron process tree
+            system('taskkill /PID ' .. pid .. ' /T /F')
+        else
+            system('kill -9 ' .. pid)
+        endif
+    endif
+    g:rplugin.jobs["RStudio"] = "no"
+enddef
+
 def g:SendCmdToRStudio(...args: list<any>): number
     if !g:IsJobRunning("RStudio")
         g:RWarningMsg("Is RStudio running?")
