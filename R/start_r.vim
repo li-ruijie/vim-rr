@@ -9,8 +9,11 @@ vim9script
 if exists('*g:SanitizeRLine')
     for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
             'StartR', 'ReallyStartR', 'SignalToR',
-            'CheckIfVimcomIsRunning', 'WaitVimcomStart', 'SetVimcomInfo',
-            'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit', 'RRestart', 'QuitROnClose',
+            'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
+            'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit',
+            'RStudioQuitTimeout', 'OnRStudioQuitComplete',
+            'OnVimRaiseDone', 'OnVimRaiseFailed',
+            'RRestart', 'QuitROnClose',
             'ClearRInfo', 'SendToVimcom', 'UpdateLocalFunctions',
             'ShowRObj', 'EditRObject', 'StartObjBrowser', 'RObjBrowser',
             'RBrOpenCloseLs', 'StopRDebugging', 'FindDebugFunc',
@@ -296,16 +299,11 @@ def g:SignalToR(signal: string)
 enddef
 
 
-def g:CheckIfVimcomIsRunning(...args: list<any>)
-    nseconds = nseconds - 1
+def g:VimcomStartTimeout(...args: list<any>)
+    vimcom_timeout_timer = -1
     if g:rplugin.R_pid == 0
-        if nseconds > 0
-            timer_start(1000, "g:CheckIfVimcomIsRunning")
-        else
-            var msg = "The package vimcom wasn't loaded yet. Please, quit R and try again."
-            g:RWarningMsg(msg)
-            sleep 500m
-        endif
+        var msg = "The package vimcom wasn't loaded yet. Please, quit R and try again."
+        g:RWarningMsg(msg)
     endif
 enddef
 
@@ -318,11 +316,14 @@ def g:WaitVimcomStart()
         g:R_wait = 2
     endif
 
-    nseconds = g:R_wait
-    timer_start(1000, "g:CheckIfVimcomIsRunning")
+    vimcom_timeout_timer = timer_start(g:R_wait * 1000, "g:VimcomStartTimeout")
 enddef
 
 def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: string)
+    if vimcom_timeout_timer >= 0
+        timer_stop(vimcom_timeout_timer)
+        vimcom_timeout_timer = -1
+    endif
     g:rplugin.debug_info['Time']['start_R'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['start_R'], reltime()))
     if filereadable(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
         var ndesc = readfile(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
@@ -389,18 +390,26 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
             endif
         endfor
     endif
-    # Raise Vim window after R starts in an external window
-    if exists("g:RStudio_cmd") || !(type(g:R_external_term) == v:t_number && g:R_external_term == 0)
+    g:SetSendCmdToR()
+    # Raise Vim window after R starts in an external window.
+    # For RStudio on Windows, EnsureWindowVisible handles this via the
+    # RAISE_VIM callback after confirming RStudio has taken focus.
+    if !exists("g:RStudio_cmd") && !(type(g:R_external_term) == v:t_number && g:R_external_term == 0)
         timer_start(500, "g:RaiseVimWindow")
     endif
-    timer_start(1000, "g:SetSendCmdToR")
     if g:R_objbr_auto_start
         autosttobjbr = 1
-        timer_start(1010, "g:RObjBrowser")
+        g:RObjBrowser()
     endif
 enddef
 
 def g:SetSendCmdToR(...args: list<any>)
+    # Guard: only activate if R is actually running.  A stale timer from a
+    # previous session's SetVimcomInfo could fire after RQuit/ClearRInfo has
+    # already reset the state.
+    if g:rplugin.R_pid == 0
+        return
+    endif
     if exists("g:RStudio_cmd")
         g:SendCmdToR = function('g:SendCmdToRStudio')
     elseif type(g:R_external_term) == v:t_number && g:R_external_term == 0
@@ -442,17 +451,8 @@ def g:RQuit(how: string)
             g:SignalToR('SIGKILL')
         endif
     else
-        if has("win32") && g:IsJobRunning("Server")
-	    if type(g:R_external_term) == v:t_number && g:R_external_term == 1
-		# SaveWinPos
-		g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
-	    endif
-	    g:JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
-        endif
-
         if bufloaded('Object_Browser')
             exe 'bunload! Object_Browser'
-            sleep 30m
         endif
 
         g:SendCmdToR(qcmd)
@@ -462,9 +462,70 @@ def g:RQuit(how: string)
         endif
 
         sleep 50m
+
+        # Send QuitNow AFTER quit() so the TCP path is still alive for the
+        # quit command.  QuitNow causes vimcom to exit its receive loop,
+        # which tears down the TCP connection.
+        if has("win32") && g:IsJobRunning("Server")
+	    if type(g:R_external_term) == v:t_number && g:R_external_term == 1
+		# SaveWinPos
+		g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
+	    endif
+	    g:JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
+        endif
+
+        # Wait for RStudio to exit asynchronously via exit_cb.
+        # ROnJobExit fires OnRStudioQuitComplete, which calls ClearRInfo.
+        # A 2-second safety-net timeout force-kills if exit_cb never fires.
+        if exists("g:RStudio_cmd") && g:IsJobRunning("RStudio")
+            rstudio_quit_pending = 1
+            rstudio_quit_timer = timer_start(2000, "g:RStudioQuitTimeout")
+            return
+        endif
     endif
 
     g:ClearRInfo()
+enddef
+
+def g:RStudioQuitTimeout(...args: list<any>)
+    rstudio_quit_timer = -1
+    if !rstudio_quit_pending
+        return
+    endif
+    rstudio_quit_pending = 0
+    if g:IsJobRunning("RStudio")
+        g:SignalToRStudio()
+    endif
+    g:ClearRInfo()
+enddef
+
+def g:OnRStudioQuitComplete()
+    if !rstudio_quit_pending
+        return
+    endif
+    rstudio_quit_pending = 0
+    if rstudio_quit_timer >= 0
+        timer_stop(rstudio_quit_timer)
+        rstudio_quit_timer = -1
+    endif
+    g:ClearRInfo()
+enddef
+
+# Called by vimrserver after ForceForegroundWindow.
+# OnVimRaiseDone: focus confirmed — reset retry flag.
+# OnVimRaiseFailed: retry once after 500ms.  The flag prevents infinite
+# fail→retry→fail loops; it resets on success.
+var vim_raise_can_retry = 1
+def g:OnVimRaiseDone()
+    vim_raise_can_retry = 1
+enddef
+
+def g:OnVimRaiseFailed()
+    if !vim_raise_can_retry
+        return
+    endif
+    vim_raise_can_retry = 0
+    timer_start(500, (_) => g:RaiseVimWindow())
 enddef
 
 def g:RRestart()
@@ -472,8 +533,8 @@ def g:RRestart()
         g:StartR("R")
         return
     endif
+    restart_pending = 1
     g:RQuit('nosave')
-    timer_start(200, (_) => g:StartR("R"))
 enddef
 
 # Send quit(save="no") through the pipeline.
@@ -501,7 +562,9 @@ def g:ClearRInfo()
     for fn in g:rplugin.del_list
         delete(fn)
     endfor
-    g:SendCmdToR = function('g:SendCmdToR_fake')
+    if exists('*g:SendCmdToR_fake')
+        g:SendCmdToR = function('g:SendCmdToR_fake')
+    endif
     g:rplugin.vimcom_connected = 0
     g:rplugin.R_pid = 0
     if has_key(g:rplugin, 'R_bufnr')
@@ -516,6 +579,13 @@ def g:ClearRInfo()
 
     if g:IsJobRunning("Server")
         g:JobStdin(g:rplugin.jobs["Server"], "43\n")
+    endif
+
+    if restart_pending
+        restart_pending = 0
+        # 1ms deferral: let ClearRInfo fully return before StartR runs
+        # (avoids re-entrancy when ClearRInfo is called from exit_cb chain)
+        timer_start(1, (_) => g:StartR("R"))
     endif
 enddef
 
@@ -2261,7 +2331,10 @@ else
     devnull = 'tempfile()'
 endif
 
-var nseconds: number
+var vimcom_timeout_timer: number = -1
+var rstudio_quit_pending = 0
+var rstudio_quit_timer: number = -1
+var restart_pending = 0
 var autosttobjbr: number
 var R_version: string
 var rdoctitle: string

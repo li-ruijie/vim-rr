@@ -452,7 +452,9 @@ static void init_listening() // Initialise listening for incoming connections
         fflush(stderr);
         exit(4);
     }
+    lock_state();
     r_conn = 1;
+    unlock_state();
     Log("init_listening: accept succeeded");
 }
 
@@ -547,13 +549,15 @@ static void *receive_msg() // Thread function to receive messages on Unix
         } else {
             lock_state();
             r_conn = 0;
-            connfd = -1;
 #ifdef WIN32
+            closesocket(connfd);
             closesocket(sockfd);
             WSACleanup();
 #else
+            close(connfd);
             close(sockfd);
 #endif
+            connfd = -1;
             unlock_state();
             // Notify Vim that vimcom TCP connection was lost.
             lock_stdout();
@@ -811,8 +815,20 @@ void Windows_setup() // Setup Windows-specific configurations
 }
 #endif
 
+static int server_started = 0;
+
 void start_server(void) // Start server and listen for connections
 {
+    // Guard: after TCP disconnect, receive_msg()'s init_listening() already
+    // re-binds and waits for the next connection.  A second "1\n" from Vim
+    // (e.g. during restart) must not block the main stdin_loop thread on a
+    // duplicate accept().
+    if (server_started) {
+        Log("start_server: already started, ignoring duplicate request");
+        return;
+    }
+    server_started = 1;
+
     // Finish immediately with SIGTERM
     signal(SIGTERM, HandleSigTerm);
 
@@ -2879,8 +2895,20 @@ void stdin_loop() {
                 RClearConsole();
                 break;
             case '7': // RaiseVimWindow
-                if (VimHwnd)
+                if (VimHwnd) {
                     ForceForegroundWindow(VimHwnd);
+                    if (GetForegroundWindow() == VimHwnd) {
+                        lock_stdout();
+                        printf("g:OnVimRaiseDone()\n");
+                        fflush(stdout);
+                        unlock_stdout();
+                    } else {
+                        lock_stdout();
+                        printf("g:OnVimRaiseFailed()\n");
+                        fflush(stdout);
+                        unlock_stdout();
+                    }
+                }
                 break;
             }
             break;
