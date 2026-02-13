@@ -4,7 +4,7 @@
 
 Author:  Li Ruijie
 
-Version: 0.9-190
+Version: 0.9-191
 For Vim >= 8.2.84
 
  1. Overview                                    |vim-rr-overview|
@@ -864,6 +864,7 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 
 |R_auto_start|          Start R automatically
 |R_quit_on_close|       Quit R when Vim exits
+|R_force_quit_on_close| Force-kill R on exit if connection is broken
 |R_objbr_auto_start|    Start the Object Browser automatically
 |R-built-in-terminal|   Options to control Vim's built-in terminal
 |R_external_term|       Command to run R in an external terminal emulator
@@ -999,6 +1000,21 @@ When this option is set, vim-rr sends `quit(save = "no")` to R at the very
 beginning of |VimLeave|, while the communication pipeline is still alive.
 This is more reliable than calling `RQuit()` during VimLeave, because the
 pipeline is torn down before the quit command can reach R.
+
+If the TCP connection to R is already broken when Vim exits, the graceful
+quit command cannot reach R. By default the R process is left running. To
+force-kill it instead, see |R_force_quit_on_close|.
+
+                                                    *R_force_quit_on_close*
+
+By default, if the TCP connection to R is broken (e.g. R crashed or RStudio
+closed unexpectedly) when Vim exits, the R process is left running. If you
+want vim-rr to force-kill R in this case, put in your |vimrc|:
+>vim
+   let g:R_force_quit_on_close = 1
+<
+This option only takes effect when |R_quit_on_close| is also set. When the
+connection is alive, R is quit gracefully as usual.
 
 
 ------------------------------------------------------------------------------
@@ -2406,10 +2422,10 @@ mounted locally. Below is an example of how to achieve this goal.
 >sh
        cd /tmp
        R CMD build /path/to/Vim-R/R/vimcom
-       scp vimcom_0.9-190.tar.gz remotelogin@remotehost:/tmp
+       scp vimcom_0.9-191.tar.gz remotelogin@remotehost:/tmp
        ssh remotelogin@remotehost
        cd /tmp
-       R CMD INSTALL vimcom_0.9-190.tar.gz
+       R CMD INSTALL vimcom_0.9-191.tar.gz
 <
 
 Alternative: vimcmdline~

@@ -10,7 +10,7 @@ if exists('*g:SanitizeRLine')
     for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
             'StartR', 'ReallyStartR', 'SignalToR',
             'CheckIfVimcomIsRunning', 'WaitVimcomStart', 'SetVimcomInfo',
-            'SetSendCmdToR', 'RQuit', 'RRestart', 'QuitROnClose',
+            'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit', 'RRestart', 'QuitROnClose',
             'ClearRInfo', 'SendToVimcom', 'UpdateLocalFunctions',
             'ShowRObj', 'EditRObject', 'StartObjBrowser', 'RObjBrowser',
             'RBrOpenCloseLs', 'StopRDebugging', 'FindDebugFunc',
@@ -408,7 +408,17 @@ def g:SetSendCmdToR(...args: list<any>)
     elseif has("win32")
         g:SendCmdToR = function('g:SendCmdToR_Windows')
     endif
+    g:rplugin.vimcom_connected = 1
     wait_vimcom = 0
+enddef
+
+# Called by vimrserver when the TCP connection to vimcom drops.
+def g:OnVimcomDisconnect()
+    if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
+        return
+    endif
+    g:rplugin.vimcom_connected = 0
+    g:RWarningMsg("Connection to R lost")
 enddef
 
 # Quit R
@@ -424,26 +434,36 @@ def g:RQuit(how: string)
         endif
     endif
 
-    if has("win32") && g:IsJobRunning("Server")
-	if type(g:R_external_term) == v:t_number && g:R_external_term == 1
-	    # SaveWinPos
-	    g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
-	endif
-	g:JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
+    if get(g:rplugin, 'vimcom_connected', 0) == 0
+        # TCP connection is dead — force-kill the R process.
+        if exists("g:RStudio_cmd")
+            g:SignalToRStudio()
+        elseif g:rplugin.R_pid > 0
+            g:SignalToR('SIGKILL')
+        endif
+    else
+        if has("win32") && g:IsJobRunning("Server")
+	    if type(g:R_external_term) == v:t_number && g:R_external_term == 1
+		# SaveWinPos
+		g:JobStdin(g:rplugin.jobs["Server"], "84" .. $VIMR_COMPLDIR .. "\n")
+	    endif
+	    g:JobStdin(g:rplugin.jobs["Server"], "2QuitNow\n")
+        endif
+
+        if bufloaded('Object_Browser')
+            exe 'bunload! Object_Browser'
+            sleep 30m
+        endif
+
+        g:SendCmdToR(qcmd)
+
+        if has_key(g:rplugin, "tmux_split") || how == 'save'
+            sleep 200m
+        endif
+
+        sleep 50m
     endif
 
-    if bufloaded('Object_Browser')
-        exe 'bunload! Object_Browser'
-        sleep 30m
-    endif
-
-    g:SendCmdToR(qcmd)
-
-    if has_key(g:rplugin, "tmux_split") || how == 'save'
-        sleep 200m
-    endif
-
-    sleep 50m
     g:ClearRInfo()
 enddef
 
@@ -463,6 +483,14 @@ def g:QuitROnClose()
     if string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
         return
     endif
+    if get(g:rplugin, 'vimcom_connected', 0) == 0 && g:R_force_quit_on_close
+        if exists("g:RStudio_cmd")
+            g:SignalToRStudio()
+        elseif g:rplugin.R_pid > 0
+            g:SignalToR('SIGKILL')
+        endif
+        return
+    endif
     g:SendCmdToR('quit(save = "no")')
     sleep 200m
 enddef
@@ -474,6 +502,7 @@ def g:ClearRInfo()
         delete(fn)
     endfor
     g:SendCmdToR = function('g:SendCmdToR_fake')
+    g:rplugin.vimcom_connected = 0
     g:rplugin.R_pid = 0
     if has_key(g:rplugin, 'R_bufnr')
         remove(g:rplugin, 'R_bufnr')

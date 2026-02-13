@@ -555,6 +555,11 @@ static void *receive_msg() // Thread function to receive messages on Unix
             close(sockfd);
 #endif
             unlock_state();
+            // Notify Vim that vimcom TCP connection was lost.
+            lock_stdout();
+            printf("g:OnVimcomDisconnect()\n");
+            fflush(stdout);
+            unlock_stdout();
             if (rlen != -1 && rlen != 0) {
                 fprintf(stderr, "TCP socket -1: restarting...\n");
                 fprintf(stderr,
