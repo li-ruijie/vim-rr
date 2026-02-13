@@ -221,6 +221,9 @@ Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows) di
 ### Features
 
 - Add `RRestart()` function and `<Plug>RRestart` mapping
+- Launch RStudio as a Vim job with automatic window visibility on Windows (Electron starts hidden via `job_start`; a PowerShell script polls for the Chrome_WidgetWin_1 window and calls `ShowWindow(SW_RESTORE)`)
+- Detect vimcom TCP disconnect: vimrserver notifies Vim when the connection drops, Vim warns the user, and `RQuit`/`RRestart` force-kill the R process instead of silently failing
+- Add `R_force_quit_on_close` option: when set alongside `R_quit_on_close`, force-kills R/RStudio on Vim exit if the TCP connection is already broken
 
 ### Security and performance
 
@@ -232,6 +235,7 @@ Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows) di
 
 - Remove Neovim support
 - Remove macOS support
+- Remove Python dependency: BibTeX parsing and Evince SyncTeX are now pure Vim9script (not yet rigorously tested)
 
 ### Bug fixes
 
