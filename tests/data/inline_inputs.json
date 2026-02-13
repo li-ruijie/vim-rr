@@ -1,0 +1,54 @@
+{
+  "empty_data": [
+    ""
+  ],
+  "braces": [
+    "@ARTICLE{\n                test,\n                title={Polluted\n                    with {DDT}.\n            },\n    }"
+  ],
+  "braces_and_quotes": [
+    "@ARTICLE{\n                test,\n                title=\"Nested braces  and {\"quotes\"}\",\n        }"
+  ],
+  "entry_in_string": [
+    "\n        @article{Me2010, author=\"Brett, Matthew\", title=\"An article\n        @article{something, author={Name, Another}, title={not really an article}}\n        \"}\n        @article{Me2009,author={Nom de Plume, My}, title=\"A short story\"}\n    "
+  ],
+  "entry_in_comment": [
+    "\n        Both the articles register despite the comment block\n        @Comment{\n        @article{Me2010, title=\"An article\"}\n        @article{Me2009, title=\"A short story\"}\n        }\n        These all work OK without errors\n        @Comment{and more stuff}\n\n        Last article to show we can get here\n        @article{Me2011, }\n    "
+  ],
+  "at_test": [
+    "\n        The @ here parses fine in both cases\n        @article{Me2010,\n            title={An @tey article}}\n        @article{Me2009, title=\"A @tey short story\"}\n    "
+  ],
+  "entry_types": [
+    "\n        Testing what are allowed for entry types\n\n        These are OK\n        @somename{an_id,}\n        @t2{another_id,}\n        @t@{again_id,}\n        @t+{aa1_id,}\n        @_t{aa2_id,}\n\n        These ones not\n        @2thou{further_id,}\n        @some name{id3,}\n        @some#{id4,}\n        @some%{id4,}\n    "
+  ],
+  "field_names": [
+    "\n        Check for characters allowed in field names\n        Here the cite key is fine, but the field name is not allowed:\n        ``You are missing a field name``\n        @article{2010, 0author=\"Me\"}\n\n        Underscores allowed (no error)\n        @article{2011, _author=\"Me\"}\n\n        Not so for spaces obviously (``expecting an '='``)\n        @article{2012, author name = \"Myself\"}\n\n        Or hashes (``missing a field name``)\n        @article{2013, #name = \"Myself\"}\n\n        But field names can start with +-.\n        @article{2014, .name = \"Myself\"}\n        @article{2015, +name = \"Myself\"}\n        @article{2016, -name = \"Myself\"}\n        @article{2017, @name = \"Myself\"}\n    "
+  ],
+  "inline_comment": [
+    "\n        \"some text\" causes an error like this\n        ``You're missing a field name---line 6 of file bibs/inline_comment.bib``\n        for all 3 of the % some text occurences below; in each case the parser keeps\n        what it has up till that point and skips, so that it correctly gets the last\n        entry.\n        @article{Me2010,}\n        @article{Me2011,\n            author=\"Brett-like, Matthew\",\n        % some text\n            title=\"Another article\"}\n        @article{Me2012, % some text\n            author=\"Real Brett\"}\n        This one correctly read\n        @article{Me2013,}\n    "
+  ],
+  "simple_entry": [
+    "\n        % maybe the simplest possible\n        % just a comment and one reference\n\n        @ARTICLE{Brett2002marsbar,\n        author = {Matthew Brett and Jean-Luc Anton and Romain Valabregue and Jean-Baptise\n            Poline},\n        title = {{Region of interest analysis using an SPM toolbox}},\n        journal = {Neuroimage},\n        institution = {},\n        year = {2002},\n        volume = {16},\n        pages = {1140--1141},\n        number = {2}\n        }\n    "
+  ],
+  "key_parsing": [
+    "\n        # will not work as expected\n        @article(test(parens1))\n\n        # works fine\n        @article(test(parens2),)\n\n        # works fine\n        @article{test(braces1)}\n\n        # also works\n        @article{test(braces2),}\n    "
+  ],
+  "macros": [
+    "\n        @String{and = { and }}\n        @String{etal = and # { {et al.}}}\n        @Article(\n            unknown,\n            author = nobody,\n        )\n        @Article(\n            gsl,\n            author = \"Gough, Brian\"#etal,\n        )\n    "
+  ],
+  "cross_file_macros": [
+    "@string{jackie = \"Jackie Chan\"}",
+    ",\n            @Book{\n                i_am_jackie,\n                author = jackie,\n                title = \"I Am \" # jackie # \": My Life in Action\",\n            }\n        "
+  ],
+  "at_character": [
+    ",\n            @proceedings{acc,\n                title = {Proc.\\@ of the American Control Conference},\n                notes = \"acc@example.org\"\n            }\n        "
+  ],
+  "case_sensitivity": [
+    ",\n            @Article{CamelCase,\n                Title = {To CamelCase or Under score},\n                year = 2009,\n                NOTES = \"none\"\n            }\n        "
+  ],
+  "duplicate_field": [
+    "\n            @MASTERSTHESIS{\n                Mastering,\n                year = 1364,\n                title = \"Mastering Thesis Writing\",\n                school = \"Charles University in Prague\",\n                TITLE = \"No One Reads Master's Theses Anyway LOL\",\n                TiTlE = \"Well seriously, lol.\",\n            }\n        "
+  ],
+  "duplicate_person_field": [
+    "\n        @article{Me2009,author={Nom de Plume, My}, title=\"A short story\", AUTHoR = {Foo}}\n    "
+  ]
+}
