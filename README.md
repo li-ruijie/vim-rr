@@ -1,8 +1,15 @@
 # vim-rr
 
-Maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vim plugin for editing and running R code. Windows and Linux only; support for macOS and Neovim has been dropped. Neovim users should use [R.nvim](https://github.com/R-nvim/R.nvim) instead.
+Maintenance fork of [jalvesaq/Vim-R](https://github.com/jalvesaq/Vim-R) — a Vim
+plugin for editing and running R code. Windows and Linux only; Neovim users should
+use [R.nvim](https://github.com/R-nvim/R.nvim).
 
-This fork started to fix a bug where RStudio's window would not appear on Windows. It has since grown into a larger effort: the entire codebase has been ported to Vim9script, and many bugs have been fixed. Features may be removed in the future to keep the maintenance burden low, and new features are unlikely to be added.
+This fork focuses on correctness: getting concurrency right between Vim, R, and
+the TCP middleware; replacing brittle timer-based sequencing with event-driven
+callbacks; hardening the C extensions against buffer overflows and race conditions;
+and eliminating external dependencies (Python, macOS, Neovim). The entire codebase
+has been ported to Vim9script. New features are unlikely — the goal is reliability
+over scope.
 
 ## Features
 
@@ -96,17 +103,27 @@ Vim communicates with R through `vimrserver` (a TCP server run as a Vim job) and
   └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Challenges
+Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows)
+directly through the TCP link to RGui. The core logic lives in `R/start_r.vim`
+(process lifecycle), `R/vimrcom.vim` (job/channel I/O), and
+`R/common_global.vim` (global state). The `vimrserver` middleware
+(`R/vimcom/src/apps/vimrserver.c`) and `vimcom` R package
+(`R/vimcom/src/vimcom.c`) handle the TCP bridge.
 
-### Concurrency and Thread Safety (Windows/RStudio)
+## Focus areas
 
-Bridging Vim and R involves complex concurrency, particularly on Windows where RStudio runs the R console on the main thread while `vimcom` (the plugin's C extension) listens for commands on a background TCP thread. This architecture creates several critical race conditions:
+### Concurrency and thread safety
 
-1.  **Command Overwrite**: Rapid-fire commands from Vim (like sending a visual block line-by-line) could overwrite the command buffer before R's main thread had a chance to execute the previous one.
-2.  **Deadlocks**: When R waits for user input, the main thread is blocked. The TCP thread cannot safely call the R API to execute code without risking a crash, but waiting for R to become idle causes a deadlock.
-3.  **State Desynchronization**: Interrupting R (e.g., `Ctrl+C` or a breakpoint) could leave the plugin thinking R is "busy" forever, blocking future updates like the Object Browser.
+Bridging Vim and R involves complex concurrency, particularly on Windows where
+RStudio runs the R console on the main thread while `vimcom` (the plugin's C
+extension) listens for commands on a background TCP thread. This creates three
+problems: rapid-fire commands can overwrite the buffer before R executes the
+previous one; the TCP thread cannot safely call the R API while R's main thread
+is blocked on user input; and interrupting R (Ctrl+C, breakpoints) can leave the
+"busy" flag stuck, blocking all future updates.
 
-`vim-rr` solves these issues using a mutex-protected event queue and a heuristic recovery mechanism:
+`vim-rr` solves these with a mutex-protected linked-list eval queue and a
+heuristic recovery mechanism (5-second staleness timeout resets the busy flag):
 
 ```text
       Vim Editor                                      R Process (vimcom)
@@ -155,7 +172,6 @@ Bridging Vim and R involves complex concurrency, particularly on Windows where R
                                             │            ▼                      │
                                             │      ┌──────────┐                 │
                                             │      │ Exec Now │                 │
-                                            │      │ (HACK)   │                 │
                                             │      └─────┬────┘                 │
                                             │            │                      │
                                             │            ▼                      │
@@ -200,81 +216,68 @@ Bridging Vim and R involves complex concurrency, particularly on Windows where R
                                             └───────────────────────────────────┘
 ```
 
-### Component Breakdown
+### Event-driven lifecycle
 
-1.  **Vim Frontend (`ftplugin/`, `ftdetect/`)**:
-    *   Detects R-related files (`.R`, `.Rmd`, `.Rnw`, etc.).
-    *   Initializes buffer-local mappings, commands, and settings.
-    *   Sources the core logic scripts from the `R/` directory.
+Startup, shutdown, and restart are sequenced through event callbacks rather than
+hardcoded timer delays. `SetVimcomInfo` triggers `SetSendCmdToR` synchronously
+when vimcom connects; `WaitVimcomStart` uses a cancellable timeout instead of a
+polling loop. `RQuit` uses an async `exit_cb` for RStudio (with a 2-second
+safety timeout) instead of a sleep-poll loop. `RRestart` sets a flag;
+`ClearRInfo` checks it and defers `StartR` via a 1ms event-loop yield — no
+guessed timer delays.
 
-2.  **Core Logic (`R/`)**:
-    *   **`common_global.vim`**: Maintains global state (`g:rplugin`), checks versions, and handles initialization.
-    *   **`start_r.vim`**: Responsible for spawning the R process (either in a Vim terminal buffer or external terminal like tmux) and the `vimrserver` process.
-    *   **`vimrcom.vim`**: Manages the low-level asynchronous communication (Jobs/Channels) between Vim and the `vimrserver` binary.
-    *   **`functions.vim`**: Contains helper functions and syntax highlighting logic.
+### TCP protocol correctness
 
-3.  **Middleware (`vimrserver`)**:
-    *   Located in `R/vimcom/src/apps/vimrserver.c`.
-    *   A lightweight C program compiled on the user's machine.
-    *   Acts as a TCP server/router. It decouples Vim from R, allowing R to send messages (like "completion data ready" or "object browser updated") to Vim asynchronously without blocking either process.
+Every message from vimrserver to vimcom uses an 8-byte hex length-prefix
+(`%08X` + payload), eliminating TCP fragmentation and concatenation issues.
+Large Vim commands use a separate `\x11` size-prefix protocol. When vimcom's TCP
+connection drops (R crash, RStudio close, remote disconnect), vimrserver's
+`receive_msg` thread notifies Vim via `OnVimcomDisconnect`; subsequent quit or
+restart commands force-kill the R process instead of sending through the dead
+TCP path.
 
-4.  **R Integration (`vimcom` Package)**:
-    *   An R package located in `R/vimcom/`.
-    *   **`src/vimcom.c`**: The C extension that connects to `vimrserver` via TCP. It intercepts R output and state changes.
-    *   **`R/*.R`**: R functions that generate completion lists, format data for the object browser, and handle help requests. These are called by Vim (via `vimrserver`) or triggered by R hooks.
+### Security hardening
 
-Code can be sent to R via a Vim terminal buffer, a tmux pane, or (on Windows) directly through the TCP link to RGui.
+All shell-out paths use `shellescape()` or list-form `job_start()`. R code
+injection is escaped at the send boundary. vimrserver binds to localhost only,
+authenticated with a 128-bit secret generated via OS crypto APIs
+(`/dev/urandom`, `BCryptGenRandom`). The tmpdir is validated for symlinks,
+permissions, and type, with a randomised fallback on failure.
 
 ## Changes from upstream
 
-### Features
+**Ported to Vim9script** — all 40 source `.vim` files use `def`/`enddef`, typed
+parameters, and `var` declarations. Re-source guards on all files with `def g:`.
 
-- `RRestart()` function and `<Plug>RRestart` mapping
-- RStudio launched as a Vim job with automatic window visibility on Windows (Electron starts hidden via `job_start`; a PowerShell script polls for the `Chrome_WidgetWin_1` window and calls `ShowWindow(SW_RESTORE)`)
-- TCP disconnect detection: vimrserver notifies Vim when the vimcom connection drops; `RQuit`/`RRestart` force-kill the R process instead of silently failing
-- `R_force_quit_on_close` option: force-kills R/RStudio on Vim exit when the TCP connection is already broken (requires `R_quit_on_close`)
-- BibTeX bibliography completion rewritten in pure Vim9script, removing the Python 3 / pybtex dependency (not yet rigorously tested)
-- Evince SyncTeX forward/inverse search rewritten in pure Vim9script using gdbus + dbus-monitor, removing the Python / python-dbus dependency (not yet rigorously tested)
+**Concurrency fixes** — mutex-protected linked-list eval queue replacing static
+flag-based command deferral; `r_is_busy` recovery after RStudio interrupt
+(tryCatch + 5s timeout); C stack overflow fix for R API calls on Windows TCP
+thread (`R_CStackStart` save/restore); heap overflow fix in `hi_glbenv_fun`.
 
-### Reliability
+**Event-driven lifecycle** — startup, quit, and restart sequenced via event
+callbacks instead of hardcoded timers; RStudio quit uses async `exit_cb` with
+safety timeout.
 
-- Extensive bug fixes across Vim9script porting, call-flow review, and C source audit
-- C source audit covering buffer overflows, null-terminator guards, thread safety, PROTECT/UNPROTECT balancing
-- Injection vulnerabilities fixed: `shellescape()` for shell-out paths, list-form `job_start()`, quote escaping in R/Vim/C layers
-- C stack overflow from R API calls on Windows TCP thread — `R_CStackStart` save/restore
-- Heap overflow in `hi_glbenv_fun` when R has many functions
-- `\x11` size-prefix protocol for large Vim commands preventing TCP fragmentation
-- 8-byte hex length-prefix protocol for vimrserver-to-vimcom messages preventing TCP concatenation
-- Mutex-protected linked-list eval queue replacing static flag-based command deferral
-- `r_is_busy` stuck after RStudio interrupt — tryCatch in R task callback + 5-second timeout auto-reset
+**TCP correctness** — 8-byte hex length-prefix protocol (vimrserver→vimcom);
+`\x11` size-prefix for large Vim commands; disconnect detection with force-kill
+fallback.
 
-### Security and performance
+**Security** — `shellescape()` and list-form `job_start()` on all shell-out
+paths; vimrserver bound to localhost with 128-bit crypto secret; tmpdir
+validation with randomised fallback.
 
-- tmpdir validated (symlink, permissions, type) with fallback to randomised path
-- vimrserver bound to localhost; 128-bit secret via OS crypto APIs (`/dev/urandom`, `BCryptGenRandom`)
-- `TmuxOption()` result cached to avoid `system()` call on every `SendCmdToR_Term`
-- Windows foreground lock bypassed with `ForceForegroundWindow()` (`AttachThreadInput` + `BringWindowToTop`)
+**C source audit** — buffer overflow fixes, null-terminator guards, graceful
+thread shutdown, PROTECT/UNPROTECT balancing, mutex for shared state,
+`snprintf` replacing `sprintf`.
 
-### Platform changes
+**Dependencies removed** — Neovim, macOS, Python (BibTeX completion and Evince
+SyncTeX rewritten in pure Vim9script).
 
-- Neovim support removed
-- macOS support removed
-- Python dependency removed (BibTeX parsing and Evince SyncTeX — not yet rigorously tested)
+**New features** — `RRestart()` with `<Plug>RRestart` mapping; RStudio launched
+as Vim job with automatic window visibility; TCP disconnect detection;
+`R_force_quit_on_close` option.
 
-### Vim9script port
-
-- All 40 source `.vim` files ported to Vim9script (`def`/`enddef`, typed parameters, `var` declarations)
-- `delfunc` re-source guard pattern for `start_r.vim` (62 global functions)
-- Variable-based re-source guards for all 18 vim9 files with `def g:`
-- `legacy execute` replaced with vim9 `execute` in job callbacks
-- Syntax files ported (rdocpreview, rdoc, rbrowser, rout)
-- C/R command dispatch updated: `g:` prefix on all 43 call sites, bare vim9 function call syntax
-
-### Testing
-
-- Test suite: 14 files, 378 assertions, pre-commit test gate
-- Vim9script lint rules: E114, E117, E477, E700, E1012, E1073
-- Startup integration test for all syntax and ftplugin files
-- Callflow static analysis and generic bug-pattern lint
-- BibTeX parser deep-comparison tests (23 reference files via pybtex)
-- Pre-commit hook syncs vimcom version in help docs
+**Testing** — 14 test files, 411 assertions, pre-commit test gate; Vim9script
+lint (E114, E117, E477, E700, E1012, E1073); startup integration test;
+callflow static analysis; BibTeX deep-comparison against 23 pybtex reference
+files.
