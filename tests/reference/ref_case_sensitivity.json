@@ -1,0 +1,15 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "CamelCase": {
+      "type": "article",
+      "fields": {
+        "Title": "To CamelCase or Under score",
+        "year": "2009",
+        "NOTES": "none"
+      },
+      "persons": {}
+    }
+  }
+}

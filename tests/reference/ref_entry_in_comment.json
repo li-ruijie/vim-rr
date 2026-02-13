@@ -1,0 +1,25 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "Me2010": {
+      "type": "article",
+      "fields": {
+        "title": "An article"
+      },
+      "persons": {}
+    },
+    "Me2009": {
+      "type": "article",
+      "fields": {
+        "title": "A short story"
+      },
+      "persons": {}
+    },
+    "Me2011": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    }
+  }
+}

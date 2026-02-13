@@ -1,0 +1,1375 @@
+[
+  {
+    "input": "A. E.                   Siegman",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [
+      "E."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Siegman"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "A. G. W. Cameron",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [
+      "G.",
+      "W."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Cameron"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "A. Hoenig",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Hoenig"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "A. J. Van Haagen",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [
+      "J.",
+      "Van"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Haagen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "A. S. Berdnikov",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [
+      "S."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Berdnikov"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "A. Trevorrow",
+    "first_names": [
+      "A."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Trevorrow"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Adam H. Lewenberg",
+    "first_names": [
+      "Adam"
+    ],
+    "middle_names": [
+      "H."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Lewenberg"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Addison-Wesley Publishing Company",
+    "first_names": [
+      "Addison-Wesley"
+    ],
+    "middle_names": [
+      "Publishing"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Company"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Advogato (Raph Levien)",
+    "first_names": [
+      "Advogato"
+    ],
+    "middle_names": [
+      "(Raph"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Levien)"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Andrea de Leeuw van Weenen",
+    "first_names": [
+      "Andrea"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "de",
+      "Leeuw",
+      "van"
+    ],
+    "last_names": [
+      "Weenen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Andreas Geyer-Schulz",
+    "first_names": [
+      "Andreas"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Geyer-Schulz"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Andr{\\'e} Heck",
+    "first_names": [
+      "Andr{\\'e}"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Heck"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Anne Br{\\\"u}ggemann-Klein",
+    "first_names": [
+      "Anne"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Br{\\\"u}ggemann-Klein"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Anonymous",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Anonymous"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "B. Beeton",
+    "first_names": [
+      "B."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Beeton"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "B. Hamilton Kelly",
+    "first_names": [
+      "B."
+    ],
+    "middle_names": [
+      "Hamilton"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Kelly"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "B. V. Venkata Krishna Sastry",
+    "first_names": [
+      "B."
+    ],
+    "middle_names": [
+      "V.",
+      "Venkata",
+      "Krishna"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Sastry"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Benedict L{\\o}fstedt",
+    "first_names": [
+      "Benedict"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "L{\\o}fstedt"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Bogus{\\l}aw Jackowski",
+    "first_names": [
+      "Bogus{\\l}aw"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Jackowski"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Christina A. L.\\ Thiele",
+    "first_names": [
+      "Christina"
+    ],
+    "middle_names": [
+      "A.",
+      "L."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Thiele"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "D. Men'shikov",
+    "first_names": [
+      "D."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Men'shikov"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Darko \\v{Z}ubrini{\\'c}",
+    "first_names": [
+      "Darko"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "\\v{Z}ubrini{\\'c}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Dunja Mladeni{\\'c}",
+    "first_names": [
+      "Dunja"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Mladeni{\\'c}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Edwin V. {Bell, II}",
+    "first_names": [
+      "Edwin"
+    ],
+    "middle_names": [
+      "V."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "{Bell, II}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Frank G. {Bennett, Jr.}",
+    "first_names": [
+      "Frank"
+    ],
+    "middle_names": [
+      "G."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "{Bennett, Jr.}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Fr{\\'e}d{\\'e}ric Boulanger",
+    "first_names": [
+      "Fr{\\'e}d{\\'e}ric"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Boulanger"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Ford, Jr., Henry",
+    "first_names": [
+      "Henry"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Ford"
+    ],
+    "lineage_names": [
+      "Jr."
+    ]
+  },
+  {
+    "input": "mr Ford, Jr., Henry",
+    "first_names": [
+      "Henry"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "mr"
+    ],
+    "last_names": [
+      "Ford"
+    ],
+    "lineage_names": [
+      "Jr."
+    ]
+  },
+  {
+    "input": "Fukui Rei",
+    "first_names": [
+      "Fukui"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Rei"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "G. Gr{\\\"a}tzer",
+    "first_names": [
+      "G."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Gr{\\\"a}tzer"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "George Gr{\\\"a}tzer",
+    "first_names": [
+      "George"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Gr{\\\"a}tzer"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Georgia K. M. Tobin",
+    "first_names": [
+      "Georgia"
+    ],
+    "middle_names": [
+      "K.",
+      "M."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Tobin"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Gilbert van den Dobbelsteen",
+    "first_names": [
+      "Gilbert"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "van",
+      "den"
+    ],
+    "last_names": [
+      "Dobbelsteen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Gy{\\\"o}ngyi Bujdos{\\'o}",
+    "first_names": [
+      "Gy{\\\"o}ngyi"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Bujdos{\\'o}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Helmut J{\\\"u}rgensen",
+    "first_names": [
+      "Helmut"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "J{\\\"u}rgensen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Herbert Vo{\\ss}",
+    "first_names": [
+      "Herbert"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Vo{\\ss}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "H{\\'a}n Th{\\^e}\\llap{\\raise 0.5ex\\hbox{\\'{\\relax}}}                  Th{\\'a}nh",
+    "first_names": [
+      "H{\\'a}n"
+    ],
+    "middle_names": [
+      "Th{\\^e}\\llap{\\raise 0.5ex\\hbox{\\'{\\relax}}}"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Th{\\'a}nh"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "H{\\`a}n Th\\^e\\llap{\\raise0.5ex\\hbox{\\'{\\relax}}}                  Th{\\`a}nh",
+    "first_names": [
+      "H{\\`a}n"
+    ],
+    "middle_names": [
+      "Th\\^e\\llap{\\raise0.5ex\\hbox{\\'{\\relax}}}"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Th{\\`a}nh"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "J. Vesel{\\'y}",
+    "first_names": [
+      "J."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Vesel{\\'y}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Javier Rodr\\'{\\i}guez Laguna",
+    "first_names": [
+      "Javier"
+    ],
+    "middle_names": [
+      "Rodr\\'{\\i}guez"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Laguna"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Ji\\v{r}\\'{\\i} Vesel{\\'y}",
+    "first_names": [
+      "Ji\\v{r}\\'{\\i}"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Vesel{\\'y}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Ji\\v{r}\\'{\\i} Zlatu{\\v{s}}ka",
+    "first_names": [
+      "Ji\\v{r}\\'{\\i}"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Zlatu{\\v{s}}ka"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Ji\\v{r}{\\'\\i} Vesel{\\'y}",
+    "first_names": [
+      "Ji\\v{r}{\\'\\i}"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Vesel{\\'y}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Ji\\v{r}{\\'{\\i}}Zlatu{\\v{s}}ka",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Ji\\v{r}{\\'{\\i}}Zlatu{\\v{s}}ka"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Jim Hef{}feron",
+    "first_names": [
+      "Jim"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Hef{}feron"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "J{\\\"o}rg Knappen",
+    "first_names": [
+      "J{\\\"o}rg"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Knappen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "J{\\\"o}rgen L. Pind",
+    "first_names": [
+      "J{\\\"o}rgen"
+    ],
+    "middle_names": [
+      "L."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Pind"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "J{\\'e}r\\^ome Laurens",
+    "first_names": [
+      "J{\\'e}r\\^ome"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Laurens"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "J{{\\\"o}}rg Knappen",
+    "first_names": [
+      "J{{\\\"o}}rg"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Knappen"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "K. Anil Kumar",
+    "first_names": [
+      "K."
+    ],
+    "middle_names": [
+      "Anil"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Kumar"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Karel Hor{\\'a}k",
+    "first_names": [
+      "Karel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Hor{\\'a}k"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Karel P\\'{\\i}{\\v{s}}ka",
+    "first_names": [
+      "Karel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "P\\'{\\i}{\\v{s}}ka"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Karel P{\\'\\i}{\\v{s}}ka",
+    "first_names": [
+      "Karel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "P{\\'\\i}{\\v{s}}ka"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Karel Skoup\\'{y}",
+    "first_names": [
+      "Karel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Skoup\\'{y}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Karel Skoup{\\'y}",
+    "first_names": [
+      "Karel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Skoup{\\'y}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Kent McPherson",
+    "first_names": [
+      "Kent"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "McPherson"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Klaus H{\\\"o}ppner",
+    "first_names": [
+      "Klaus"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "H{\\\"o}ppner"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Lars Hellstr{\\\"o}m",
+    "first_names": [
+      "Lars"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Hellstr{\\\"o}m"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Laura Elizabeth Jackson",
+    "first_names": [
+      "Laura"
+    ],
+    "middle_names": [
+      "Elizabeth"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Jackson"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "M. D{\\'{\\i}}az",
+    "first_names": [
+      "M."
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "D{\\'{\\i}}az"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "M/iche/al /O Searc/oid",
+    "first_names": [
+      "M/iche/al"
+    ],
+    "middle_names": [
+      "/O"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Searc/oid"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Marek Ry{\\'c}ko",
+    "first_names": [
+      "Marek"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Ry{\\'c}ko"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Marina Yu. Nikulina",
+    "first_names": [
+      "Marina"
+    ],
+    "middle_names": [
+      "Yu."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Nikulina"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Max D{\\'{\\i}}az",
+    "first_names": [
+      "Max"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "D{\\'{\\i}}az"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Merry Obrecht Sawdey",
+    "first_names": [
+      "Merry"
+    ],
+    "middle_names": [
+      "Obrecht"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Sawdey"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Miroslava Mis{\\'a}kov{\\'a}",
+    "first_names": [
+      "Miroslava"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Mis{\\'a}kov{\\'a}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "N. A. F. M. Poppelier",
+    "first_names": [
+      "N."
+    ],
+    "middle_names": [
+      "A.",
+      "F.",
+      "M."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Poppelier"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Nico A. F. M. Poppelier",
+    "first_names": [
+      "Nico"
+    ],
+    "middle_names": [
+      "A.",
+      "F.",
+      "M."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Poppelier"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Onofrio de Bari",
+    "first_names": [
+      "Onofrio"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "de"
+    ],
+    "last_names": [
+      "Bari"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Pablo Rosell-Gonz{\\'a}lez",
+    "first_names": [
+      "Pablo"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Rosell-Gonz{\\'a}lez"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Paco La                  Bruna",
+    "first_names": [
+      "Paco"
+    ],
+    "middle_names": [
+      "La"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Bruna"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Paul                  Franchi-Zannettacci",
+    "first_names": [
+      "Paul"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Franchi-Zannettacci"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Pavel \\v{S}eve\\v{c}ek",
+    "first_names": [
+      "Pavel"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "\\v{S}eve\\v{c}ek"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Petr Ol{\\v{s}}ak",
+    "first_names": [
+      "Petr"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Ol{\\v{s}}ak"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Petr Ol{\\v{s}}{\\'a}k",
+    "first_names": [
+      "Petr"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Ol{\\v{s}}{\\'a}k"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Primo\\v{z} Peterlin",
+    "first_names": [
+      "Primo\\v{z}"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Peterlin"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Prof. Alban Grimm",
+    "first_names": [
+      "Prof."
+    ],
+    "middle_names": [
+      "Alban"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Grimm"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "P{\\'e}ter Husz{\\'a}r",
+    "first_names": [
+      "P{\\'e}ter"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Husz{\\'a}r"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "P{\\'e}ter Szab{\\'o}",
+    "first_names": [
+      "P{\\'e}ter"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Szab{\\'o}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Rafa{\\l}\\.Zbikowski",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Rafa{\\l}\\.Zbikowski"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Rainer Sch{\\\"o}pf",
+    "first_names": [
+      "Rainer"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Sch{\\\"o}pf"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "T. L. (Frank) Pappas",
+    "first_names": [
+      "T."
+    ],
+    "middle_names": [
+      "L.",
+      "(Frank)"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Pappas"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "TUG 2004 conference",
+    "first_names": [
+      "TUG"
+    ],
+    "middle_names": [
+      "2004"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "conference"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "TUG {\\sltt DVI} Driver Standards Committee",
+    "first_names": [
+      "TUG"
+    ],
+    "middle_names": [
+      "{\\sltt DVI}",
+      "Driver",
+      "Standards"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Committee"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "TUG {\\sltt xDVIx} Driver Standards Committee",
+    "first_names": [
+      "TUG"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "{\\sltt xDVIx}"
+    ],
+    "last_names": [
+      "Driver",
+      "Standards",
+      "Committee"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "University of M{\\\"u}nster",
+    "first_names": [
+      "University"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "of"
+    ],
+    "last_names": [
+      "M{\\\"u}nster"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Walter van der Laan",
+    "first_names": [
+      "Walter"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "van",
+      "der"
+    ],
+    "last_names": [
+      "Laan"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Wendy G.                  McKay",
+    "first_names": [
+      "Wendy"
+    ],
+    "middle_names": [
+      "G."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "McKay"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Wendy McKay",
+    "first_names": [
+      "Wendy"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "McKay"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "W{\\l}odek Bzyl",
+    "first_names": [
+      "W{\\l}odek"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Bzyl"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "\\LaTeX Project Team",
+    "first_names": [
+      "\\LaTeX"
+    ],
+    "middle_names": [
+      "Project"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Team"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "\\rlap{Lutz Birkhahn}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "\\rlap{Lutz Birkhahn}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{Jim Hef{}feron}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "{Jim Hef{}feron}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{Kristoffer H\\o{}gsbro Rose}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "{Kristoffer H\\o{}gsbro Rose}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{TUG} {Working} {Group} on a {\\TeX} {Directory}                  {Structure}",
+    "first_names": [
+      "{TUG}"
+    ],
+    "middle_names": [
+      "{Working}",
+      "{Group}"
+    ],
+    "prelast_names": [
+      "on",
+      "a"
+    ],
+    "last_names": [
+      "{\\TeX}",
+      "{Directory}",
+      "{Structure}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{The \\TUB{} Team}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "{The \\TUB{} Team}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{\\LaTeX} project team",
+    "first_names": [
+      "{\\LaTeX}"
+    ],
+    "middle_names": [],
+    "prelast_names": [
+      "project"
+    ],
+    "last_names": [
+      "team"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{\\NTG{} \\TeX{} future working group}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "{\\NTG{} \\TeX{} future working group}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "{{\\LaTeX\\,3} Project Team}",
+    "first_names": [],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "{{\\LaTeX\\,3} Project Team}"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Johansen Kyle, Derik Mamania M.",
+    "first_names": [
+      "Derik"
+    ],
+    "middle_names": [
+      "Mamania",
+      "M."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Johansen",
+      "Kyle"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Johannes Adam Ferdinand Alois Josef Maria Marko d'Aviano Pius von und zu Liechtenstein",
+    "first_names": [
+      "Johannes"
+    ],
+    "middle_names": [
+      "Adam",
+      "Ferdinand",
+      "Alois",
+      "Josef",
+      "Maria",
+      "Marko"
+    ],
+    "prelast_names": [
+      "d'Aviano",
+      "Pius",
+      "von",
+      "und",
+      "zu"
+    ],
+    "last_names": [
+      "Liechtenstein"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Brand\\~{a}o, F",
+    "first_names": [
+      "F"
+    ],
+    "middle_names": [],
+    "prelast_names": [],
+    "last_names": [
+      "Brand\\~{a}o"
+    ],
+    "lineage_names": []
+  },
+  {
+    "input": "Chong, B. M., Specia, L., & Mitkov, R.",
+    "first_names": [
+      "Specia"
+    ],
+    "middle_names": [
+      "L.",
+      "&",
+      "Mitkov",
+      "R."
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "Chong"
+    ],
+    "lineage_names": [
+      "B.",
+      "M."
+    ]
+  },
+  {
+    "input": "LeCun, Y. ,      Bottou,   L . , Bengio, Y. ,  Haffner ,  P",
+    "first_names": [
+      "Bottou"
+    ],
+    "middle_names": [
+      "L",
+      ".",
+      "Bengio",
+      "Y.",
+      "Haffner",
+      "P"
+    ],
+    "prelast_names": [],
+    "last_names": [
+      "LeCun"
+    ],
+    "lineage_names": [
+      "Y."
+    ]
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "Me2009": {
+      "type": "article",
+      "fields": {
+        "title": "A short story"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "My"
+            ],
+            "middle_names": [],
+            "prelast_names": [
+              "Nom",
+              "de"
+            ],
+            "last_names": [
+              "Plume"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

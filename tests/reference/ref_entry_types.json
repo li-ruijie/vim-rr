@@ -1,0 +1,31 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "an_id": {
+      "type": "somename",
+      "fields": {},
+      "persons": {}
+    },
+    "another_id": {
+      "type": "t2",
+      "fields": {},
+      "persons": {}
+    },
+    "again_id": {
+      "type": "t@",
+      "fields": {},
+      "persons": {}
+    },
+    "aa1_id": {
+      "type": "t+",
+      "fields": {},
+      "persons": {}
+    },
+    "aa2_id": {
+      "type": "_t",
+      "fields": {},
+      "persons": {}
+    }
+  }
+}

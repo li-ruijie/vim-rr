@@ -1,0 +1,125 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "IEEEexample:BSTcontrol": {
+      "type": "ieeetranbstctl",
+      "fields": {
+        "CTLname_url_prefix": "URL:",
+        "CTLuse_alt_spacing": "yes",
+        "CTLalt_stretch_factor": "4"
+      },
+      "persons": {}
+    },
+    "IEEEexample:bibtexuser": {
+      "type": "electronic",
+      "fields": {
+        "title": "{{\\BibTeX}}ing",
+        "howpublished": "{btxdoc.pdf}",
+        "url": "http://www.ctan.org/tex-archive/biblio/bibtex/contrib/doc/",
+        "month": "February",
+        "year": "1988"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Oren"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Patashnik"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "IEEEexample:tamethebeast": {
+      "type": "electronic",
+      "fields": {
+        "title": "Tame the BeaST --- The B to X of {{\\BibTeX}}",
+        "url": "http://tug.ctan.org/tex-archive/info/bibtex/tamethebeast/",
+        "month": "October",
+        "year": "2005"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Nicolas"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Markey"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "IEEEexample:bibtexFAQ": {
+      "type": "electronic",
+      "fields": {
+        "title": "{{\\BibTeX}} Tips and {FAQ}",
+        "howpublished": "{btxFAQ.pdf}",
+        "url": "http://www.ctan.org/tex-archive/biblio/bibtex/contrib/doc/",
+        "month": "January",
+        "year": "2007"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "David"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Hoadley"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "Michael"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Shell"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "IEEEexample:bibtexguide": {
+      "type": "electronic",
+      "fields": {
+        "title": "A {{\\BibTeX}} Guide via Examples",
+        "howpublished": "{bibtex\\_guide.pdf}",
+        "url": "http://www.geocities.com/kijoo2000/",
+        "month": "April",
+        "year": "2004"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Ki-Joo"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Kim"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

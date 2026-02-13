@@ -1,0 +1,51 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "Me2010": {
+      "type": "article",
+      "fields": {
+        "title": "An article @article{something, author={Name, Another}, title={not really an article}}"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Matthew"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Brett"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "Me2009": {
+      "type": "article",
+      "fields": {
+        "title": "A short story"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "My"
+            ],
+            "middle_names": [],
+            "prelast_names": [
+              "Nom",
+              "de"
+            ],
+            "last_names": [
+              "Plume"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

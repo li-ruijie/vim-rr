@@ -60,6 +60,9 @@ declare -A TEST_MAP=(
 	[R/pdf_init.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 	[R/pdf_zathura.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 	[R/pdf_evince.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
+	[R/evince_dbus.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_bibtex_evince.vim"
+	[R/evince_pdf_back.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_bibtex_evince.vim"
+	[R/evince_pdf_forward.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_bibtex_evince.vim"
 	[R/pdf_okular.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 	[R/pdf_sumatra.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
 	[R/pdf_qpdfview.vim]="test_05_pdf.vim test_11_vim9_lint.vim test_13_bugs_lint.vim"
@@ -74,9 +77,10 @@ declare -A TEST_MAP=(
 	# test_07 — start_r
 	[R/start_r.vim]="test_07_start_r.vim test_10_edge_cases.vim test_11_vim9_lint.vim test_12_startup.vim test_13_bugs_lint.vim"
 
-	# test_08 — rnw, bibcompl, complete
+	# test_08 — rnw, bibcompl, bibtex, complete
 	[R/rnw_fun.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim"
 	[R/bibcompl.vim]="test_08_rnw_bibcompl_complete.vim test_13_bugs_lint.vim"
+	[R/bibtex.vim]="test_08_rnw_bibcompl_complete.vim test_11_vim9_lint.vim test_13_bugs_lint.vim test_14_bibtex_evince.vim"
 	[R/complete.vim]="test_08_rnw_bibcompl_complete.vim test_10_edge_cases.vim test_13_bugs_lint.vim"
 
 	# test_09 — ftplugin, syntax, gui, windows

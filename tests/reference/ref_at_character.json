@@ -1,0 +1,14 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "acc": {
+      "type": "proceedings",
+      "fields": {
+        "title": "Proc.\\@ of the American Control Conference",
+        "notes": "acc@example.org"
+      },
+      "persons": {}
+    }
+  }
+}

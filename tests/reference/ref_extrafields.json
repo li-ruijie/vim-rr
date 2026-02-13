@@ -1,0 +1,132 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "scikit-image": {
+      "type": "article",
+      "fields": {
+        "title": "{s}cikit-image: image processing in {P}ython",
+        "year": "2014",
+        "month": "6",
+        "keywords": "Image processing, Reproducible research, Education, Visualization, Open source, Python, Scientific programming",
+        "volume": "2",
+        "pages": "e453",
+        "journal": "PeerJ",
+        "issn": "2167-8359",
+        "url": "http://scikit-image.org/",
+        "doi": "10.7717/peerj.453"
+      },
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "{S}t\\'efan"
+            ],
+            "middle_names": [],
+            "prelast_names": [
+              "van",
+              "der"
+            ],
+            "last_names": [
+              "Walt"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{J}ohannes"
+            ],
+            "middle_names": [
+              "{L}."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "{S}ch\\\"onberger"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{J}uan"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{Nunez-Iglesias}"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{F}ran\\c{c}ois"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{B}oulogne"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{J}oshua"
+            ],
+            "middle_names": [
+              "{D}."
+            ],
+            "prelast_names": [],
+            "last_names": [
+              "{W}arner"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{N}eil"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{Y}ager"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{E}mmanuelle"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{G}ouillart"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [
+              "{T}ony"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "{Y}u"
+            ],
+            "lineage_names": []
+          },
+          {
+            "first_names": [],
+            "middle_names": [],
+            "prelast_names": [
+              "the",
+              "scikit-image"
+            ],
+            "last_names": [
+              "contributors"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    }
+  }
+}

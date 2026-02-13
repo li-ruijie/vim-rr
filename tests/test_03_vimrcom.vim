@@ -9,13 +9,12 @@ g:SetSuite('vimrcom')
 if !exists('g:rplugin')
   g:rplugin = {'debug_info': {}, 'libs_in_nrs': [], 'nrs_running': 0, 'myport': 0, 'R_pid': 0}
 endif
-g:rplugin.jobs = {"Server": "no", "R": "no", "Terminal emulator": "no", "BibComplete": "no"}
+g:rplugin.jobs = {"Server": "no", "R": "no", "Terminal emulator": "no"}
 
 g:AssertType(g:rplugin.jobs, v:t_dict, 'jobs is a dictionary')
 g:AssertEqual(g:rplugin.jobs["Server"], "no", 'Server job initially "no"')
 g:AssertEqual(g:rplugin.jobs["R"], "no", 'R job initially "no"')
 g:AssertEqual(g:rplugin.jobs["Terminal emulator"], "no", 'Terminal emulator job initially "no"')
-g:AssertEqual(g:rplugin.jobs["BibComplete"], "no", 'BibComplete job initially "no"')
 
 # ========================================================================
 # GetJobTitle

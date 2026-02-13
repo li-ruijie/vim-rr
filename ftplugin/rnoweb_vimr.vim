@@ -218,7 +218,7 @@ endif
 g:RSourceOtherScripts()
 
 if g:R_non_r_compl && index(g:R_bib_compl, 'rnoweb') > -1
-    timer_start(1, 'g:CheckPyBTeX')
+    timer_start(1, 'g:InitBibComplete')
 endif
 
 timer_start(1, 'g:RPDFinit')

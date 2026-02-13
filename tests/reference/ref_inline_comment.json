@@ -1,0 +1,40 @@
+{
+  "preamble": "",
+  "preamble_list": [],
+  "entries": {
+    "Me2010": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "Me2011": {
+      "type": "article",
+      "fields": {},
+      "persons": {
+        "author": [
+          {
+            "first_names": [
+              "Matthew"
+            ],
+            "middle_names": [],
+            "prelast_names": [],
+            "last_names": [
+              "Brett-like"
+            ],
+            "lineage_names": []
+          }
+        ]
+      }
+    },
+    "Me2012": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    },
+    "Me2013": {
+      "type": "article",
+      "fields": {},
+      "persons": {}
+    }
+  }
+}
