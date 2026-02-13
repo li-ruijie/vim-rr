@@ -92,7 +92,6 @@ static char tmpdir[512]; // The environment variable VIMR_TMPDIR.
 static int setwidth = 0; // Set the option width after each command is executed
 static int oldcolwd = 0; // Last set width.
 
-static char flag_eval[512]; // Do we have an R expression to evaluate?
 static int flag_glbenv = 0; // Do we have to list objects from .GlobalEnv?
 #ifndef WIN32
 static int flag_debug = 0; // Do we need to get file name and line information
@@ -109,21 +108,9 @@ static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define FLAG_UNLOCK() pthread_mutex_unlock(&flag_mutex)
 #endif
 
-#ifdef WIN32
-extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
-// exported from R.dll on Windows. Needed to fix BUG-62: temporarily set the
-// stack base to the current frame so R_CheckStack sees a small delta instead
-// of a garbage ~1.6 GB value when called from the TCP thread.
-static int r_is_busy = 1; // Is R executing a top level command? R memory will
-// become corrupted and R will crash afterwards if we execute a function that
-// creates R objects while R is busy.
-static time_t busy_since = 0; // When r_is_busy was last set to 1. Used by the
-// TCP thread to auto-reset a stale r_is_busy flag (e.g. after RStudio
-// interrupt kills the task callback).
-
-// Linked-list queue for deferred eval commands. Replaces the static flag_eval
-// buffer on Windows. Commands are enqueued by the TCP thread (case 'E' / 'L')
-// when r_is_busy == 1, and drained by vimcom_task on the main R thread.
+// Linked-list queue for deferred eval commands. Commands are enqueued by the
+// TCP thread (case 'E' / 'L') and drained by vimcom_task (Windows) or
+// vimcom_exec (Unix) on the main R thread.
 #define MAX_EVAL_CMD 65536
 
 typedef struct eval_node {
@@ -135,7 +122,7 @@ static eval_node_t *eval_head = NULL;
 static eval_node_t *eval_tail = NULL;
 
 /**
- * @brief Enqueue a command for deferred execution by vimcom_task.
+ * @brief Enqueue a command for deferred execution.
  * Must be called under FLAG_LOCK.
  */
 static void eval_queue_push(const char *cmd) {
@@ -180,6 +167,18 @@ static void eval_queue_free(eval_node_t *queue) {
         free(tmp);
     }
 }
+
+#ifdef WIN32
+extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
+// exported from R.dll on Windows. Needed to fix BUG-62: temporarily set the
+// stack base to the current frame so R_CheckStack sees a small delta instead
+// of a garbage ~1.6 GB value when called from the TCP thread.
+static int r_is_busy = 1; // Is R executing a top level command? R memory will
+// become corrupted and R will crash afterwards if we execute a function that
+// creates R objects while R is busy.
+static time_t busy_since = 0; // When r_is_busy was last set to 1. Used by the
+// TCP thread to auto-reset a stale r_is_busy flag (e.g. after RStudio
+// interrupt kills the task callback).
 #else
 static int fired = 0; // Do we have commands waiting to be executed?
 static int ifd;       // input file descriptor
@@ -251,35 +250,33 @@ static char *vimcom_strcat(char *dest, const char *src) {
  * @return Pointer to the NULL terminating byte of glbnvbuf2.
  */
 static char *vimcom_grow_buffers(void) {
-    lastglbnvbsz = glbnvbufsize;
-    glbnvbufsize += 32768;
+    unsigned long new_size = glbnvbufsize + 32768;
 
-    char *tmp = (char *)calloc(glbnvbufsize, sizeof(char));
-    if (!tmp) {
-        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
+    // Allocate all three buffers atomically — commit or roll back
+    char *new1 = (char *)calloc(new_size, sizeof(char));
+    char *new2 = (char *)calloc(new_size, sizeof(char));
+    char *new3 = (char *)calloc(new_size + 64, sizeof(char));
+    if (!new1 || !new2 || !new3) {
+        free(new1);
+        free(new2);
+        free(new3);
+        REprintf("vimcom: grow_buffers failed\n");
         return (glbnvbuf2 + strlen(glbnvbuf2));
     }
-    strcpy(tmp, glbnvbuf1);
+
+    strcpy(new1, glbnvbuf1);
     free(glbnvbuf1);
-    glbnvbuf1 = tmp;
+    glbnvbuf1 = new1;
 
-    tmp = (char *)calloc(glbnvbufsize, sizeof(char));
-    if (!tmp) {
-        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
-        return (glbnvbuf2 + strlen(glbnvbuf2));
-    }
-    strcpy(tmp, glbnvbuf2);
+    strcpy(new2, glbnvbuf2);
     free(glbnvbuf2);
-    glbnvbuf2 = tmp;
+    glbnvbuf2 = new2;
 
-    tmp = (char *)calloc(glbnvbufsize + 64, sizeof(char));
-    if (!tmp) {
-        REprintf("vimcom: calloc failed in vimcom_grow_buffers\n");
-        return (glbnvbuf2 + strlen(glbnvbuf2));
-    }
     free(send_ge_buf);
-    send_ge_buf = tmp;
+    send_ge_buf = new3;
 
+    lastglbnvbsz = glbnvbufsize;
+    glbnvbufsize = new_size;
     return (glbnvbuf2 + strlen(glbnvbuf2));
 }
 
@@ -567,7 +564,8 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
     char buf[576];
     char bbuf[512];
 
-    if ((strlen(glbnvbuf2 + lastglbnvbsz)) > 31744)
+    // Grow if less than 2048 bytes remain in the buffer
+    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize)
         p = vimcom_grow_buffers();
 
     p = vimcom_strcat(p, curenv);
@@ -790,12 +788,8 @@ static void vimcom_globalenv_list(void) {
     if (verbose > 4)
         REprintf("globalenv_list(0) len1 = %zu, len2 = %zu\n", len1, len2);
     if (!changed) {
-        for (int i = 0; i < len1; i++) {
-            if (glbnvbuf1[i] != glbnvbuf2[i]) {
-                changed = 1;
-                break;
-            }
-        }
+        if (memcmp(glbnvbuf1, glbnvbuf2, len1) != 0)
+            changed = 1;
     }
 
     if (changed)
@@ -845,7 +839,7 @@ static void vimcom_eval_expr(const char *buf) {
     if (verbose > 3)
         Rprintf("vimcom_eval_expr: '%s'\n", buf);
 
-    char rep[128];
+    char rep[256];
 
     SEXP cmdSexp, cmdexpr, ans;
     ParseStatus status;
@@ -862,17 +856,15 @@ static void vimcom_eval_expr(const char *buf) {
          * a semicolon. */
         PROTECT(ans = R_tryEval(VECTOR_ELT(cmdexpr, 0), R_GlobalEnv, &er));
         if (er && verbose > 1) {
-            strcpy(rep, "g:RWarningMsg('Error running: ");
-            strncat(rep, buf2, 80);
-            strcat(rep, "')");
+            snprintf(rep, sizeof(rep), "g:RWarningMsg('Error running: %s')",
+                     buf2);
             send_to_vim(rep);
         }
         UNPROTECT(1);
     } else {
         if (verbose > 1) {
-            strcpy(rep, "g:RWarningMsg('Invalid command: ");
-            strncat(rep, buf2, 80);
-            strcat(rep, "')");
+            snprintf(rep, sizeof(rep), "g:RWarningMsg('Invalid command: %s')",
+                     buf2);
             send_to_vim(rep);
         }
     }
@@ -1050,24 +1042,23 @@ void vimcom_task(void) {
  * @param unused Unused parameter.
  */
 static void vimcom_exec(__attribute__((unused)) void *nothing) {
-    char local_eval[512];
-    local_eval[0] = 0;
     int local_glbenv = 0;
 
     FLAG_LOCK();
-    if (*flag_eval) {
-        strncpy(local_eval, flag_eval, 511);
-        local_eval[511] = 0;
-        *flag_eval = 0;
-    }
+    eval_node_t *queue = eval_queue_drain();
     if (flag_glbenv) {
         local_glbenv = 1;
         flag_glbenv = 0;
     }
     FLAG_UNLOCK();
 
-    if (local_eval[0])
-        vimcom_eval_expr(local_eval);
+    // Execute all queued commands in FIFO order (outside lock)
+    while (queue) {
+        eval_node_t *tmp = queue;
+        queue = queue->next;
+        vimcom_eval_expr(tmp->cmd);
+        free(tmp);
+    }
 
     if (local_glbenv)
         vimcom_globalenv_list();
@@ -1267,22 +1258,19 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
-#ifdef WIN32
             char lazy_cmd[512];
             snprintf(lazy_cmd, sizeof(lazy_cmd), "%s <- %s", p, p);
             FLAG_LOCK();
             eval_queue_push(lazy_cmd);
             flag_glbenv = 1;
+#ifdef WIN32
             if (!r_is_busy) {
                 r_is_busy = 1;
                 busy_since = time(NULL);
             }
+#endif
             FLAG_UNLOCK();
-#else
-            FLAG_LOCK();
-            snprintf(flag_eval, 510, "%s <- %s", p, p);
-            flag_glbenv = 1;
-            FLAG_UNLOCK();
+#ifndef WIN32
             vimcom_fire();
 #endif
         }
@@ -1331,12 +1319,12 @@ static void vimcom_parse_received_msg(char *buf) {
             }
 #else
             FLAG_LOCK();
-            strncpy(flag_eval, p, 510);
+            eval_queue_push(p);
             FLAG_UNLOCK();
             vimcom_fire();
 #endif
         } else {
-            REprintf("\vimcom: received invalid VIMR_ID.\n");
+            REprintf("vimcom: received invalid VIMR_ID\n");
         }
         break;
     default: // do nothing
@@ -1421,12 +1409,12 @@ static void *client_loop_thread(__attribute__((unused)) void *arg)
     }
 
     free(body);
-#ifdef WIN32
     // Free any queued commands that will never be executed
     FLAG_LOCK();
     eval_node_t *abandoned = eval_queue_drain();
     FLAG_UNLOCK();
     eval_queue_free(abandoned);
+#ifdef WIN32
     closesocket(sfd);
     WSACleanup();
     return 0;
@@ -1515,8 +1503,6 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     send_ge_buf = (char *)calloc(glbnvbufsize + 64, sizeof(char));
     if (!glbnvbuf1 || !glbnvbuf2 || !send_ge_buf)
         REprintf("vimcom: Error allocating memory.\n");
-
-    *flag_eval = 0;
 
 #ifndef WIN32
     int fds[2];
@@ -1618,10 +1604,14 @@ void vimcom_Stop(void) {
 
     if (initialized) {
 #ifdef WIN32
+        // Signal the thread to exit by closing the socket, which causes
+        // recv_exact to return -1, breaking client_loop_thread's loop.
         closesocket(sfd);
-        WSACleanup();
-        TerminateThread(tid, 0);
+        sfd = -1;
+        if (WaitForSingleObject(tid, 5000) == WAIT_TIMEOUT)
+            TerminateThread(tid, 0);
         CloseHandle(tid);
+        WSACleanup();
         // Free any queued commands that will never be executed
         FLAG_LOCK();
         eval_node_t *abandoned = eval_queue_drain();
@@ -1633,6 +1623,11 @@ void vimcom_Stop(void) {
         close(sfd);
         pthread_cancel(tid);
         pthread_join(tid, NULL);
+        // Free any queued commands that will never be executed
+        FLAG_LOCK();
+        eval_node_t *abandoned_unix = eval_queue_drain();
+        FLAG_UNLOCK();
+        eval_queue_free(abandoned_unix);
 #endif
 
         LibInfo *lib = libList;
