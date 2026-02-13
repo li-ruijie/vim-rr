@@ -177,3 +177,97 @@ g:Assert(dbus.EV_DAEMON_IFACE != '', 'dbus const: EV_DAEMON_IFACE non-empty')
 g:Assert(dbus.EVINCE_PATH != '', 'dbus const: EVINCE_PATH non-empty')
 g:Assert(dbus.EVINCE_IFACE != '', 'dbus const: EVINCE_IFACE non-empty')
 g:Assert(dbus.EV_WINDOW_IFACE != '', 'dbus const: EV_WINDOW_IFACE non-empty')
+
+# ========================================================================
+# Deep comparison helper
+# ========================================================================
+
+def DeepCompare(expected: any, actual: any, path: string = '$'): list<string>
+  var diffs: list<string> = []
+  if type(expected) == v:t_dict && type(actual) == v:t_dict
+    for key in sort(keys(expected))
+      if !has_key(actual, key)
+        add(diffs, path .. '.' .. key .. ': missing in output')
+        continue
+      endif
+      extend(diffs, DeepCompare(expected[key], actual[key], path .. '.' .. key))
+    endfor
+    for key in sort(keys(actual))
+      if !has_key(expected, key)
+        add(diffs, path .. '.' .. key .. ': unexpected in output')
+      endif
+    endfor
+  elseif type(expected) == v:t_list && type(actual) == v:t_list
+    if len(expected) != len(actual)
+      add(diffs, path .. ': length ' .. string(len(expected)) .. ' vs ' .. string(len(actual)))
+    endif
+    for i in range(min([len(expected), len(actual)]))
+      extend(diffs, DeepCompare(expected[i], actual[i], path .. '[' .. string(i) .. ']'))
+    endfor
+  else
+    if expected != actual
+      add(diffs, path .. ': ' .. string(expected) .. ' vs ' .. string(actual))
+    endif
+  endif
+  return diffs
+enddef
+
+# ========================================================================
+# Deep comparison: .bib file tests (against pybtex reference JSON)
+# ========================================================================
+
+var data_dir = expand('<sfile>:p:h') .. '/data'
+
+for bib_path in sort(glob(data_dir .. '/*.bib', false, true))
+  var stem = fnamemodify(bib_path, ':t:r')
+  var ref_path = data_dir .. '/ref_' .. stem .. '.json'
+  if !filereadable(ref_path)
+    continue
+  endif
+  var ref_data = json_decode(join(readfile(ref_path), "\n"))
+  var actual = bibtex.ParseBibFile(bib_path)
+  var diffs = DeepCompare(ref_data, actual)
+  g:Assert(len(diffs) == 0, 'Deep bib ' .. stem .. ': ' .. (len(diffs) > 0 ? diffs[0] : 'ok'))
+endfor
+
+# ========================================================================
+# Deep comparison: inline BibTeX string tests
+# ========================================================================
+
+var inputs_path = data_dir .. '/inline_inputs.json'
+var inline_tests: dict<any> = json_decode(join(readfile(inputs_path), "\n"))
+
+for [name, input_strings] in sort(items(inline_tests))
+  var ref_path = data_dir .. '/ref_' .. name .. '.json'
+  if !filereadable(ref_path)
+    continue
+  endif
+  var combined: string = join(input_strings, '')
+  var ref_data = json_decode(join(readfile(ref_path), "\n"))
+  var actual = bibtex.ParseBibString(combined)
+  var diffs = DeepCompare(ref_data, actual)
+  g:Assert(len(diffs) == 0, 'Deep inline ' .. name .. ': ' .. (len(diffs) > 0 ? diffs[0] : 'ok'))
+endfor
+
+# ========================================================================
+# Deep comparison: person name parsing (176 names)
+# ========================================================================
+
+var ref_names_path = data_dir .. '/ref_names.json'
+var ref_names: list<any> = json_decode(join(readfile(ref_names_path), "\n"))
+
+var name_results: list<dict<any>> = []
+for ref_entry in ref_names
+  var parsed = bibtex.ParsePerson(ref_entry.input)
+  add(name_results, {
+    'input': ref_entry.input,
+    'first_names': parsed.first_names,
+    'middle_names': parsed.middle_names,
+    'prelast_names': parsed.prelast_names,
+    'last_names': parsed.last_names,
+    'lineage_names': parsed.lineage_names,
+  })
+endfor
+
+var name_diffs = DeepCompare(ref_names, name_results)
+g:Assert(len(name_diffs) == 0, 'Deep names: ' .. (len(name_diffs) > 0 ? name_diffs[0] : 'ok'))
