@@ -421,9 +421,6 @@ def g:SetSendCmdToR(...args: list<any>)
     endif
     g:rplugin.vimcom_connected = 1
     wait_vimcom = 0
-    if has_key(g:rplugin, 'pending_send')
-        g:SendCmdToR(remove(g:rplugin, 'pending_send'))
-    endif
 enddef
 
 # Called by vimrserver when the TCP connection to vimcom drops.
