@@ -670,6 +670,44 @@ def CSprintfEbuf(): list<string>
 enddef
 
 # ========================================================================
+# @@ (legacy unnamed register) in def blocks — must use @" in vim9
+# ========================================================================
+# In vim9 def blocks, @@ is invalid (E354: Invalid register name: '@').
+# The vim9 equivalent is @".
+def AtAtInDefBlocks(): list<string>
+  var errors: list<string> = []
+  for filepath in vim_files
+    if !IsVim9(filepath)
+      continue
+    endif
+    var lines = readfile(filepath)
+    var in_def = false
+    var in_legacy = 0
+    var lnum = 0
+    for line in lines
+      lnum += 1
+      if line =~ '^\s*fu\%[nction]!\?\s'
+        in_legacy += 1
+      elseif line =~ '^\s*endfu\%[nction]'
+        in_legacy = max([0, in_legacy - 1])
+      endif
+      if in_legacy > 0
+        continue
+      endif
+      if line =~ '^\s*def\s'
+        in_def = true
+      elseif line =~ '^\s*enddef'
+        in_def = false
+      endif
+      if in_def && line !~ '^\s*#' && line =~ '@@'
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run all checks
 # ========================================================================
 
@@ -707,6 +745,7 @@ var ftplugin_autocmd_errors = FtpluginGlobalAutocmd()
 var jobstdin_errors = JobStdinAllSitesGuarded()
 var undo_errors = UndoFtpluginVars()
 var sprintf_errors = CSprintfEbuf()
+var atat_errors = AtAtInDefBlocks()
 
 # Helper for error suffix
 def Err(errors: list<string>): string
@@ -783,3 +822,7 @@ g:Assert(len(undo_errors) == 0,
 g:Assert(len(sprintf_errors) == 0,
   'sprintf(ebuf must be snprintf(ebuf, sizeof(ebuf))'
   .. Err(sprintf_errors))
+
+g:Assert(len(atat_errors) == 0,
+  '@@ is invalid in def blocks (E354) — use @" instead'
+  .. Err(atat_errors))

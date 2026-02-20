@@ -1235,7 +1235,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     setlocal modifiable
     g:rplugin.curbuf = bufname("%")
 
-    var save_unnamed_reg = @@
+    var save_unnamed_reg = @"
     setlocal modifiable
     sil normal! ggdG
     var fcntt = split(substitute(txt, "\x13", "'", "g"), "\x14")
@@ -1260,7 +1260,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
         nnoremap <buffer><silent> q :q<CR>
         cursor(1, 1)
     endif
-    @@ = save_unnamed_reg
+    @" = save_unnamed_reg
     setlocal nomodified
     stopinsert
     redraw

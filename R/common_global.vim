@@ -129,12 +129,12 @@ def g:ReplaceUnderS()
     if &filetype != "r" && b:IsInRCode(0) != 1
         isString = 1
     else
-        var save_unnamed_reg = @@
+        var save_unnamed_reg = @"
         var j = col(".")
         var s = getline(".")
         if g:R_assign == 1 && g:R_assign_map == "_" && j > 3 && s[j - 3] == "<" && s[j - 2] == "-" && s[j - 1] == " "
             execute "normal! 3h3xr_"
-            @@ = save_unnamed_reg
+            @" = save_unnamed_reg
             return
         endif
         isString = 0
@@ -156,15 +156,15 @@ def g:ReplaceUnderS()
                         isString = 1
                     elseif j > 3 && s[j - 3] == "<" && s[j - 2] == "-" && s[j - 1] == " "
                         execute "normal! 3h3xr_a_"
-                        @@ = save_unnamed_reg
+                        @" = save_unnamed_reg
                         return
                     else
                         if j == len(s)
                             execute "normal! 1x"
-                            @@ = save_unnamed_reg
+                            @" = save_unnamed_reg
                         else
                             execute "normal! 1xi <- "
-                            @@ = save_unnamed_reg
+                            @" = save_unnamed_reg
                             return
                         endif
                     endif
