@@ -685,7 +685,11 @@ enddef
 # Function to send commands
 # return 0 on failure and 1 on success
 def g:SendCmdToR_fake(...args: list<any>): number
-    g:RWarningMsg("Did you already start R?")
+    if g:R_start_on_send == 1
+        g:StartR("R")
+    else
+        g:RWarningMsg("Did you already start R?")
+    endif
     return 0
 enddef
 
@@ -714,9 +718,13 @@ command RDebugInfo :call g:ShowRDebugInfo()
 # Temporary links to be deleted when start_r.vim is sourced
 
 def g:RNotRunning(...args: list<any>)
-    echohl WarningMsg
-    echon "R is not running"
-    echohl None
+    if g:R_start_on_send == 1
+        g:StartR("R")
+    else
+        echohl WarningMsg
+        echon "R is not running"
+        echohl None
+    endif
 enddef
 
 g:RAction = function('g:RNotRunning')
@@ -739,6 +747,9 @@ g:SendLineToR = function('g:RNotRunning')
 g:SendLineToRAndInsertOutput = function('g:RNotRunning')
 g:SendMBlockToR = function('g:RNotRunning')
 g:SendParagraphToR = function('g:RNotRunning')
+g:SendAboveLinesToR = function('g:RNotRunning')
+g:SendFHChunkToR = function('g:RNotRunning')
+g:SendMotionToR = function('g:RNotRunning')
 g:SendSelectionToR = function('g:RNotRunning')
 g:SignalToR = function('g:RNotRunning')
 
@@ -856,6 +867,7 @@ g:R_synctex           = get(g:, "R_synctex",            1)
 g:R_non_r_compl       = get(g:, "R_non_r_compl",        1)
 g:R_vim_wd            = get(g:, "R_vim_wd",            0)
 g:R_auto_start        = get(g:, "R_auto_start",         0)
+g:R_start_on_send     = get(g:, "R_start_on_send",      0)
 g:R_quit_on_close     = get(g:, "R_quit_on_close",      0)
 g:R_force_quit_on_close = get(g:, "R_force_quit_on_close", 0)
 g:R_routnotab         = get(g:, "R_routnotab",          0)
