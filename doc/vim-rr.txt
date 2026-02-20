@@ -1012,7 +1012,9 @@ running, put in your |vimrc|:
    let g:R_start_on_send = 1
 <
 When enabled, any send command (e.g. \d, \l, \ss, \su, \ch, \m) will start R
-instead of displaying a warning. Default is 0 (off).
+instead of displaying a warning. The text to be sent is captured at that moment
+and sent automatically once R finishes connecting; editing the buffer during
+startup does not change what gets sent. Default is 0 (off).
 
                                                           *R_quit_on_close*
 

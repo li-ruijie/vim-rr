@@ -320,13 +320,18 @@ endfor
 g:Assert(!has_restart_timer, 'RRestart must not use timer_start (uses restart_pending instead)')
 
 # ========================================================================
-# SendAboveLinesToR, SendFHChunkToR, SendMotionToR must have stubs
+# Send stubs must use RSendNotRunning partials, non-send stubs use RNotRunning
 # ========================================================================
 var cg_lines = readfile(expand('<sfile>:p:h:h') .. '/R/common_global.vim')
 var cg_text = join(cg_lines, "\n")
-for stub_name in ['SendAboveLinesToR', 'SendFHChunkToR', 'SendMotionToR']
-  g:Assert(cg_text =~ 'g:' .. stub_name .. " = function('g:RNotRunning')",
-    stub_name .. ' must have provisory link in common_global.vim')
+for stub_name in ['SendAboveLinesToR', 'SendFHChunkToR', 'SendMotionToR',
+    'SendFunctionToR', 'SendLineToR', 'SendSelectionToR']
+  g:Assert(cg_text =~ "g:" .. stub_name .. " = function('g:RSendNotRunning', \\['" .. stub_name .. "'\\])",
+    stub_name .. ' must use RSendNotRunning partial in common_global.vim')
+endfor
+for nonsend_name in ['RAction', 'RAskHelp', 'RQuit', 'SignalToR']
+  g:Assert(cg_text =~ "g:" .. nonsend_name .. " = function('g:RNotRunning')",
+    nonsend_name .. ' must use RNotRunning (no auto-start) in common_global.vim')
 endfor
 
 # ========================================================================
@@ -337,6 +342,32 @@ for unlet_name in ['SendAboveLinesToR', 'SendFHChunkToR', 'SendMotionToR']
   g:Assert(sr_text =~ 'unlet! g:' .. unlet_name,
     unlet_name .. ' must have unlet! in start_r.vim')
 endfor
+
+# ========================================================================
+# SetSendCmdToR must replay pending_send
+# ========================================================================
+var in_setsend2 = false
+var has_pending_replay = false
+for ss2line in start_r_lines
+  if ss2line =~ 'def g:SetSendCmdToR('
+    in_setsend2 = true
+  elseif in_setsend2 && ss2line =~ '^\s*enddef\s*$'
+    break
+  elseif in_setsend2 && ss2line =~ 'pending_send'
+    has_pending_replay = true
+  endif
+endfor
+g:Assert(has_pending_replay, 'SetSendCmdToR must replay pending_send')
+
+# ========================================================================
+# RSendNotRunning must capture text via CaptureSendCmd (not replay function)
+# ========================================================================
+g:Assert(cg_text =~ 'CaptureSendCmd', 'RSendNotRunning must use CaptureSendCmd to capture text')
+g:Assert(cg_text =~ "g:SendCmdToR = function('g:CaptureSendCmd')",
+  'RSendNotRunning must swap SendCmdToR to CaptureSendCmd')
+g:Assert(cg_text =~ 'def g:CaptureSendCmd(', 'CaptureSendCmd must be defined')
+g:Assert(cg_text =~ 'g:rplugin\.pending_send = args\[0\]',
+  'CaptureSendCmd must store command in g:rplugin.pending_send')
 
 # ========================================================================
 # R_start_on_send defaults to 0

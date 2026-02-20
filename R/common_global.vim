@@ -721,10 +721,31 @@ command RDebugInfo :call g:ShowRDebugInfo()
 # Temporary links to be deleted when start_r.vim is sourced
 
 def g:RNotRunning(...args: list<any>)
+    echohl WarningMsg
+    echon "R is not running"
+    echohl None
+enddef
+
+def g:CaptureSendCmd(...args: list<any>): number
+    if !empty(args)
+        g:rplugin.pending_send = args[0]
+    endif
+    return 1
+enddef
+
+def g:RSendNotRunning(target: string, ...args: list<any>)
     if g:R_start_on_send == 1
         if !exists('*g:StartR')
             execute "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/start_r.vim"
         endif
+        # Capture the R command text now (before the buffer can be edited
+        # during async R startup) by temporarily swapping SendCmdToR.
+        if has_key(g:rplugin, 'pending_send')
+            remove(g:rplugin, 'pending_send')
+        endif
+        g:SendCmdToR = function('g:CaptureSendCmd')
+        call(function('g:' .. target), args)
+        g:SendCmdToR = function('g:SendCmdToR_fake')
         g:StartR("R")
     else
         echohl WarningMsg
@@ -744,19 +765,19 @@ g:RInsert = function('g:RNotRunning')
 g:RMakeRmd = function('g:RNotRunning')
 g:RObjBrowser = function('g:RNotRunning')
 g:RQuit = function('g:RNotRunning')
-g:RSendPartOfLine = function('g:RNotRunning')
+g:RSendPartOfLine = function('g:RSendNotRunning', ['RSendPartOfLine'])
 g:RSourceDirectory = function('g:RNotRunning')
 g:SendCmdToR = function('g:SendCmdToR_fake')
 g:SendFileToR = function('g:SendCmdToR_fake')
-g:SendFunctionToR = function('g:RNotRunning')
-g:SendLineToR = function('g:RNotRunning')
-g:SendLineToRAndInsertOutput = function('g:RNotRunning')
-g:SendMBlockToR = function('g:RNotRunning')
-g:SendParagraphToR = function('g:RNotRunning')
-g:SendAboveLinesToR = function('g:RNotRunning')
-g:SendFHChunkToR = function('g:RNotRunning')
-g:SendMotionToR = function('g:RNotRunning')
-g:SendSelectionToR = function('g:RNotRunning')
+g:SendFunctionToR = function('g:RSendNotRunning', ['SendFunctionToR'])
+g:SendLineToR = function('g:RSendNotRunning', ['SendLineToR'])
+g:SendLineToRAndInsertOutput = function('g:RSendNotRunning', ['SendLineToRAndInsertOutput'])
+g:SendMBlockToR = function('g:RSendNotRunning', ['SendMBlockToR'])
+g:SendParagraphToR = function('g:RSendNotRunning', ['SendParagraphToR'])
+g:SendAboveLinesToR = function('g:RSendNotRunning', ['SendAboveLinesToR'])
+g:SendFHChunkToR = function('g:RSendNotRunning', ['SendFHChunkToR'])
+g:SendMotionToR = function('g:RSendNotRunning', ['SendMotionToR'])
+g:SendSelectionToR = function('g:RSendNotRunning', ['SendSelectionToR'])
 g:SignalToR = function('g:RNotRunning')
 
 # Lazily source pdf_init.vim (called via timer_start from ftplugin files)
