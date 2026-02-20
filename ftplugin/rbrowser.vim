@@ -83,9 +83,9 @@ if !exists("g:did_vimr_rbrowser_functions")
         setlocal modifiable
         var curline = line(".")
         var curcol = col(".")
-        var save_unnamed_reg = @@
+        var save_unnamed_reg = @"
         sil normal! ggdG
-        @@ = save_unnamed_reg
+        @" = save_unnamed_reg
         setline(1, fcntt)
         cursor(curline, curcol)
         if bufname("%") =~ "Object_Browser"
