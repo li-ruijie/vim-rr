@@ -863,6 +863,7 @@ The compilation of `vimcom` during R startup will fail on Windows if your
 6. Options                                                    *vim-rr-options*
 
 |R_auto_start|          Start R automatically
+|R_start_on_send|       Start R when a send command is triggered
 |R_quit_on_close|       Quit R when Vim exits
 |R_force_quit_on_close| Force-kill R on exit if connection is broken
 |R_objbr_auto_start|    Start the Object Browser automatically
@@ -1002,6 +1003,16 @@ put in your |vimrc|:
    let g:R_objbr_auto_start = 1
 <
 See also: |R_after_ob_open|.
+
+                                                          *R_start_on_send*
+
+If you want R to start automatically when you try to send code before R is
+running, put in your |vimrc|:
+>vim
+   let g:R_start_on_send = 1
+<
+When enabled, any send command (e.g. \d, \l, \ss, \su, \ch, \m) will start R
+instead of displaying a warning. Default is 0 (off).
 
                                                           *R_quit_on_close*
 

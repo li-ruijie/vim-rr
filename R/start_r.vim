@@ -54,6 +54,9 @@ unlet! g:SendLineToR
 unlet! g:SendLineToRAndInsertOutput
 unlet! g:SendMBlockToR
 unlet! g:SendParagraphToR
+unlet! g:SendAboveLinesToR
+unlet! g:SendFHChunkToR
+unlet! g:SendMotionToR
 unlet! g:SendSelectionToR
 unlet! g:SignalToR
 

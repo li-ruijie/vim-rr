@@ -318,3 +318,27 @@ for rrline in start_r_lines
   endif
 endfor
 g:Assert(!has_restart_timer, 'RRestart must not use timer_start (uses restart_pending instead)')
+
+# ========================================================================
+# SendAboveLinesToR, SendFHChunkToR, SendMotionToR must have stubs
+# ========================================================================
+var cg_lines = readfile(expand('<sfile>:p:h:h') .. '/R/common_global.vim')
+var cg_text = join(cg_lines, "\n")
+for stub_name in ['SendAboveLinesToR', 'SendFHChunkToR', 'SendMotionToR']
+  g:Assert(cg_text =~ 'g:' .. stub_name .. " = function('g:RNotRunning')",
+    stub_name .. ' must have provisory link in common_global.vim')
+endfor
+
+# ========================================================================
+# start_r.vim must unlet! the new stubs
+# ========================================================================
+var sr_text = join(start_r_lines, "\n")
+for unlet_name in ['SendAboveLinesToR', 'SendFHChunkToR', 'SendMotionToR']
+  g:Assert(sr_text =~ 'unlet! g:' .. unlet_name,
+    unlet_name .. ' must have unlet! in start_r.vim')
+endfor
+
+# ========================================================================
+# R_start_on_send defaults to 0
+# ========================================================================
+g:AssertEqual(get(g:, 'R_start_on_send', 0), 0, 'R_start_on_send defaults to 0')
