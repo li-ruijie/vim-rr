@@ -743,9 +743,10 @@ def g:RSendNotRunning(target: string, ...args: list<any>)
         if has_key(g:rplugin, 'pending_send')
             remove(g:rplugin, 'pending_send')
         endif
+        var saved = g:SendCmdToR
         g:SendCmdToR = function('g:CaptureSendCmd')
         call(function('g:' .. target), args)
-        g:SendCmdToR = function('g:SendCmdToR_fake')
+        g:SendCmdToR = saved
         g:StartR("R")
     else
         echohl WarningMsg
