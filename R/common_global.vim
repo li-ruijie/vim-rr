@@ -686,6 +686,9 @@ enddef
 # return 0 on failure and 1 on success
 def g:SendCmdToR_fake(...args: list<any>): number
     if g:R_start_on_send == 1
+        if !exists('*g:StartR')
+            execute "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/start_r.vim"
+        endif
         g:StartR("R")
     else
         g:RWarningMsg("Did you already start R?")
@@ -719,6 +722,9 @@ command RDebugInfo :call g:ShowRDebugInfo()
 
 def g:RNotRunning(...args: list<any>)
     if g:R_start_on_send == 1
+        if !exists('*g:StartR')
+            execute "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/start_r.vim"
+        endif
         g:StartR("R")
     else
         echohl WarningMsg
