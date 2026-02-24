@@ -326,7 +326,11 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
         timer_stop(vimcom_timeout_timer)
         vimcom_timeout_timer = -1
     endif
-    g:rplugin.debug_info['Time']['start_R'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['start_R'], reltime()))
+    if has_key(g:rplugin.debug_info['Time'], 'start_R')
+            && type(g:rplugin.debug_info['Time']['start_R']) == v:t_list
+        g:rplugin.debug_info['Time']['start_R'] = reltimefloat(reltime(
+            g:rplugin.debug_info['Time']['start_R'], reltime()))
+    endif
     if filereadable(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
         var ndesc = readfile(g:rplugin.home .. '/R/vimcom/DESCRIPTION')
         var current = substitute(matchstr(ndesc, '^Version: '), 'Version: ', '', '')
