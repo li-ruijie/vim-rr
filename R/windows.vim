@@ -59,7 +59,6 @@ else
     if rinstallpath == ''
         g:RWarningMsg("Could not find R path in Windows Registry. If you have already installed R, please, set the value of 'R_path'.")
         g:rplugin.failed = 1
-        finish
     endif
     var hasR32 = isdirectory(rinstallpath .. '\bin\i386')
     var hasR64 = isdirectory(rinstallpath .. '\bin\x64')
