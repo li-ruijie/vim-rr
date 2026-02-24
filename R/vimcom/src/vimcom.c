@@ -1566,7 +1566,11 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     if (failure == 0) {
         initialized = 1;
 #ifdef WIN32
-        r_is_busy = 0;
+        // Don't set r_is_busy = 0 here — R is still loading packages on the
+        // main thread.  Let vimcom_task (first task callback) clear it when R
+        // is genuinely idle.  The 5-second auto-reset in the 'E' handler
+        // serves as a safety net if vimcom_task never fires.
+        busy_since = time(NULL);
 #else
         if (debug_r) {
             save_ptr_R_ReadConsole = ptr_R_ReadConsole;
