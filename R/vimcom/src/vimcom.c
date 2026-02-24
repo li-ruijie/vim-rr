@@ -169,8 +169,10 @@ static void eval_queue_free(eval_node_t *queue) {
 }
 
 #ifdef WIN32
-extern void (*R_PolledEvents)(void);
-static void (*original_polled_events)(void) = NULL;
+extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
+// exported from R.dll on Windows. Needed to fix BUG-62: temporarily set the
+// stack base to the current frame so R_CheckStack sees a small delta instead
+// of a garbage ~1.6 GB value when called from the TCP thread.
 static int r_is_busy = 1; // Is R executing a top level command? R memory will
 // become corrupted and R will crash afterwards if we execute a function that
 // creates R objects while R is busy.
@@ -1033,45 +1035,6 @@ void vimcom_task(void) {
 #endif
 }
 
-#ifdef WIN32
-/**
- * @brief R_PolledEvents hook for Windows.
- *
- * R calls R_PolledEvents periodically from its main thread during idle loops
- * (R_ProcessEvents in Rgui, ReadConsole in RStudio). This drains the eval
- * queue on the main thread, avoiding unsafe R API calls from the TCP thread.
- */
-static void vimcom_polled_events_hook(void) {
-    if (original_polled_events)
-        original_polled_events();
-
-    FLAG_LOCK();
-    if (r_is_busy || (!eval_head && !flag_glbenv)) {
-        FLAG_UNLOCK();
-        return;
-    }
-    eval_node_t *queue = eval_queue_drain();
-    int local_glbenv = flag_glbenv;
-    flag_glbenv = 0;
-    r_is_busy = 1;
-    busy_since = time(NULL);
-    FLAG_UNLOCK();
-
-    while (queue) {
-        eval_node_t *tmp = queue;
-        queue = queue->next;
-        vimcom_eval_expr(tmp->cmd);
-        free(tmp);
-    }
-    if (local_glbenv)
-        vimcom_globalenv_list();
-
-    FLAG_LOCK();
-    r_is_busy = 0;
-    FLAG_UNLOCK();
-}
-#endif
-
 #ifndef WIN32
 /**
  * @brief Executed by R when idle.
@@ -1300,6 +1263,12 @@ static void vimcom_parse_received_msg(char *buf) {
             FLAG_LOCK();
             eval_queue_push(lazy_cmd);
             flag_glbenv = 1;
+#ifdef WIN32
+            if (!r_is_busy) {
+                r_is_busy = 1;
+                busy_since = time(NULL);
+            }
+#endif
             FLAG_UNLOCK();
 #ifndef WIN32
             vimcom_fire();
@@ -1311,10 +1280,47 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
+#ifdef WIN32
+            // On Windows (RStudio), 'E' must execute immediately on the TCP
+            // thread — deferring to vimcom_task deadlocks because R is idle
+            // waiting for console input. Temporarily set R_CStackStart to
+            // the current stack frame so R_CheckStack sees a small delta
+            // instead of a garbage ~1.6 GB value (BUG-62).
+            FLAG_LOCK();
+            int busy = r_is_busy;
+            // Auto-reset stale r_is_busy after 5 seconds. This recovers
+            // from RStudio interrupt killing the task callback, which
+            // would otherwise leave r_is_busy stuck at 1 permanently.
+            if (busy && difftime(time(NULL), busy_since) > 5.0) {
+                if (verbose > 1)
+                    REprintf("vimcom: auto-reset stale r_is_busy "
+                             "(stuck for >5s)\n");
+                busy = 0;
+            }
+            if (!busy) {
+                r_is_busy = 1;
+                busy_since = time(NULL);
+            }
+            FLAG_UNLOCK();
+            if (!busy) {
+                uintptr_t saved_stack_start = R_CStackStart;
+                R_CStackStart = (uintptr_t)&saved_stack_start;
+                vimcom_eval_expr(p);
+                R_CStackStart = saved_stack_start;
+                // Do NOT set r_is_busy = 0 here. sendToConsole is async --
+                // R's main thread may still be executing the queued code.
+                // vimcom_task sets r_is_busy = 0 when R is truly idle.
+            } else {
+                // R is busy (vimcom_task or prior eval). Enqueue for main
+                // thread. vimcom_task drains the queue each cycle.
+                FLAG_LOCK();
+                eval_queue_push(p);
+                FLAG_UNLOCK();
+            }
+#else
             FLAG_LOCK();
             eval_queue_push(p);
             FLAG_UNLOCK();
-#ifndef WIN32
             vimcom_fire();
 #endif
         } else {
@@ -1561,8 +1567,6 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         initialized = 1;
 #ifdef WIN32
         r_is_busy = 0;
-        original_polled_events = R_PolledEvents;
-        R_PolledEvents = vimcom_polled_events_hook;
 #else
         if (debug_r) {
             save_ptr_R_ReadConsole = ptr_R_ReadConsole;
@@ -1608,7 +1612,6 @@ void vimcom_Stop(void) {
             TerminateThread(tid, 0);
         CloseHandle(tid);
         WSACleanup();
-        R_PolledEvents = original_polled_events;
         // Free any queued commands that will never be executed
         FLAG_LOCK();
         eval_node_t *abandoned = eval_queue_drain();
