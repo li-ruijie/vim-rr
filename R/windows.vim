@@ -57,23 +57,26 @@ else
         endif
     endfor
     if rinstallpath == ''
-        g:RWarningMsg("Could not find R path in Windows Registry. If you have already installed R, please, set the value of 'R_path'.")
-        g:rplugin.failed = 1
-    endif
-    var hasR32 = isdirectory(rinstallpath .. '\bin\i386')
-    var hasR64 = isdirectory(rinstallpath .. '\bin\x64')
-    if hasR32 && !hasR64
-        g:R_i386 = 1
-    endif
-    if hasR64 && !hasR32
-        g:R_i386 = 0
-    endif
-    if hasR32 && g:R_i386
-        $PATH = rinstallpath .. '\bin\i386;' .. $PATH
-    elseif hasR64 && g:R_i386 == 0
-        $PATH = rinstallpath .. '\bin\x64;' .. $PATH
+        if !executable('R')
+            g:RWarningMsg("Could not find R path in Windows Registry or in $PATH. If you have already installed R, please, set the value of 'R_path'.")
+            g:rplugin.failed = 1
+        endif
     else
-        $PATH = rinstallpath .. '\bin;' .. $PATH
+        var hasR32 = isdirectory(rinstallpath .. '\bin\i386')
+        var hasR64 = isdirectory(rinstallpath .. '\bin\x64')
+        if hasR32 && !hasR64
+            g:R_i386 = 1
+        endif
+        if hasR64 && !hasR32
+            g:R_i386 = 0
+        endif
+        if hasR32 && g:R_i386
+            $PATH = rinstallpath .. '\bin\i386;' .. $PATH
+        elseif hasR64 && g:R_i386 == 0
+            $PATH = rinstallpath .. '\bin\x64;' .. $PATH
+        else
+            $PATH = rinstallpath .. '\bin;' .. $PATH
+        endif
     endif
 endif
 
