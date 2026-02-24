@@ -27,6 +27,10 @@ setwd(Sys.getenv("VIMR_TMPDIR"))
 # Save libPaths for vimrserver
 libp <- unique(c(unlist(strsplit(Sys.getenv("R_LIBS_USER"),
                                  .Platform$path.sep)), .libPaths()))
+# Prefer site-library when R installation is writable (Scoop, user-installed).
+# Skip when R is in a read-only location (Program Files).
+if (file.access(R.home(), mode = 2) == 0)
+    libp <- unique(c(file.path(R.home(), "site-library"), libp))
 cat(libp, sep = "\n", colapse = "\n", file = "libPaths")
 
 # Check R version
