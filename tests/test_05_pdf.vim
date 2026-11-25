@@ -62,24 +62,6 @@ g:rplugin.zathura_pid['/tmp/test.pdf'] = 0
 g:AssertEqual(g:rplugin.zathura_pid['/tmp/test.pdf'], 0, 'zathura_pid: reset to 0')
 
 # ========================================================================
-# Evince SyncTeX path handling
-# ========================================================================
-def EvinceSyncTeXPath(tpath: string): list<string>
-  var n1 = substitute(tpath, '\(^/.*/\).*', '\1', '')
-  var n2 = substitute(tpath, '.*/\(.*\)', '\1', '')
-  var texname = substitute(n1, " ", "%20", "g") .. n2
-  return [n1, n2, texname]
-enddef
-
-var result = EvinceSyncTeXPath('/home/user/my doc/file.tex')
-g:AssertEqual(result[0], '/home/user/my doc/', 'EvinceSyncTeXPath: directory extracted')
-g:AssertEqual(result[1], 'file.tex', 'EvinceSyncTeXPath: filename extracted')
-g:AssertEqual(result[2], '/home/user/my%20doc/file.tex', 'EvinceSyncTeXPath: spaces encoded in dir')
-
-result = EvinceSyncTeXPath('/home/user/file.tex')
-g:AssertEqual(result[2], '/home/user/file.tex', 'EvinceSyncTeXPath: no spaces, no encoding')
-
-# ========================================================================
 # Sumatra path detection logic
 # ========================================================================
 def SumatraCheckPath(path_env: string): bool

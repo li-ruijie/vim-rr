@@ -17,17 +17,13 @@ def g:ROpenPDF2(fullpath: string)
 enddef
 
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: number)
-    # Most of Evince's code requires spaces replaced by %20, but the
-    # actual file name is processed by a SyncTeX library that does not:
-    var n1 = substitute(tpath, '\(^/.*/\).*', '\1', '')
-    var n2 = substitute(tpath, '.*/\(.*\)', '\1', '')
-    var texname = substitute(n1, " ", "%20", "g") .. n2
-
     if !has_key(g:rplugin, 'evince_loop')
         g:rplugin.evince_loop = 0
     endif
     if g:rplugin.evince_loop < 2
-        fwd.SyncView(texname, ppath, texln)
+        # Evince gives the source file to its SyncTeX parser as a plain file
+        # name and decodes nothing, so the path is passed as it is
+        fwd.SyncView(tpath, ppath, texln)
     else
         g:rplugin.evince_loop = 0
     endif
