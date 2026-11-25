@@ -13,11 +13,11 @@ if !exists("g:did_vimr_r_functions")
     def g:GetRCmdBatchOutput(routfile: string, ...extra: list<any>)
         if filereadable(routfile)
             if g:R_routnotab == 1
-                exe "split " .. routfile
+                exe "split " .. fnameescape(routfile)
                 setlocal filetype=rout
                 exe "normal! \<c-w>\<c-p>"
             else
-                exe "tabnew " .. routfile
+                exe "tabnew " .. fnameescape(routfile)
                 setlocal filetype=rout
                 normal! gT
             endif
@@ -31,7 +31,7 @@ if !exists("g:did_vimr_r_functions")
     def g:ShowRout()
         var routfile = expand("%:r") .. ".Rout"
         if bufloaded(routfile)
-            exe "bunload " .. routfile
+            exe "bunload " .. bufnr(routfile)
             delete(routfile)
         endif
 
