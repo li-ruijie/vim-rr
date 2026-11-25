@@ -532,7 +532,7 @@ def g:CompleteChunkOptions(base: string): list<any>
 
     if strlen(base) > 0
         var newbase = '^' .. substitute(base, "\\$$", "", "")
-        filter(ktopt, 'v:val["abbr"] =~ newbase')
+        filter(ktopt, (_, v) => v["abbr"] =~ newbase)
     endif
 
     sort(ktopt)
@@ -549,7 +549,7 @@ def g:CompleteQuartoCellOptions(base: string): list<any>
     g:rplugin.cell_opt_list = deepcopy(g:rplugin.qchunk_opt_list)
     if strlen(base) > 0
         var newbase = '^' .. substitute(base, "\\$$", "", "")
-        filter(g:rplugin.cell_opt_list, 'v:val["abbr"] =~ newbase')
+        filter(g:rplugin.cell_opt_list, (_, v) => v["abbr"] =~ newbase)
     endif
     return g:rplugin.cell_opt_list
 enddef
