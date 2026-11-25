@@ -2225,6 +2225,10 @@ enddef
 # render a document with rmarkdown
 def g:RMakeRmd(t: string)
     if !has_key(g:rplugin, "pdfviewer")
+        # pdf_init.vim is sourced by the rmd, rnoweb, and rrst ftplugins only
+        if !exists('*g:RSetPDFViewer')
+            g:RPDFinit()
+        endif
         g:RSetPDFViewer()
     endif
 
