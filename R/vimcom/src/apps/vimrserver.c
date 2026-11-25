@@ -640,7 +640,7 @@ void send_to_vimcom(
             return;
         }
     } else {
-        fprintf(stderr, "vimcom is not connected");
+        fprintf(stderr, "vimcom is not connected\n");
         fflush(stderr);
     }
     unlock_state();
@@ -1379,9 +1379,9 @@ void parse_descr(char *descr, const char *fnm) {
         fix_single_quote(lib->descr);
     } else {
         if (ttl)
-            fprintf(stderr, "Failed to get Description from %s. ", fnm);
+            fprintf(stderr, "Failed to get Description from %s.\n", fnm);
         else
-            fprintf(stderr, "Failed to get Title from %s. ", fnm);
+            fprintf(stderr, "Failed to get Title from %s.\n", fnm);
         fflush(stderr);
     }
 }
