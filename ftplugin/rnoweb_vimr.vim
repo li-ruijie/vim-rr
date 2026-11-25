@@ -50,8 +50,8 @@ def CompleteLaTeXCmd(base: string): list<dict<string>>
                 '\includegraphics', '\item', '\label', '\midrule', '\multicolumn{',
                 '\multirow{', '\newcommand', '\pageref', '\ref', '\section{',
                 '\subsection{', '\subsubsection{', '\toprule', '\usepackage{']
-    var newbase = '\' .. base
-    filter(lcmd, (_, v) => stridx(v, newbase) >= 0)
+    # base starts with the backslash (findstart returns its column)
+    filter(lcmd, (_, v) => stridx(v, base) == 0)
     sort(lcmd)
     var rr: list<dict<string>> = []
     for cmd in lcmd
