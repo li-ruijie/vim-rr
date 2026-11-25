@@ -51,13 +51,13 @@ def g:StartR_ExternalTerm(rcmd: string)
     tcmd ..= " '" .. rcmd .. "'"
 
     var rlog = system(tcmd)
-    if v:shell_error
+    if v:shell_error != 0
         g:RWarningMsg(rlog)
         return
     endif
     g:rplugin.rconsole_pane = g:TmuxActivePane()
     rlog = system("tmux select-pane -t " .. g:rplugin.editor_pane)
-    if v:shell_error
+    if v:shell_error != 0
         g:RWarningMsg(rlog)
         return
     endif
@@ -99,7 +99,7 @@ def g:SendCmdToR_TmuxSplit(...args: list<any>): number
         scmd = "tmux set-buffer '" .. str .. "\<CR>' ; tmux paste-buffer -t " .. g:rplugin.rconsole_pane
     endif
     var rlog = system(scmd)
-    if v:shell_error
+    if v:shell_error != 0
         rlog = substitute(rlog, "\n", " ", "g")
         rlog = substitute(rlog, "\r", " ", "g")
         g:RWarningMsg(rlog)

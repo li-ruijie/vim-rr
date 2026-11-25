@@ -79,7 +79,7 @@ def g:StartR_InBuffer()
         g:SetRHome()
     endif
 
-    var rcmd = len(g:rplugin.r_args)
+    var rcmd = len(g:rplugin.r_args) > 0
         ? g:rplugin.R .. " " .. join(g:rplugin.r_args)
         : g:rplugin.R
     g:term_bufn = g:R_close_term

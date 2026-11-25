@@ -70,7 +70,7 @@ def g:StartR_ExternalTerm(rcmd: string)
 
     system("tmux -L VimR has-session -t " .. g:rplugin.tmuxsname)
     var opencmd: string
-    if v:shell_error
+    if v:shell_error != 0
         if term_name == "konsole"
             opencmd = printf("%s 'tmux -L VimR -2 %s new-session -s %s \"%s\"'",
                         term_cmd, tmuxcnf, g:rplugin.tmuxsname, envrcmd)
@@ -86,7 +86,7 @@ def g:StartR_ExternalTerm(rcmd: string)
     if g:R_silent_term
         opencmd ..= " &"
         var rlog = system(opencmd)
-        if v:shell_error
+        if v:shell_error != 0
             g:RWarningMsg(rlog)
             return
         endif
@@ -128,7 +128,7 @@ def g:SendCmdToR_Term(...args: list<any>): number
         scmd = "tmux -L VimR set-buffer '" .. str .. "\<CR>' ; tmux -L VimR paste-buffer -t " .. g:rplugin.tmuxsname .. '.' .. g:TmuxOption("pane-base-index", "window")
     endif
     var rlog = system(scmd)
-    if v:shell_error
+    if v:shell_error != 0
         rlog = substitute(rlog, '\n', ' ', 'g')
         rlog = substitute(rlog, '\r', ' ', 'g')
         g:RWarningMsg(rlog)

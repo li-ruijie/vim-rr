@@ -291,7 +291,7 @@ enddef
 
 # Send signal to R
 def g:SignalToR(signal: string)
-    if g:rplugin.R_pid
+    if g:rplugin.R_pid > 0
         if has('win32')
             # Windows: only termination is supported via taskkill
             if signal ==? 'SIGTERM' || signal ==? 'SIGKILL' || signal ==? 'TERM' || signal ==? 'KILL'
@@ -1184,7 +1184,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     # If the help command was triggered in the R Console, jump to Vim pane:
     if has_key(g:rplugin, "tmux_split") && g:rplugin.tmux_split && !running_rhelp
         var slog = system("tmux select-pane -t " .. g:rplugin.editor_pane)
-        if v:shell_error
+        if v:shell_error != 0
             g:RWarningMsg(slog)
         endif
     endif
