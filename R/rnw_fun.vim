@@ -490,11 +490,11 @@ def g:SetPDFdir()
     if join(g:R_latexcmd) =~ "-outdir" || join(g:R_latexcmd) =~ "-output-directory"
         b:rplugin_pdfdir = substitute(join(g:R_latexcmd), '.*\(-outdir\|-output-directory\)\s*=*\s*', '', '')
         b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, " .*", "", "")
-        b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, '["' .. "']", "", "")
+        b:rplugin_pdfdir = substitute(b:rplugin_pdfdir, '["' .. "']", "", "g")
     endif
     if b:rplugin_pdfdir == "."
         b:rplugin_pdfdir = mdir
-    elseif b:rplugin_pdfdir !~ "^/"
+    elseif b:rplugin_pdfdir !~ '^\(/\|\a:[/\\]\)'
         b:rplugin_pdfdir = mdir .. "/" .. b:rplugin_pdfdir
         if !isdirectory(b:rplugin_pdfdir)
             b:rplugin_pdfdir = "."
