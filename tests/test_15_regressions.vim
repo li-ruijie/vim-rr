@@ -517,3 +517,28 @@ g:AssertEqual(glob(plugin_root .. '/**/*.vim', false, true)
   ->filter((_, f) => readfile(f, 'b')->filter((_, l) => l =~ "\r$")->len() > 0)
   ->mapnew((_, f) => fnamemodify(f, ':t')), [],
   'line endings: every Vim script of the plugin ends its lines with LF')
+
+# ========================================================================
+# Compilation: every function that the plugin has defined compiles
+# ========================================================================
+# Vim compiles a function when it is first called, and a function that it
+# calls along with it. Vim 9.1.1230 cannot compile a declaration that takes
+# the result of mkdir() with two arguments, as MkRdir() had it. RInitExit()
+# calls MkRdir(), so it did not compile either, and the server was never
+# started with that Vim.
+if !exists('*g:RInitExit')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/start_server.vim')
+endif
+g:AssertEqual(execute('function')->split("\n")
+  ->mapnew((_, l) => matchstr(l, '^def \zs[^(]\+'))
+  ->filter((_, n) => n != '')
+  ->mapnew((_, n) => {
+    try
+      execute 'defcompile ' .. n
+    catch
+      return n .. ': ' .. v:exception
+    endtry
+    return ''
+  })
+  ->filter((_, e) => e != ''), [],
+  'compilation: no function of the plugin fails to compile')

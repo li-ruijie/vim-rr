@@ -48,8 +48,9 @@ def g:MkRdir()
     redraw
     var resp = input('"' .. g:rplugin.libd .. '" is not writable. Create it now? [y/n] ')
     if resp[0] ==? "y"
-        var dw = mkdir(g:rplugin.libd, "p")
-        if dw
+        # No variable for the result: Vim 9.1.1230 cannot compile a declaration
+        # that takes the result of mkdir() with two arguments
+        if mkdir(g:rplugin.libd, "p")
             # Try again
             g:CheckVimcomVersion()
         else
