@@ -310,7 +310,7 @@ def g:GetRArgs(id: any, base: string, rkeyword0: string, listdf: any, firstobj: 
     if firstobj != ""
         msg ..= ', firstobj = "' .. firstobj .. '"'
     elseif pkg != ""
-        msg ..= ', pkg = ' .. pkg
+        msg ..= ', lib = ' .. pkg
     endif
     if firstobj != '' && ((listdf == 1 && !isfarg) || listdf == 2)
         msg ..= ', ldf = TRUE'
