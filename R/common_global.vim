@@ -563,7 +563,7 @@ def g:RCreateSendMaps()
     g:RCreateMaps('ni0', '(RDSendLineAndInsertOutput)', 'o', ':call SendLineToRAndInsertOutput()')
     g:RCreateMaps('v',   '(RDSendLineAndInsertOutput)', 'o', ':call RWarningMsg("This command does not work over a selection of lines.")')
     g:RCreateMaps('i',   'RSendLAndOpenNewOne', 'q', ':call SendLineToR("newline")')
-    g:RCreateMaps('ni.', 'RSendMotion', 'm', ':set opfunc=SendMotionToR<CR>g@')
+    g:RCreateMaps('ni.', 'RSendMotion', 'm', ':set opfunc=RSendMotion<CR>g@')
     g:RCreateMaps('n',   'RNLeftPart', 'r<left>', ':call RSendPartOfLine("left", 0)')
     g:RCreateMaps('n',   'RNRightPart', 'r<right>', ':call RSendPartOfLine("right", 0)')
     g:RCreateMaps('i',   'RILeftPart', 'r<left>', 'l:call RSendPartOfLine("left", 1)')
@@ -758,6 +758,16 @@ g:SendFHChunkToR = function('g:RNotRunning')
 g:SendMotionToR = function('g:RNotRunning')
 g:SendSelectionToR = function('g:RNotRunning')
 g:SignalToR = function('g:RNotRunning')
+# Called from the ftplugins before start_r.vim defines them
+g:RKnit = function('g:RNotRunning')
+g:RSetWD = function('g:RNotRunning')
+g:RSourceLines = function('g:SendCmdToR_fake')
+
+# 'operatorfunc' takes the name of a function, and g:SendMotionToR is a
+# Funcref variable until start_r.vim replaces it with the function.
+def g:RSendMotion(type: string)
+    g:SendMotionToR(type)
+enddef
 
 # Lazily source pdf_init.vim (called via timer_start from ftplugin files)
 def g:RPDFinit(...args: list<any>)

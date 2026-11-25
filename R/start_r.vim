@@ -43,11 +43,14 @@ unlet! g:RClearAll
 unlet! g:RClearConsole
 unlet! g:RFormatCode
 unlet! g:RInsert
+unlet! g:RKnit
 unlet! g:RMakeRmd
 unlet! g:RObjBrowser
 unlet! g:RQuit
 unlet! g:RSendPartOfLine
+unlet! g:RSetWD
 unlet! g:RSourceDirectory
+unlet! g:RSourceLines
 unlet! g:SendFileToR
 unlet! g:SendFunctionToR
 unlet! g:SendLineToR
