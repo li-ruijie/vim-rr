@@ -547,7 +547,12 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
 
     // Consume trailing \x11 byte
     char trail;
-    recv(connfd, &trail, 1, 0);
+    if (recv(connfd, &trail, 1, 0) <= 0) {
+        fprintf(stderr, "Failed to recv the final byte of the message\n");
+        fflush(stderr);
+        finalbuffer[0] = 0;
+        return;
+    }
 
     ParseMsg(finalbuffer);
 }
