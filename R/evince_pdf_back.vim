@@ -98,7 +98,7 @@ def OnSyncSource(args: list<string>)
     input_file = substitute(input_file, '^file://', '', '')
     input_file = substitute(input_file, '%20', ' ', 'g')
 
-    execute "call SyncTeX_backward('" .. escape(input_file, "'\\") .. "', " .. line_nr .. ")"
+    g:SyncTeX_backward(input_file, line_nr)
 enddef
 
 # on_window_close
