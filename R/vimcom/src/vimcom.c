@@ -993,6 +993,10 @@ static void send_libnames(void) {
     } while (lib);
 
     libbuf = malloc(totalsz + 1);
+    if (!libbuf) {
+        REprintf("vimcom: malloc failed in send_libnames\n");
+        return;
+    }
 
     libbuf[0] = 0;
     vimcom_strcat(libbuf, "+L");
@@ -1333,6 +1337,12 @@ static void SrcrefInfo(void) {
                 size_t slen = strlen(CHAR(STRING_ELT(filename, 0)));
                 char *buf = calloc(sizeof(char), (2 * slen + 32));
                 char *buf2 = calloc(sizeof(char), (2 * slen + 32));
+                if (!buf || !buf2) {
+                    REprintf("vimcom: calloc failed in SrcrefInfo\n");
+                    free(buf);
+                    free(buf2);
+                    return;
+                }
                 snprintf(buf, 2 * slen + 1, "%s",
                          CHAR(STRING_ELT(filename, 0)));
                 vimcom_squo(buf, buf2, 2 * slen + 32);
@@ -1664,8 +1674,15 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     glbnvbuf1 = (char *)calloc(glbnvbufsize, sizeof(char));
     glbnvbuf2 = (char *)calloc(glbnvbufsize, sizeof(char));
     send_ge_buf = (char *)calloc(glbnvbufsize + 64, sizeof(char));
-    if (!glbnvbuf1 || !glbnvbuf2 || !send_ge_buf)
+    if (!glbnvbuf1 || !glbnvbuf2 || !send_ge_buf) {
+        // Nothing else was set up yet. R goes on without vimcom.
         REprintf("vimcom: Error allocating memory.\n");
+        free(glbnvbuf1);
+        free(glbnvbuf2);
+        free(send_ge_buf);
+        glbnvbuf1 = glbnvbuf2 = send_ge_buf = NULL;
+        return ScalarLogical(0);
+    }
 
 #ifndef WIN32
     int fds[2];

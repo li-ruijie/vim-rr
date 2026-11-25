@@ -405,6 +405,12 @@ SEXP rd2md(SEXP txt) {
 
     char *a = calloc(maxp + 1, sizeof(char));
     char *b = calloc(maxp + 1, sizeof(char));
+    if (!a || !b) {
+        REprintf("vimcom: calloc failed in rd2md\n");
+        free(a);
+        free(b);
+        return R_NilValue;
+    }
     strcpy(b, s);
 
     // Run three times to convert nested \commands.
@@ -511,6 +517,12 @@ SEXP get_section(SEXP rtxt, SEXP rsec) {
     const char *sec = CHAR(STRING_ELT(rsec, 0));
     char *a = calloc(sizeof(char), (strlen(str) + 1));
     char *b = malloc(sizeof(char) * (strlen(str) + 1));
+    if (!a || !b) {
+        REprintf("vimcom: malloc failed in get_section\n");
+        free(a);
+        free(b);
+        return R_NilValue;
+    }
     strcpy(b, str);
     char *s = a;
     char *p = b;

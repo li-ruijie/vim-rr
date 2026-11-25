@@ -991,7 +991,7 @@ char *get_pkg_descr(const char *pkgnm) {
     InstLibs *il = instlibs;
     while (il) {
         if (strcmp(il->name, pkgnm) == 0) {
-            char *s = malloc((strlen(il->title) + 1) * sizeof(char));
+            char *s = xalloc(malloc((strlen(il->title) + 1) * sizeof(char)));
             strcpy(s, il->title);
             fix_x13(s);
             return s;
@@ -1032,16 +1032,16 @@ void load_pkg_data(PkgData *pd) {
 PkgData *new_pkg_data(const char *nm, const char *vrsn) {
     char buf[1024];
 
-    PkgData *pd = calloc(1, sizeof(PkgData));
-    pd->name = malloc((strlen(nm) + 1) * sizeof(char));
+    PkgData *pd = xalloc(calloc(1, sizeof(PkgData)));
+    pd->name = xalloc(malloc((strlen(nm) + 1) * sizeof(char)));
     strcpy(pd->name, nm);
-    pd->version = malloc((strlen(vrsn) + 1) * sizeof(char));
+    pd->version = xalloc(malloc((strlen(vrsn) + 1) * sizeof(char)));
     strcpy(pd->version, vrsn);
     pd->descr = get_pkg_descr(pd->name);
     pd->loaded = 1;
 
     snprintf(buf, 1023, "%s/omnils_%s_%s", compldir, nm, vrsn);
-    pd->fname = malloc((strlen(buf) + 1) * sizeof(char));
+    pd->fname = xalloc(malloc((strlen(buf) + 1) * sizeof(char)));
     strcpy(pd->fname, buf);
 
     // Check if both fun_ and omnils_ exist
@@ -1335,10 +1335,10 @@ void parse_descr(char *descr, const char *fnm) {
     }
     if (ttl && dsc) {
         if (instlibs == NULL) {
-            instlibs = calloc(1, sizeof(InstLibs));
+            instlibs = xalloc(calloc(1, sizeof(InstLibs)));
             lib = instlibs;
         } else {
-            lib = calloc(1, sizeof(InstLibs));
+            lib = xalloc(calloc(1, sizeof(InstLibs)));
             if (ascii_ic_cmp(instlibs->name, fnm) > 0) {
                 lib->next = instlibs;
                 instlibs = lib;
@@ -1356,11 +1356,11 @@ void parse_descr(char *descr, const char *fnm) {
                 lib->next = ptr;
             }
         }
-        lib->name = calloc(strlen(fnm) + 1, sizeof(char));
+        lib->name = xalloc(calloc(strlen(fnm) + 1, sizeof(char)));
         strcpy(lib->name, fnm);
-        lib->title = calloc(strlen(ttl) + 1, sizeof(char));
+        lib->title = xalloc(calloc(strlen(ttl) + 1, sizeof(char)));
         strcpy(lib->title, ttl);
-        lib->descr = calloc(strlen(dsc) + 1 - z, sizeof(char));
+        lib->descr = xalloc(calloc(strlen(dsc) + 1 - z, sizeof(char)));
         lib->si = 1;
         m = 0;
         n = 0;
@@ -1787,8 +1787,8 @@ ListStatus *search(const char *s) {
 
 ListStatus *new_ListStatus(const char *s, int stt) {
     ListStatus *p;
-    p = calloc(1, sizeof(ListStatus));
-    p->key = malloc((strlen(s) + 1) * sizeof(char));
+    p = xalloc(calloc(1, sizeof(ListStatus)));
+    p->key = xalloc(malloc((strlen(s) + 1) * sizeof(char)));
     strcpy(p->key, s);
     p->status = stt;
     return p;
@@ -2040,11 +2040,11 @@ void update_glblenv_buffer(char *g) {
         if (strlen(g) >= glbnv_buffer_sz) {
             free(glbnv_buffer);
             glbnv_buffer_sz = strlen(g) + 4096;
-            glbnv_buffer = malloc(glbnv_buffer_sz * sizeof(char));
+            glbnv_buffer = xalloc(malloc(glbnv_buffer_sz * sizeof(char)));
         }
     } else {
         glbnv_buffer_sz = strlen(g) + 4096;
-        glbnv_buffer = malloc(glbnv_buffer_sz * sizeof(char));
+        glbnv_buffer = xalloc(malloc(glbnv_buffer_sz * sizeof(char)));
     }
     strcpy(glbnv_buffer, g);
     if (check_omils_buffer(glbnv_buffer, &glbnv_size) == NULL) {
@@ -2199,18 +2199,18 @@ static void fill_inst_libs(void) {
             }
             if (d) {
                 if (il) {
-                    il->next = calloc(1, sizeof(InstLibs));
+                    il->next = xalloc(calloc(1, sizeof(InstLibs)));
                     il = il->next;
                 } else {
-                    il = calloc(1, sizeof(InstLibs));
+                    il = xalloc(calloc(1, sizeof(InstLibs)));
                 }
                 if (instlibs == NULL)
                     instlibs = il;
-                il->name = malloc((strlen(n) + 1) * sizeof(char));
+                il->name = xalloc(malloc((strlen(n) + 1) * sizeof(char)));
                 strcpy(il->name, n);
-                il->title = malloc((strlen(t) + 1) * sizeof(char));
+                il->title = xalloc(malloc((strlen(t) + 1) * sizeof(char)));
                 strcpy(il->title, t);
-                il->descr = malloc((strlen(d) + 1) * sizeof(char));
+                il->descr = xalloc(malloc((strlen(d) + 1) * sizeof(char)));
                 strcpy(il->descr, d);
             }
         }
@@ -2377,7 +2377,7 @@ static void init(void) {
     // List tree sentinel
     listTree = new_ListStatus("base:", 0);
 
-    compl_buffer = calloc(compl_buffer_size, sizeof(char));
+    compl_buffer = xalloc(calloc(compl_buffer_size, sizeof(char)));
 
     char fname[512];
     snprintf(fname, 511, "%s/libPaths", tmpdir);
@@ -2388,7 +2388,7 @@ static void init(void) {
             if (b[i] == '\\')
                 b[i] = '/';
 #endif
-        libpaths = calloc(1, sizeof(LibPath));
+        libpaths = xalloc(calloc(1, sizeof(LibPath)));
         libpaths->path = b;
         LibPath *p = libpaths;
         while (*b) {
@@ -2398,7 +2398,7 @@ static void init(void) {
                     b++;
                 }
                 if (*b) {
-                    p->next = calloc(1, sizeof(LibPath));
+                    p->next = xalloc(calloc(1, sizeof(LibPath)));
                     p = p->next;
                     p->path = b;
                 } else {
@@ -2776,20 +2776,15 @@ static char *read_stdin_line(void) {
     static size_t size = 1024;
     size_t len = 0;
 
-    if (!line) {
-        line = malloc(size);
-        if (!line)
-            return NULL;
-    }
+    if (!line)
+        line = xalloc(malloc(size));
     memset(line, 0, size);
     while (fgets(line + len, (int)(size - len), stdin)) {
         len += strlen(line + len);
         if (len > 0 && line[len - 1] == '\n')
             return line;
         if (size - len < 2) {
-            char *tmp = realloc(line, size * 2);
-            if (!tmp)
-                return NULL;
+            char *tmp = xalloc(realloc(line, size * 2));
             memset(tmp + size, 0, size);
             line = tmp;
             size *= 2;
