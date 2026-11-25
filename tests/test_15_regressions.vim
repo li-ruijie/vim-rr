@@ -247,3 +247,14 @@ else
   g:Rout_prompt_str = saved_prompt
 endif
 unlet! g:R_filetypes
+
+# ========================================================================
+# start_r.vim: sourcing it keeps the placeholder that means R is not running
+# ========================================================================
+if !exists('*g:ClearRInfo')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/start_r.vim')
+endif
+g:Assert(exists('*g:SendCmdToR_fake'), 'start_r.vim: g:SendCmdToR_fake survives the sourcing')
+g:SendCmdToR = function('g:RWarningMsg')
+g:ClearRInfo()
+g:AssertEqual(string(g:SendCmdToR), "function('g:SendCmdToR_fake')", 'ClearRInfo: the send function is reset')

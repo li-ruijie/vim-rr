@@ -4,37 +4,10 @@ vim9script
 # Function to start R and functions that are called only after R is started.
 # ==============================================================================
 
-# On re-source (e.g. FuncUndefined fires after partial prior sourcing),
-# delete existing global functions so def g: does not E1073-abort the script.
-if exists('*g:SanitizeRLine')
-    for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
-            'StartR', 'ReallyStartR', 'SignalToR',
-            'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
-            'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit',
-            'RStudioQuitTimeout', 'OnRStudioQuitComplete',
-            'RRestart', 'QuitROnClose',
-            'ClearRInfo', 'SendToVimcom', 'UpdateLocalFunctions',
-            'ShowRObj', 'EditRObject', 'StartObjBrowser', 'RObjBrowser',
-            'RBrOpenCloseLs', 'StopRDebugging', 'FindDebugFunc',
-            'RDebugJump', 'RFormatCode', 'FinishRFormatCode',
-            'RInsert', 'SendLineToRAndInsertOutput', 'FinishRInsert',
-            'GetROutput', 'RViewDF', 'SetRTextWidth', 'RAskHelp',
-            'AskRDoc', 'ShowRDoc', 'GetSourceArgs', 'RSourceLines',
-            'CleanOxygenLine', 'CleanCurrentLine', 'GoDown',
-            'SendMotionToR', 'SendFileToR', 'SendMBlockToR',
-            'SanitizeRLine', 'CountBraces', 'SendFunctionToR',
-            'SendAboveLinesToR', 'SendSelectionToR',
-            'SendParagraphToR', 'SendFHChunkToR', 'KnitChild',
-            'RParenDiff', 'SendLineToR', 'RSendPartOfLine',
-            'RClearConsole', 'RClearAll', 'RSetWD', 'RKnit',
-            'StartTxtBrowser', 'RSourceDirectory', 'PrintRObject',
-            'OpenRExample', 'RAction', 'RLoadHTML', 'ROpenDoc',
-            'RMakeRmd', 'RBuildTags']
-        execute 'silent! delfunc g:' .. fn
-    endfor
-endif
-
-# Delete provisory links (unlet! tolerates re-sourcing when vars are gone)
+# Delete provisory links (unlet! tolerates re-sourcing when vars are gone).
+# They go before the functions are deleted, because :delfunction given the
+# name of a Funcref variable deletes the function that the variable refers
+# to, which removed g:SendCmdToR_fake and g:RNotRunning.
 unlet! g:RAction
 unlet! g:RAskHelp
 unlet! g:RBrOpenCloseLs
@@ -62,6 +35,38 @@ unlet! g:SendFHChunkToR
 unlet! g:SendMotionToR
 unlet! g:SendSelectionToR
 unlet! g:SignalToR
+
+# On re-source (e.g. FuncUndefined fires after partial prior sourcing),
+# delete existing global functions so def g: does not E1073-abort the script.
+# The R indent script of Vim defines SanitizeRLine() as well, so this also
+# runs the first time the file is sourced in a buffer that it indents.
+if exists('*g:SanitizeRLine')
+    for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
+            'StartR', 'ReallyStartR', 'SignalToR',
+            'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
+            'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit',
+            'RStudioQuitTimeout', 'OnRStudioQuitComplete',
+            'RRestart', 'QuitROnClose',
+            'ClearRInfo', 'SendToVimcom', 'UpdateLocalFunctions',
+            'ShowRObj', 'EditRObject', 'StartObjBrowser', 'RObjBrowser',
+            'RBrOpenCloseLs', 'StopRDebugging', 'FindDebugFunc',
+            'RDebugJump', 'RFormatCode', 'FinishRFormatCode',
+            'RInsert', 'SendLineToRAndInsertOutput', 'FinishRInsert',
+            'GetROutput', 'RViewDF', 'SetRTextWidth', 'RAskHelp',
+            'AskRDoc', 'ShowRDoc', 'GetSourceArgs', 'RSourceLines',
+            'CleanOxygenLine', 'CleanCurrentLine', 'GoDown',
+            'SendMotionToR', 'SendFileToR', 'SendMBlockToR',
+            'SanitizeRLine', 'CountBraces', 'SendFunctionToR',
+            'SendAboveLinesToR', 'SendSelectionToR',
+            'SendParagraphToR', 'SendFHChunkToR', 'KnitChild',
+            'RParenDiff', 'SendLineToR', 'RSendPartOfLine',
+            'RClearConsole', 'RClearAll', 'RSetWD', 'RKnit',
+            'StartTxtBrowser', 'RSourceDirectory', 'PrintRObject',
+            'OpenRExample', 'RAction', 'RLoadHTML', 'ROpenDoc',
+            'RMakeRmd', 'RBuildTags']
+        execute 'silent! delfunc g:' .. fn
+    endfor
+endif
 
 # Save R_DEFAULT_PACKAGES early so it is available even if sourcing is
 # interrupted by E1073 partway through the function definitions below.
