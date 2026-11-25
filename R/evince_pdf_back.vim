@@ -12,8 +12,9 @@ vim9script
 
 import autoload './evince_dbus.vim' as dbus
 
-# The proxy of the backward search.  Its monitor stays alive between searches.
-var px = dbus.NewProxy()
+# The proxies of the backward search, one for each PDF, by the URI of the PDF.
+# The monitor of each stays alive between searches.
+var proxies: dict<dict<any>> = {}
 
 # ── Public API ─────────────────────────────────────────────────────────
 
@@ -21,10 +22,15 @@ var px = dbus.NewProxy()
 # Equivalent to EvinceWindowProxy(uri, spawn=True) + loop.run().
 export def Start(path_output: string)
     var uri = dbus.PathToUri(path_output)
+    if !has_key(proxies, uri)
+        proxies[uri] = dbus.NewProxy()
+    endif
+    var px = proxies[uri]
 
     dbus.Init(px, uri)
     px.OnConnected = OnConnected
-    px.OnSignal    = OnSignal
+    px.OnSignal    = (member: string, sig: dict<string>, args: list<string>) =>
+        OnSignal(px, member, sig, args)
 
     # Listen for all Evince window signals (DocumentLoaded, SyncSource,
     # Closed) — mirrors bus.add_signal_receiver + connect_to_signal.
@@ -37,7 +43,10 @@ enddef
 # Stop monitoring and clean up.
 # Equivalent to SIGTERM handler + loop.quit().
 export def Stop()
-    dbus.Shutdown(px)
+    for px in values(proxies)
+        dbus.Shutdown(px)
+    endfor
+    proxies = {}
 enddef
 
 # ── Callbacks ──────────────────────────────────────────────────────────
@@ -47,32 +56,35 @@ def OnConnected(wpath: string)
     # search; the signal monitor is already running.
 enddef
 
-def OnSignal(member: string, sig: dict<string>, args: list<string>)
+def OnSignal(px: dict<any>, member: string, sig: dict<string>, args: list<string>)
     if member ==# 'DocumentLoaded'
-        OnDocumentLoaded(sig, args)
+        OnDocumentLoaded(px, sig, args)
+    elseif !dbus.IsFromWindow(px, sig)
+        # A signal of another Evince window, which shows another document
+        return
     elseif member ==# 'SyncSource'
-        OnSyncSource(args)
+        OnSyncSource(px, args)
     elseif member ==# 'Closed'
-        OnWindowClose()
+        OnWindowClose(px)
     endif
 enddef
 
 # ── Signal handlers ────────────────────────────────────────────────────
 
-# _on_doc_loaded: if the loaded URI matches ours and we haven't
-# connected yet, use the sender to establish the connection.
-def OnDocumentLoaded(sig: dict<string>, args: list<string>)
+# _on_doc_loaded: if the loaded URI matches ours, use the sender to
+# establish the connection, unless that sender is the one we are connected
+# to.  Another sender means that a new Evince shows the document, which
+# happens with no Closed signal when the old one was killed.
+def OnDocumentLoaded(px: dict<any>, sig: dict<string>, args: list<string>)
     var loaded_uri = dbus.ExtractFirstString(args)
-    if loaded_uri ==# px.uri && !px.connected
-        var sender = get(sig, 'sender', '')
-        if sender !=# ''
-            dbus.ConnectToEvince(px, sender)
-        endif
+    var sender = get(sig, 'sender', '')
+    if loaded_uri ==# px.uri && sender !=# '' && !(px.connected && sender ==# px.dbus_name)
+        dbus.ConnectToEvince(px, sender)
     endif
 enddef
 
 # on_sync_source: extract source file + line, call SyncTeX_backward().
-def OnSyncSource(args: list<string>)
+def OnSyncSource(px: dict<any>, args: list<string>)
     if px.status !=# 'RUNNING'
         return
     endif
@@ -99,7 +111,7 @@ def OnSyncSource(args: list<string>)
 enddef
 
 # on_window_close
-def OnWindowClose()
+def OnWindowClose(px: dict<any>)
     px.status    = 'CLOSED'
     px.connected = false
 enddef

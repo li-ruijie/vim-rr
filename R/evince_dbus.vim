@@ -194,6 +194,15 @@ enddef
 
 # ── Helpers (exported for consumers) ───────────────────────────────────
 
+# Tell whether a signal comes from the window that the proxy is connected to.
+# The monitor shows the signals of every Evince window, and every Evince
+# process names its first window /org/gnome/evince/Window/0, so the bus name
+# of the sender is compared as well as the object path.
+export def IsFromWindow(px: dict<any>, sig: dict<string>): bool
+    return px.connected && get(sig, 'sender', '') ==# px.dbus_name
+        && get(sig, 'path', '') ==# px.window_path
+enddef
+
 # Return the file URI of an absolute path, escaped as GLib escapes it, since
 # Evince reports the URI of a document in that form and the two are compared.
 # Letters, digits, and the characters that a path may hold are kept, and
