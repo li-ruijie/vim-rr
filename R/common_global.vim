@@ -927,9 +927,9 @@ g:R_external_term = get(g:, "R_external_term", 0)
 var editing_mode = "emacs"
 if filereadable(expand("~/.inputrc"))
     var inputrc = readfile(expand("~/.inputrc"))
-    map(inputrc, (_, v) => substitute(v, "^\s*#.*", "", ""))
+    map(inputrc, (_, v) => substitute(v, '^\s*#.*', "", ""))
     filter(inputrc, (_, v) => v =~ "set.*editing-mode")
-    if len(inputrc) && inputrc[len(inputrc) - 1] =~ '^\s*set\s*editing-mode\s*vi\>'
+    if len(inputrc) > 0 && inputrc[len(inputrc) - 1] =~ '^\s*set\s*editing-mode\s*vi\>'
         editing_mode = "vi"
     endif
 endif
