@@ -22,13 +22,12 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: numb
     var n1 = substitute(tpath, '\(^/.*/\).*', '\1', '')
     var n2 = substitute(tpath, '.*/\(.*\)', '\1', '')
     var texname = substitute(n1, " ", "%20", "g") .. n2
-    var pdfname = substitute(ppath, " ", "%20", "g")
 
     if !has_key(g:rplugin, 'evince_loop')
         g:rplugin.evince_loop = 0
     endif
     if g:rplugin.evince_loop < 2
-        fwd.SyncView(texname, pdfname, texln)
+        fwd.SyncView(texname, ppath, texln)
     else
         g:rplugin.evince_loop = 0
     endif

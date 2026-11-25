@@ -20,7 +20,7 @@ var px = dbus.NewProxy()
 # Start backward-search monitoring for a PDF.
 # Equivalent to EvinceWindowProxy(uri, spawn=True) + loop.run().
 export def Start(path_output: string)
-    var uri = 'file://' .. substitute(path_output, ' ', '%20', 'g')
+    var uri = dbus.PathToUri(path_output)
 
     dbus.Init(px, uri)
     px.OnConnected = OnConnected
@@ -95,10 +95,7 @@ def OnSyncSource(args: list<string>)
         endif
     endfor
 
-    input_file = substitute(input_file, '^file://', '', '')
-    input_file = substitute(input_file, '%20', ' ', 'g')
-
-    g:SyncTeX_backward(input_file, line_nr)
+    g:SyncTeX_backward(dbus.UriToPath(input_file), line_nr)
 enddef
 
 # on_window_close

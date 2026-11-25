@@ -451,3 +451,17 @@ g:AssertEqual(readfile(plugin_root .. '/R/pdf_init.vim')
   ->filter((_, l) => l =~ 'wmctrl -a\|activateBySubstring s')
   ->filter((_, l) => l !~ 'shellescape(wttl)'), [],
   'RRaiseWindow: every shell command escapes the window title')
+
+# ========================================================================
+# Evince: file URIs are percent-encoded and decoded in full
+# ========================================================================
+g:AssertEqual(evdbus.PathToUri('/tmp/my doc/a.pdf'), 'file:///tmp/my%20doc/a.pdf',
+  'Evince: a space in the PDF path is encoded as before')
+g:AssertEqual(evdbus.PathToUri('/tmp/é#1 [x]/a%b;c.pdf'), 'file:///tmp/%C3%A9%231%20%5Bx%5D/a%25b%3Bc.pdf',
+  'Evince: other characters of the PDF path are encoded')
+g:AssertEqual(evdbus.PathToUri("/tmp/a-b_c.d~e!$&'()*+,:=@/f.pdf"), "file:///tmp/a-b_c.d~e!$&'()*+,:=@/f.pdf",
+  'Evince: characters that a file URI allows are kept')
+g:AssertEqual(evdbus.UriToPath('file:///tmp/%C3%A9%231%20%5Bx%5D/a%25b%3bc.tex'), '/tmp/é#1 [x]/a%b;c.tex',
+  'Evince: the source file of a backward search is decoded')
+g:AssertEqual(evdbus.UriToPath('/tmp/100%/a%zz.tex'), '/tmp/100%/a%zz.tex',
+  'Evince: a percent sign that starts no escape is kept')

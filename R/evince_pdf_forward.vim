@@ -33,7 +33,7 @@ export def SyncView(path_input: string, path_output: string, line_number: number
     s_pending_input = ''
     s_pending_line  = 0
 
-    var uri = 'file://' .. substitute(path_output, ' ', '%20', 'g')
+    var uri = dbus.PathToUri(path_output)
 
     dbus.Init(px, uri)
     px.OnConnected = OnConnected

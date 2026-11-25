@@ -194,6 +194,23 @@ enddef
 
 # ── Helpers (exported for consumers) ───────────────────────────────────
 
+# Return the file URI of an absolute path, escaped as GLib escapes it, since
+# Evince reports the URI of a document in that form and the two are compared.
+# Letters, digits, and the characters that a path may hold are kept, and
+# every other byte is written as a percent sign and two hexadecimal digits.
+export def PathToUri(path: string): string
+    return 'file://' .. range(strlen(path))
+        ->mapnew((_, i) => strpart(path, i, 1))
+        ->mapnew((_, b) => b =~ '^[A-Za-z0-9!$&''()*+,./:=@_~-]$' ? b : printf('%%%02X', char2nr(b)))
+        ->join('')
+enddef
+
+# Return the path that a file URI names, with every percent escape decoded
+export def UriToPath(uri: string): string
+    return uri->substitute('^file://', '', '')
+        ->substitute('%\(\x\x\)', '\=eval(''"\x'' .. submatch(1) .. ''"'')', 'g')
+enddef
+
 # Extract the value of the first  string "..."  line from dbus-monitor output.
 export def ExtractFirstString(args: list<string>): string
     for a in args
