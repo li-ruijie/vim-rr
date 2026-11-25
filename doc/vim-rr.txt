@@ -2211,6 +2211,7 @@ Below is an example on how to disable the commands that sends `setwd()` and
 >vim
    let g:R_disable_cmds = ['RSetwd', 'RDputObj']
 <
+                                                            *vim-rr-quarto*
 The variable `R_filetypes` is a list of the file types that vim-rr
 supports. Quarto files are supported only when the list names them, so put
 this in your |vimrc| to enable every file type:
@@ -2222,6 +2223,14 @@ does not exist, the file types `r`, `rmd`, `rrst`, `rnoweb`, and `rhelp` are
 supported, and `quarto` is not. In a Quarto buffer vim-rr then defines no
 key binding and does not replace the backtick with chunk delimiters
 (|R_rmdchunk|).
+
+If your plugin manager loads vim-rr only for a list of file types, add
+`quarto` to that list as well, since `R_filetypes` has no effect in a buffer
+for which the plugin is not loaded. With vim-plug:
+>vim
+   Plug 'li-ruijie/vim-rr',
+       \ { 'for': ['r', 'rmd', 'rrst', 'rnoweb', 'quarto', 'rhelp'] }
+<
 
 
 ------------------------------------------------------------------------------
