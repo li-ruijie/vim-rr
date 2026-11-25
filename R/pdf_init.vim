@@ -1,6 +1,14 @@
-vim9script
+vim9script noclear
 
 if exists("g:did_vimr_pdf_init")
+    if &filetype == 'rnoweb'
+        g:RSetPDFViewer()
+        g:SetPDFdir()
+        if g:R_synctex && ($DISPLAY != "" || $WAYLAND_DISPLAY != "") && g:rplugin.pdfviewer == "evince"
+            g:rplugin.evince_loop = 0
+            g:Run_EvinceBackward()
+        endif
+    endif
     finish
 endif
 g:did_vimr_pdf_init = 1
