@@ -1,6 +1,7 @@
 #include <R.h> /* to include Rconfig.h */
 #include <Rdefines.h>
 #include <Rinternals.h>
+#include <Rversion.h>
 #include <R_ext/Parse.h>
 #ifndef WIN32
 #define HAVE_SYS_SELECT_H
@@ -579,12 +580,12 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
         p = vimcom_strcat(p, "\006{\006");
     } else if (Rf_isFactor(*x)) {
         p = vimcom_strcat(p, "\006!\006");
-    } else if (Rf_isValidString(*x)) {
+    } else if (Rf_isString(*x) && Rf_length(*x) > 0) {
         p = vimcom_strcat(p, "\006~\006");
     } else if (Rf_isFunction(*x)) {
         p = vimcom_strcat(p, "\006\003\006");
         xgroup = 1;
-    } else if (Rf_isFrame(*x)) {
+    } else if (Rf_inherits(*x, "data.frame")) {
         p = vimcom_strcat(p, "\006$\006");
         xgroup = 2;
     } else if (Rf_isNewList(*x)) {
@@ -625,7 +626,7 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
     SET_STRING_ELT(lablab, 0, mkChar("label"));
     PROTECT(txt = getAttrib(*x, lablab));
     if (length(txt) > 0) {
-        if (Rf_isValidString(txt)) {
+        if (Rf_isString(txt)) {
             snprintf(buf, 159, "\006\006%s", CHAR(STRING_ELT(txt, 0)));
             escape_str(buf);
             p = vimcom_strcat(p, buf);
@@ -741,6 +742,33 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
     return p;
 }
 
+#if R_VERSION >= R_Version(4, 6, 0)
+/**
+ * @brief Add the line of an object of .GlobalEnv whose value must not be
+ * read.
+ *
+ * @param xname The name of the object.
+ * @param type The character that represents the type of the object.
+ * @param p A pointer to the current NULL byte terminating the glbnvbuf2
+ * buffer.
+ * @return The pointer p updated after the insertion of the new line.
+ */
+static char *vimcom_glbnv_noval(const char *xname, char type, char *p) {
+    char ebuf[64];
+    char buf[32];
+
+    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize)
+        p = vimcom_grow_buffers();
+
+    snprintf(ebuf, 63, "%s", xname);
+    escape_str(ebuf);
+    p = vimcom_strcat(p, ebuf);
+    snprintf(buf, sizeof(buf), "\006%c\006\006.GlobalEnv\006\006\006\006\n",
+             type);
+    return vimcom_strcat(p, buf);
+}
+#endif
+
 /**
  * @brief Generate a list of objects in .GlobalEnv and store it in the
  * glbnvbuf2 buffer. The string stored in glbnvbuf2 represents a file with the
@@ -762,7 +790,7 @@ static void vimcom_globalenv_list(void) {
 
     curdepth = 0;
 
-    PROTECT(envVarsSEXP = R_lsInternal(R_GlobalEnv, allnames));
+    PROTECT(envVarsSEXP = R_lsInternal3(R_GlobalEnv, allnames, TRUE));
     for (int i = 0; i < Rf_length(envVarsSEXP); i++) {
         varName = CHAR(STRING_ELT(envVarsSEXP, i));
         if (R_BindingIsActive(Rf_install(varName), R_GlobalEnv)) {
@@ -770,7 +798,22 @@ static void vimcom_globalenv_list(void) {
             PROTECT(varSEXP = R_ActiveBindingFunction(Rf_install(varName),
                                                       R_GlobalEnv));
         } else {
+#if R_VERSION >= R_Version(4, 6, 0)
+            // Rf_findVar() is no longer declared. R_getVarEx() forces a
+            // delayed binding and signals an error for a missing one, so
+            // both are listed without reading their values.
+            R_BindingType_t bt =
+                R_GetBindingType(Rf_install(varName), R_GlobalEnv);
+            if (bt == R_BindingTypeDelayed || bt == R_BindingTypeMissing) {
+                p = vimcom_glbnv_noval(
+                    varName, bt == R_BindingTypeDelayed ? '&' : '*', p);
+                continue;
+            }
+            PROTECT(varSEXP = R_getVarEx(Rf_install(varName), R_GlobalEnv,
+                                         FALSE, R_UnboundValue));
+#else
             PROTECT(varSEXP = Rf_findVar(Rf_install(varName), R_GlobalEnv));
+#endif
         }
         if (varSEXP != R_UnboundValue) {
             // should never be unbound
@@ -996,13 +1039,9 @@ void vimcom_task(void) {
             oldcolwd = columns;
 
             /* From R-exts: Evaluating R expressions from C */
-            SEXP s, t;
-            PROTECT(t = s = allocList(2));
-            SET_TYPEOF(s, LANGSXP);
-            SETCAR(t, install("options"));
-            t = CDR(t);
-            SETCAR(t, ScalarInteger((int)columns));
-            SET_TAG(t, install("width"));
+            SEXP s;
+            PROTECT(s = lang2(install("options"), ScalarInteger((int)columns)));
+            SET_TAG(CDR(s), install("width"));
             eval(s, R_GlobalEnv);
             UNPROTECT(1);
 
@@ -1122,7 +1161,12 @@ static void SrcrefInfo(void) {
             R_Srcref = VECTOR_ELT(R_Srcref, 0);
         SEXP srcfile = getAttrib(R_Srcref, R_SrcfileSymbol);
         if (TYPEOF(srcfile) == ENVSXP) {
+#if R_VERSION >= R_Version(4, 6, 0)
+            SEXP filename =
+                R_getVarEx(install("filename"), srcfile, FALSE, R_NilValue);
+#else
             SEXP filename = findVar(install("filename"), srcfile);
+#endif
             if (isString(filename) && length(filename)) {
                 size_t slen = strlen(CHAR(STRING_ELT(filename, 0)));
                 char *buf = calloc(sizeof(char), (2 * slen + 32));
