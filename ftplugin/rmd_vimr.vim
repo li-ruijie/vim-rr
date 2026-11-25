@@ -63,12 +63,9 @@ if !exists("g:did_vimr_rmd_functions")
                     bib = substitute(bib, "'", '', 'g')
                     bibl = [bib]
                 elseif bstr =~ '^\[.*\]$'
-                    try
-                        bibl = eval(bstr)
-                    catch /.*/
-                        g:RWarningMsg('YAML line invalid for Vim: ' .. line)
-                        bibl = []
-                    endtry
+                    bibl = split(bstr[1 : -2], ',')
+                        ->map((_, v) => substitute(trim(v), '^\(["'']\)\(.*\)\1$', '\2', ''))
+                        ->filter((_, v) => v != '')
                 else
                     bibl = [bstr]
                 endif
@@ -83,7 +80,7 @@ if !exists("g:did_vimr_rmd_functions")
             return ''
         endif
         if field == "bibliography"
-            map(value, (_, v) => expand(v))
+            map(value, (_, v) => v =~ '^\~' ? fnamemodify(v, ':p') : v)
         endif
         return join(value, "\x06")
     enddef
