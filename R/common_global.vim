@@ -132,7 +132,7 @@ def g:ReplaceUnderS()
         var save_unnamed_reg = @"
         var j = col(".")
         var s = getline(".")
-        if g:R_assign == 1 && g:R_assign_map == "_" && j > 3 && s[j - 3] == "<" && s[j - 2] == "-" && s[j - 1] == " "
+        if g:R_assign == 1 && g:R_assign_map == "_" && j > 3 && strpart(s, j - 3, 1) == "<" && strpart(s, j - 2, 1) == "-" && strpart(s, j - 1, 1) == " "
             execute "normal! 3h3xr_"
             @" = save_unnamed_reg
             return
@@ -144,7 +144,7 @@ def g:ReplaceUnderS()
         else
             if synName == "rString"
                 isString = 1
-                if (s[j - 1] == '"' || s[j - 1] == "'") && g:R_assign == 1
+                if (strpart(s, j - 1, 1) == '"' || strpart(s, j - 1, 1) == "'") && g:R_assign == 1
                     synName = synIDattr(synID(line("."), j - 2, 1), "name")
                     if synName == "rString" || synName == "rSpecial"
                         isString = 0
@@ -152,9 +152,9 @@ def g:ReplaceUnderS()
                 endif
             else
                 if g:R_assign == 2
-                    if s[j - 1] != "_" && !(j > 3 && s[j - 3] == "<" && s[j - 2] == "-" && s[j - 1] == " ")
+                    if strpart(s, j - 1, 1) != "_" && !(j > 3 && strpart(s, j - 3, 1) == "<" && strpart(s, j - 2, 1) == "-" && strpart(s, j - 1, 1) == " ")
                         isString = 1
-                    elseif j > 3 && s[j - 3] == "<" && s[j - 2] == "-" && s[j - 1] == " "
+                    elseif j > 3 && strpart(s, j - 3, 1) == "<" && strpart(s, j - 2, 1) == "-" && strpart(s, j - 1, 1) == " "
                         execute "normal! 3h3xr_a_"
                         @" = save_unnamed_reg
                         return
@@ -197,17 +197,17 @@ def g:RGetKeyword(...args: list<any>): string
     endif
     # line index starts in 0; cursor index starts in 1:
     # Skip opening braces
-    while i > 0 && line[i] =~ '(\|\[\|{'
+    while i > 0 && strpart(line, i, 1) =~ '(\|\[\|{'
         i -= 1
     endwhile
     # Go to the beginning of the word
     # See https://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-    while i > 0 && (line[i - 1] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[i - 1] > "\x80" && line[i - 1] < "\xf5"))
+    while i > 0 && (strpart(line, i - 1, 1) =~ '\k\|@\|\$\|\:\|_\|\.' || (strpart(line, i - 1, 1) > "\x80" && strpart(line, i - 1, 1) < "\xf5"))
         i -= 1
     endwhile
     # Go to the end of the word
     var j = i
-    while j < strlen(line) && (line[j] =~ '\k\|@\|\$\|\:\|_\|\.' || (line[j] > "\x80" && line[j] < "\xf5"))
+    while j < strlen(line) && (strpart(line, j, 1) =~ '\k\|@\|\$\|\:\|_\|\.' || (strpart(line, j, 1) > "\x80" && strpart(line, j, 1) < "\xf5"))
         j += 1
     endwhile
     var rkeyword = strpart(line, i, j - i)
@@ -257,7 +257,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
         endif
         begin = 1
         var linelen = strlen(line)
-        while line[begin] != '(' && begin < linelen
+        while strpart(line, begin, 1) != '(' && begin < linelen
             begin += 1
         endwhile
         begin += 1
@@ -265,7 +265,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
         line = substitute(line, '^\s*', '', "")
         if (line =~ '^\k*\s*(' || line =~ '^\k*\s*=\s*\k*\s*(') && line !~ '[.*('
             var idx = 0
-            while line[idx] != '('
+            while strpart(line, idx, 1) != '('
                 idx += 1
             endwhile
             idx += 1
@@ -284,10 +284,10 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
                     line = line .. substitute(getline(lnum), '#.*', '', "")
                     len = strlen(line)
                 endif
-                if line[idx] == '('
+                if strpart(line, idx, 1) == '('
                     nparen += 1
                 else
-                    if line[idx] == ')'
+                    if strpart(line, idx, 1) == ')'
                         nparen -= 1
                     endif
                 endif
@@ -296,7 +296,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
             firstobj = strpart(line, 0, idx)
         elseif line =~ '^\(\k\|\$\)*\s*[' || line =~ '^\(\k\|\$\)*\s*=\s*\(\k\|\$\)*\s*[.*('
             var idx = 0
-            while line[idx] != '['
+            while strpart(line, idx, 1) != '['
                 idx += 1
             endwhile
             idx += 1
@@ -315,10 +315,10 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
                     line = line .. substitute(getline(lnum), '#.*', '', "")
                     len = strlen(line)
                 endif
-                if line[idx] == '['
+                if strpart(line, idx, 1) == '['
                     nparen += 1
                 else
-                    if line[idx] == ']'
+                    if strpart(line, idx, 1) == ']'
                         nparen -= 1
                     endif
                 endif

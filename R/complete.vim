@@ -333,14 +333,14 @@ def g:FindStartRObj(): number
         g:rplugin.compl_argkey = ''
         return 0
     endif
-    if line[idx2] == ' ' || line[idx2] == ',' || line[idx2] == '('
+    if strpart(line, idx2, 1) == ' ' || strpart(line, idx2, 1) == ',' || strpart(line, idx2, 1) == '('
         idx2 = cpos[2]
         g:rplugin.compl_argkey = ''
     else
         var idx1 = idx2
-        while line[idx1] =~ '\w' || line[idx1] == '.' || line[idx1] == '_' ||
-                line[idx1] == ':' || line[idx1] == '$' || line[idx1] == '@' ||
-                (line[idx1] > "\x80" && line[idx1] < "\xf5")
+        while strpart(line, idx1, 1) =~ '\w' || strpart(line, idx1, 1) == '.' || strpart(line, idx1, 1) == '_' ||
+                strpart(line, idx1, 1) == ':' || strpart(line, idx1, 1) == '$' || strpart(line, idx1, 1) == '@' ||
+                (strpart(line, idx1, 1) > "\x80" && strpart(line, idx1, 1) < "\xf5")
             idx1 -= 1
         endwhile
         idx1 += 1
@@ -364,9 +364,9 @@ def g:NeedRArguments(line: string, cpos: list<number>): list<any>
     var nl = 0
     # Look up to 10 lines above for an opening parenthesis
     while nl < 10
-        if ln[idx] == '('
+        if strpart(ln, idx, 1) == '('
             np -= 1
-        elseif ln[idx] == ')'
+        elseif strpart(ln, idx, 1) == ')'
             np += 1
         endif
         if np == 0
@@ -559,10 +559,10 @@ enddef
 def g:IsFirstRArg(line: string, cpos: list<number>): number
     var ii = cpos[2] - 2
     while ii > 0
-        if line[ii] == '('
+        if strpart(line, ii, 1) == '('
             return 1
         endif
-        if line[ii] == ','
+        if strpart(line, ii, 1) == ','
             return 0
         endif
         ii -= 1

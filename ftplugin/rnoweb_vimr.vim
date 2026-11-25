@@ -108,15 +108,16 @@ if !exists("g:did_vimr_rnoweb_functions")
             # Where is the cursor in 'text \command{ } text'?
             g:rplugin.rnw_compl_type = 0
             while idx >= 0
-                if line[idx] =~ '\w'
+                var ch = strpart(line, idx, 1)
+                if ch =~ '\w'
                     widx = idx
-                elseif line[idx] == '\'
+                elseif ch == '\'
                     g:rplugin.rnw_compl_type = 1
                     return idx
-                elseif line[idx] == '{'
+                elseif ch == '{'
                     g:rplugin.rnw_compl_type = 2
                     return widx
-                elseif line[idx] == '}'
+                elseif ch == '}'
                     return widx
                 endif
                 idx -= 1
@@ -131,7 +132,7 @@ if !exists("g:did_vimr_rnoweb_functions")
             var line = getline('.')
             var cpos = getpos(".")
             var idx = cpos[2] - 2
-            var piece = line[0 : idx]
+            var piece = strpart(line, 0, idx + 1)
             piece = substitute(piece, ".*\\", "\\", '')
             piece = substitute(piece, ".*}", "", '')
 

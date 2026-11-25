@@ -27,7 +27,7 @@ if !exists("g:did_vimr_rhelp_functions")
         if findstart
             var line = getline('.')
             var start = col('.') - 1
-            while start > 0 && (line[start - 1] =~ '\w' || line[start - 1] == '\')
+            while start > 0 && strpart(line, start - 1, 1) =~ '[[:alnum:]_\\]'
                 start -= 1
             endwhile
             return start

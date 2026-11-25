@@ -197,7 +197,7 @@ if !exists("g:did_vimr_rmd_functions")
                 var line = getline(".")
                 var cpos = getpos(".")
                 var idx = cpos[2] - 2
-                while line[idx] =~ '\w' && idx > 0
+                while strpart(line, idx, 1) =~ '\w' && idx > 0
                     idx -= 1
                 endwhile
                 return idx + 1
