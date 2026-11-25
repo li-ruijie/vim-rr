@@ -921,7 +921,7 @@ char *read_file(const char *fn, int verbose) {
     FILE *f = fopen(fn, "rb");
     if (!f) {
         if (verbose) {
-            fprintf(stderr, "Error opening '%s'", fn);
+            fprintf(stderr, "Error opening '%s'\n", fn);
             fflush(stderr);
         }
         return NULL;
@@ -1415,6 +1415,9 @@ void update_inst_libs(void) {
                         continue;
                     snprintf(fname, 511, "%s/%s/DESCRIPTION", lp->path,
                              dir->d_name);
+                    // A directory without a DESCRIPTION file is not a package
+                    if (access(fname, F_OK) != 0)
+                        continue;
                     descr = read_file(fname, 1);
                     if (descr) {
                         n++;
