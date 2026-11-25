@@ -107,6 +107,23 @@ if (!is.null(needed_vimcom_version)) {
             quit(save = "no", status = 71)
         }
 
+        # An installation that was interrupted leaves its lock directory
+        # behind, and R then refuses to install the package again. Building
+        # and installing vimcom takes about a minute at most, so a lock that
+        # is older than ten minutes belongs to no running installation and is
+        # removed. A newer one may be in use, so nothing is installed.
+        lockdir <- file.path(.libPaths()[1], "00LOCK-vimcom")
+        if (dir.exists(lockdir)) {
+            lockage <- difftime(Sys.time(), file.info(lockdir)[["mtime"]], units = "mins")
+            if (lockage > 10 && unlink(lockdir, recursive = TRUE) == 0 && !dir.exists(lockdir)) {
+                out(paste0('RWarn: Removed "', lockdir, '", the lock of an interrupted installation of vimcom.'))
+            } else {
+                out(paste0('RWarn: Cannot install vimcom while "', lockdir, '" exists. ',
+                           "If no other R session is installing vimcom, delete that directory."))
+                quit(save = "no", status = 69)
+            }
+        }
+
         if (!file.exists(paste0(vim_r_home, "/R/vimcom"))) {
             if (file.exists(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"))) {
                 out("echo \"Installing vimcom... \"")
