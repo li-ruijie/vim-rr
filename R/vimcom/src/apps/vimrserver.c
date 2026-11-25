@@ -2934,7 +2934,16 @@ void stdin_loop() {
             msg++;
             switch (*msg) {
             case '1': // Check if R is running
-                if (PostMessage(RConsole, WM_NULL, 0, 0)) {
+                // R is running if vimcom is connected, or if the window of
+                // its console still exists. PostMessage() must not be called
+                // with a NULL window, because it then posts to this thread
+                // and succeeds.
+                lock_state();
+                int running = r_conn;
+                unlock_state();
+                if (!running && RConsole)
+                    running = PostMessage(RConsole, WM_NULL, 0, 0);
+                if (running) {
                     lock_stdout();
                     printf("g:RWarningMsg('R was already started')\n");
                     fflush(stdout);
