@@ -610,7 +610,10 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
     // Specific class of object, if any
     PROTECT(txt = getAttrib(*x, R_ClassSymbol));
     if (!isNull(txt)) {
-        p = vimcom_strcat(p, CHAR(STRING_ELT(txt, 0)));
+        // A class name has no length limit, but only 2048 bytes are reserved
+        // for the whole line.
+        snprintf(buf, 127, "%s", CHAR(STRING_ELT(txt, 0)));
+        p = vimcom_strcat(p, buf);
     }
     UNPROTECT(1);
 
