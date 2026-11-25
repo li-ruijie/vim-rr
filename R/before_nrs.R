@@ -107,11 +107,6 @@ if (!is.null(needed_vimcom_version)) {
             quit(save = "no", status = 71)
         }
 
-        if (!ok) {
-            out("RWarn: No suitable directory found to install vimcom")
-            quit(save = "no", status = 65)
-        }
-
         if (!file.exists(paste0(vim_r_home, "/R/vimcom"))) {
             if (file.exists(paste0(Sys.getenv("VIMR_TMPDIR"), "/", "vimcom_", needed_vimcom_version, ".tar.gz"))) {
                 out("echo \"Installing vimcom... \"")
