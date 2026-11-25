@@ -76,6 +76,8 @@ enddef
 # ========================================================================
 # Extension-based filetypes (.R first to initialise common_global.vim)
 # ========================================================================
+# R Markdown and Quarto load in full only when R_filetypes names them
+g:R_filetypes = ['r', 'rmd', 'rnoweb', 'rhelp', 'rrst', 'quarto']
 TestStartup('.R',    'r',      'r')
 TestStartup('.Rmd',  'rmd',    'rmd')
 TestStartup('.Rnw',  'rnoweb', 'rnoweb')
@@ -83,6 +85,7 @@ TestStartup('.Rd',   'rhelp',  'rhelp')
 TestStartup('.Rrst', 'rrst',   'rrst')
 TestStartup('.qmd',  'quarto', 'quarto')
 TestStartup('.Rout', 'rout',   'rout')
+unlet g:R_filetypes
 
 # ========================================================================
 # Programmatic filetypes (no file extension mapping)

@@ -125,6 +125,20 @@ CloseBuf(rfile)
 # ========================================================================
 # R Markdown buffer
 # ========================================================================
+# R Markdown and Quarto are supported only when R_filetypes names them
+unlet! g:R_filetypes
+for [ext, ft] in [['.Rmd', 'rmd'], ['.qmd', 'quarto']]
+  var plain = OpenBuf(ext, ft, ['text'])
+  g:AssertEqual(maparg('<Plug>RNextRChunk', 'n') .. maparg('`', 'i') .. maparg('<Plug>RQuartoRender', 'n'), '',
+    ft .. ': no maps unless R_filetypes names the file type')
+  CloseBuf(plain)
+endfor
+g:R_filetypes = ['r', 'rmd', 'rnoweb', 'rhelp', 'rrst', 'quarto']
+var named = OpenBuf('.qmd', 'quarto', ['text'])
+g:Assert(maparg('<Plug>RNextRChunk', 'n') != '' && maparg('<Plug>RQuartoRender', 'n') != '',
+  'quarto: maps are defined when R_filetypes names the file type')
+CloseBuf(named)
+
 var rmdfile = OpenBuf('.Rmd', 'rmd', [
   '---',
   'title: "t"',
@@ -226,3 +240,4 @@ if saved_prompt == v:none
 else
   g:Rout_prompt_str = saved_prompt
 endif
+unlet! g:R_filetypes

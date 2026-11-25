@@ -1,6 +1,7 @@
 vim9script
 
-if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filetypes, 'rmd') == -1 && index(g:R_filetypes, 'quarto') == -1
+# R Markdown and Quarto are supported only when R_filetypes names them
+if !exists("g:R_filetypes") || type(g:R_filetypes) != v:t_list || (index(g:R_filetypes, 'rmd') == -1 && index(g:R_filetypes, 'quarto') == -1)
     finish
 endif
 

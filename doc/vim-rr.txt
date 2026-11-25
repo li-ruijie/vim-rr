@@ -2190,13 +2190,17 @@ Below is an example on how to disable the commands that sends `setwd()` and
 >vim
    let g:R_disable_cmds = ['RSetwd', 'RDputObj']
 <
-If you want to disable vim-rr for a specific file type, create the variable
-`R_filetypes` with a list of file types that should be supported. Example:
+The variable `R_filetypes` is a list of the file types that vim-rr
+supports. R Markdown and Quarto files are supported only when the list names
+them, so put this in your |vimrc| to enable every file type:
 >vim
    let g:R_filetypes = ['r', 'rmd', 'rrst', 'rnoweb', 'quarto', 'rhelp']
 <
-If the variable `R_filetypes` does not exist, all file types from the above
-list will be supported.
+Leave a file type out of the list to disable vim-rr for it. If the variable
+does not exist, the file types `r`, `rrst`, `rnoweb`, and `rhelp` are
+supported, and `rmd` and `quarto` are not. In buffers of these two types
+vim-rr then defines no key binding and does not replace the backtick with
+chunk delimiters (|R_rmdchunk|).
 
 
 ------------------------------------------------------------------------------

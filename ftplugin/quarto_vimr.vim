@@ -1,6 +1,7 @@
 vim9script
 
-if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filetypes, 'quarto') == -1
+# Quarto is supported only when R_filetypes names it
+if !exists("g:R_filetypes") || type(g:R_filetypes) != v:t_list || index(g:R_filetypes, 'quarto') == -1
     finish
 endif
 
