@@ -36,19 +36,25 @@ enddef
 # sumatra_inverse.vim, which calls g:SumatraInverseSearch() in every running
 # Vim. See |vim-rr-sumatra|.
 
-# A directory in lower case, with forward slashes and no slash at the end
-def Canonical(dir: string): string
-    return fnamemodify(dir, ':p')->simplify()->tolower()
+# A path in lower case, with forward slashes and no slash at the end
+def Canonical(path: string): string
+    return fnamemodify(path, ':p')->simplify()->tolower()
         ->substitute('\\', '/', 'g')->substitute('/$', '', '')
 enddef
 
-# Return whether this Vim has a loaded Rnoweb buffer in the directory of the
-# TeX file "tex" or below it, which makes it the editor of that document
+# Return whether this Vim edits the document of the TeX file "tex". It does
+# when one of its loaded Rnoweb buffers is a file that the concordance of the
+# document names, or is in the directory of the TeX file or below it.
 def EditsDocument(tex: string): bool
     var texdir = Canonical(fnamemodify(tex, ':h')) .. '/'
+    var base = substitute(tex, '\....$', '', '')
+    var sources = filereadable(base .. '-concordance.tex') && filereadable(base .. '.tex')
+        ? g:SyncTeX_readconc(base).rnwfile->mapnew((_, f) => f == '' ? '' : Canonical(texdir .. f))
+        : []
     return !getbufinfo({bufloaded: 1})
         ->filter((_, b) => getbufvar(b.bufnr, '&filetype') == 'rnoweb')
-        ->filter((_, b) => stridx(Canonical(fnamemodify(b.name, ':h')) .. '/', texdir) == 0)
+        ->mapnew((_, b) => Canonical(b.name))
+        ->filter((_, name) => stridx(name, texdir) == 0 || index(sources, name) >= 0)
         ->empty()
 enddef
 

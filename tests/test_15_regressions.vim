@@ -468,3 +468,29 @@ g:AssertEqual(evdbus.UriToPath('file:///tmp/%C3%A9%231%20%5Bx%5D/a%25b%3bc.tex')
   'Evince: the source file of a backward search is decoded')
 g:AssertEqual(evdbus.UriToPath('/tmp/100%/a%zz.tex'), '/tmp/100%/a%zz.tex',
   'Evince: a percent sign that starts no escape is kept')
+
+# ========================================================================
+# SumatraPDF: an Rnoweb file of the document may be outside its directory
+# ========================================================================
+var conc_root = tempname()
+mkdir(conc_root .. '/main', 'p')
+mkdir(conc_root .. '/other', 'p')
+writefile(range(1, 4)->mapnew((_, v) => 'tex line ' .. v), conc_root .. '/main/doc.tex')
+writefile(['\Sconcordance{concordance:doc.tex:../other/part.Rnw:%', '1 4 1}'],
+  conc_root .. '/main/doc-concordance.tex')
+writefile(range(1, 4)->mapnew((_, v) => 'rnw line ' .. v), conc_root .. '/other/part.Rnw')
+execute 'edit ' .. fnameescape(conc_root .. '/other/part.Rnw')
+setlocal filetype=rnoweb
+cursor(1, 1)
+err = Caught(() => {
+  g:SumatraInverseSearch(conc_root .. '/main/doc.tex', 3)
+})
+g:AssertEqual([err, expand('%:t'), line('.')], ['', 'part.Rnw', 3],
+  'SumatraPDF: a Vim that edits a file named by the concordance answers the search')
+bwipeout!
+delete(conc_root .. '/main/doc.tex')
+delete(conc_root .. '/main/doc-concordance.tex')
+delete(conc_root .. '/other/part.Rnw')
+delete(conc_root .. '/main', 'd')
+delete(conc_root .. '/other', 'd')
+delete(conc_root, 'd')
