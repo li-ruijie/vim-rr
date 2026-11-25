@@ -1396,11 +1396,10 @@ void update_inst_libs(void) {
         d = opendir(lp->path);
         if (d) {
             while ((dir = readdir(d)) != NULL) {
-#ifdef _DIRENT_HAVE_D_TYPE
-                if (dir->d_name[0] != '.' && dir->d_type == DT_DIR) {
-#else
+                // The entry type is not tested. Some file systems report
+                // DT_UNKNOWN for every entry, and a package may be a symbolic
+                // link to its directory. The DESCRIPTION file decides below.
                 if (dir->d_name[0] != '.') {
-#endif
                     il = instlibs;
                     r = 0;
                     while (il) {
