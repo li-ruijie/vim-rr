@@ -221,7 +221,7 @@ def g:MakeRMenu()
     g:RCreateMenuItem('i', 'Send.Left\ part\ of\ line\ (cur)', 'RILeftPart', 'r<Left>', 'l:call g:RSendPartOfLine("left", 1)')
     g:RCreateMenuItem('i', 'Send.Right\ part\ of\ line\ (cur)', 'RIRightPart', 'r<Right>', 'l:call g:RSendPartOfLine("right", 1)')
     if &filetype == "r"
-        g:RCreateMenuItem('ni', 'Send.Line \(above\ ones)', 'RSendAboveLines', 'su', ':call g:SendAboveLinesToR()')
+        g:RCreateMenuItem('ni', 'Send.Line\ (above\ ones)', 'RSendAboveLines', 'su', ':call g:SendAboveLinesToR()')
     endif
 
     #---------------------------------------------------------------------------
@@ -311,7 +311,7 @@ def g:MakeRMenu()
         if &filetype == "rnoweb" || &filetype == "rrst" || &filetype == "rmd" || &filetype == "quarto" || g:R_never_unmake_menu
             menu R.Edit.-Sep43- <nul>
             g:RCreateMenuItem('n', 'Edit.Go\ (next\ R\ chunk)', 'RNextRChunk', 'gn', ':call b:NextRChunk()')
-            g:RCreateMenuItem('n', 'Edit.Go\ (previous\ R\ chunk)', '', 'gN', ':call b:PreviousRChunk()')
+            g:RCreateMenuItem('n', 'Edit.Go\ (previous\ R\ chunk)', 'RPreviousRChunk', 'gN', ':call b:PreviousRChunk()')
         endif
     endif
 
