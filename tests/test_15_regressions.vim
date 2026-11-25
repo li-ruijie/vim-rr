@@ -443,3 +443,11 @@ if saved_start_msg == v:none
 else
   g:rplugin.start_msg = saved_start_msg
 endif
+
+# ========================================================================
+# RRaiseWindow: the window title is quoted for the shell by shellescape()
+# ========================================================================
+g:AssertEqual(readfile(plugin_root .. '/R/pdf_init.vim')
+  ->filter((_, l) => l =~ 'wmctrl -a\|activateBySubstring s')
+  ->filter((_, l) => l !~ 'shellescape(wttl)'), [],
+  'RRaiseWindow: every shell command escapes the window title')

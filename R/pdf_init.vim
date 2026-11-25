@@ -64,14 +64,14 @@ enddef
 
 def g:RRaiseWindow(wttl: string): number
     if g:rplugin.has_wmctrl
-        system("wmctrl -a '" .. wttl .. "'")
+        system("wmctrl -a " .. shellescape(wttl))
         return v:shell_error ? 0 : 1
     elseif $WAYLAND_DISPLAY != ""
         if $GNOME_SHELL_SESSION_MODE != "" && g:rplugin.has_awbt
             var sout = system("busctl --user call org.gnome.Shell "
                 .. "/de/lucaswerkmeister/ActivateWindowByTitle "
                 .. "de.lucaswerkmeister.ActivateWindowByTitle "
-                .. "activateBySubstring s '" .. wttl .. "'")
+                .. "activateBySubstring s " .. shellescape(wttl))
             if v:shell_error
                 g:RWarningMsg('Error running Gnome Shell Extension'
                     .. ' "Activate Window By Title": '
