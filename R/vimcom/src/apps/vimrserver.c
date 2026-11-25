@@ -609,6 +609,16 @@ void send_to_vimcom(
     lock_state();
     if (connfd >= 0) {
         size_t len = strlen(msg);
+        // vimcom closes the connection when it receives a longer message.
+        if (len > 65536) {
+            fprintf(stderr,
+                    "Message too long to send to vimcom: %" PRI_SIZET
+                    " bytes\n",
+                    len);
+            fflush(stderr);
+            unlock_state();
+            return;
+        }
         char header[9];
         snprintf(header, sizeof(header), "%08X", (unsigned int)len);
         if (send(connfd, header, 8, 0) != 8) {
@@ -642,9 +652,14 @@ static void SendToRConsole(char *aString) {
     if (!VimHwnd)
         VimHwnd = GetForegroundWindow();
 
-    char msg[1024];
-    snprintf(msg, 1023, "C%s%s", getenv("VIMR_ID"), aString);
+    const char *id = getenv("VIMR_ID");
+    size_t sz = strlen(aString) + (id ? strlen(id) : 0) + 2;
+    char *msg = malloc(sz);
+    if (!msg)
+        return;
+    snprintf(msg, sz, "C%s%s", id ? id : "", aString);
     send_to_vimcom(msg);
+    free(msg);
     Sleep(20);
 
     // Necessary to force RConsole to actually process the line
@@ -2747,14 +2762,42 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
     unlock_stdout();
 }
 
+// Read one line of any length from stdin. The buffer grows as needed, and the
+// bytes after the line are zero.
+static char *read_stdin_line(void) {
+    static char *line = NULL;
+    static size_t size = 1024;
+    size_t len = 0;
+
+    if (!line) {
+        line = malloc(size);
+        if (!line)
+            return NULL;
+    }
+    memset(line, 0, size);
+    while (fgets(line + len, (int)(size - len), stdin)) {
+        len += strlen(line + len);
+        if (len > 0 && line[len - 1] == '\n')
+            return line;
+        if (size - len < 2) {
+            char *tmp = realloc(line, size * 2);
+            if (!tmp)
+                return NULL;
+            memset(tmp + size, 0, size);
+            line = tmp;
+            size *= 2;
+        }
+    }
+    return len > 0 ? line : NULL;
+}
+
 void stdin_loop() {
-    char line[1024];
+    char *line;
     FILE *f;
     char *msg;
     char t;
-    memset(line, 0, 1024);
 
-    while (fgets(line, 1023, stdin)) {
+    while ((line = read_stdin_line())) {
 
         for (unsigned int i = 0; line[i]; i++)
             if (line[i] == '\n' || line[i] == '\r')
@@ -2928,7 +2971,6 @@ void stdin_loop() {
             fflush(stderr);
             break;
         }
-        memset(line, 0, 1024);
     }
 }
 
