@@ -404,3 +404,42 @@ if saved_rstudio_cmd == v:none
 else
   g:RStudio_cmd = saved_rstudio_cmd
 endif
+
+# ========================================================================
+# SumatraPDF: a backward search is answered by the Vim that edits the document
+# ========================================================================
+delfunction g:ROpenPDF2
+delfunction g:SyncTeX_forward2
+unlet! g:did_vimr_pdf_sumatra
+execute 'source ' .. fnameescape(plugin_root .. '/R/pdf_sumatra.vim')
+g:AssertEqual(readfile(plugin_root .. '/R/pdf_sumatra.vim')->filter((_, l) => l =~ 'inverse-search'), [],
+  'SumatraPDF: no inverse search command is passed, so the saved one is kept')
+
+var sumatra_dir = tempname()
+mkdir(sumatra_dir .. '/child', 'p')
+var saved_start_msg = get(g:rplugin, 'start_msg', v:none)
+g:rplugin.start_msg = []
+var sumatra_result: any = v:none
+var sumatra_tex = sumatra_dir .. '\doc.tex'
+err = Caught(() => {
+  sumatra_result = g:SumatraInverseSearch(sumatra_tex, 3)
+})
+g:AssertEqual([err, sumatra_result, g:rplugin.start_msg], ['', '', []],
+  'SumatraPDF: a Vim without an Rnoweb buffer of the document ignores the search')
+
+execute 'edit ' .. fnameescape(sumatra_dir .. '/child/part.Rnw')
+setlocal filetype=rnoweb
+err = Caught(() => {
+  sumatra_result = g:SumatraInverseSearch(sumatra_tex, 3)
+})
+g:AssertEqual([err, sumatra_result], ['', ''], 'SumatraPDF: the search returns an empty string')
+g:AssertEqual(g:rplugin.start_msg, ["Could not find '" .. substitute(sumatra_dir, '\\', '/', 'g') .. "/doc.Rnw'."],
+  'SumatraPDF: the Vim that edits the document passes the search to SyncTeX_backward')
+bwipeout!
+delete(sumatra_dir .. '/child', 'd')
+delete(sumatra_dir, 'd')
+if saved_start_msg == v:none
+  remove(g:rplugin, 'start_msg')
+else
+  g:rplugin.start_msg = saved_start_msg
+endif

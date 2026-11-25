@@ -1889,6 +1889,24 @@ the value of `R_pdfviewer` in your
 |vimrc| to define what PDF viewer will be called. Valid values are "zathura"
 (default, and the one best integrated with vim-rr), "evince" and "okular".
 
+                                                            *vim-rr-sumatra*
+Sumatra keeps one command for the backward search, which vim-rr does not
+change. Set it once in the advanced options of Sumatra, on a single line and
+with the path of vim-rr on your system:
+>
+   InverseSearchCmdLine = cmd /c start /min "" gvim -v --not-a-term -T dumb
+      -S "C:\path\to\vim-rr\R\sumatra_inverse.vim"
+      -c "RInverseSearch %l '%f'" -c "quitall!"
+<
+The command starts a second Vim, which passes the file name and the line
+number to every running Vim through its server name and then quits. This
+requires a Vim with the |+clientserver| feature. Only a Vim that edits an
+Rnoweb file of the document jumps to the line. If you also use VimTeX, put
+its command in the place of `quitall!`, since it quits by itself:
+>
+      -c "RInverseSearch %l '%f'" -c "VimtexInverseSearch %l '%f'"
+<
+
 On Linux, if running on the X server (not on Wayland), the application
 `wmctrl` is required to raise both the PDF viewer and Vim windows. If using
 Gnome Shell on Wayland, the extension "Activate Window By Title" is required
