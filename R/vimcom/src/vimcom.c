@@ -211,8 +211,8 @@ static void send_to_vim(char *msg);
 static void vimcom_eval_expr(const char *buf);
 
 #ifdef WIN32
-SOCKET sfd; // File descriptor of socket used in the TCP connection with the
-            // vimrserver.
+SOCKET sfd = INVALID_SOCKET; // File descriptor of socket used in the TCP
+                             // connection with the vimrserver.
 static HANDLE tid; // Identifier of thread running TCP connection loop.
 extern void Rconsolecmd(char *cmd); // Defined in R: src/gnuwin32/rui.c.
 #else
@@ -1607,6 +1607,10 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
             REprintf("vimcom: socket creation failed (%d)\n", atoi(nrs_port));
             failure = 1;
         }
+    } else {
+        // Without a port there is no connection, and on Windows flag_mutex
+        // was not initialized.
+        failure = 1;
     }
 
     if (failure == 0) {
