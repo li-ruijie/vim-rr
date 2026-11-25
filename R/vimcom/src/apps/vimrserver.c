@@ -257,9 +257,9 @@ static void *xalloc(void *p) {
     return p;
 }
 
-static char *grow_buffer(char **b, unsigned long *sz,
-                         unsigned long inc) // Function to grow a buffer
-{
+// Grow a buffer that holds a string. Return the end of the string in the new
+// buffer, which is where the callers go on appending.
+static char *grow_buffer(char **b, unsigned long *sz, unsigned long inc) {
     Log("grow_buffer(%lu, %lu) [%lu, %lu]", *sz, inc, compl_buffer_size,
         fb_size);
     unsigned long new_sz = *sz + inc;
@@ -268,7 +268,7 @@ static char *grow_buffer(char **b, unsigned long *sz,
     free(*b);
     *b = tmp;
     *sz = new_sz;
-    return tmp;
+    return tmp + strlen(tmp);
 }
 
 // Remove the carriage returns of a text file that R wrote on Windows.
@@ -528,8 +528,7 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
     if (finalbuffer) {
         memset(finalbuffer, 0, fb_size);
         if (msg_size + 1 > fb_size)
-            finalbuffer = grow_buffer(&finalbuffer, &fb_size,
-                                      msg_size + 1 - fb_size + 1024);
+            grow_buffer(&finalbuffer, &fb_size, msg_size + 1 - fb_size + 1024);
     } else {
         if (msg_size + 1 > fb_size)
             fb_size = msg_size + 1024;
