@@ -251,6 +251,30 @@ err = Caught(() => {
 g:AssertEqual([err, g:rr_okular_ran], ['', 0], 'Okular: text from a file name is not executed')
 g:AssertEqual(len(g:rplugin.start_msg), 1, 'Okular: a line that is no backward search is ignored')
 unlet g:rr_okular_ran
+
+# Zathura prints the same line, and its callback treats it the same way.
+# Sourcing the file without Zathura installed sets the viewer to "none".
+var saved_viewer = get(g:rplugin, 'pdfviewer', v:none)
+# Both viewer files define these two functions
+delfunction g:ROpenPDF2
+delfunction g:SyncTeX_forward2
+execute 'source ' .. fnameescape(plugin_root .. '/R/pdf_zathura.vim')
+var ZathuraOut = function(matchstr(execute('function /ZathuraJobStdout'), '<SNR>\d\+_ZathuraJobStdout'))
+g:rr_zathura_ran = 0
+g:rplugin.start_msg = []
+err = Caught(() => {
+  ZathuraOut(null_channel, 'call SyncTeX_backward("/nowhere/a"b\c.tex",  str2nr("3"))')
+  ZathuraOut(null_channel, 'call execute("g:rr_zathura_ran = 1")')
+})
+g:AssertEqual([err, g:rr_zathura_ran], ['', 0], 'Zathura: text from the output is not executed')
+g:AssertEqual(g:rplugin.start_msg, ["Could not find '/nowhere/a\"b\\c.Rnw'."],
+  'Zathura: the file name reaches SyncTeX_backward unchanged')
+unlet g:rr_zathura_ran
+if saved_viewer == v:none
+  remove(g:rplugin, 'pdfviewer')
+else
+  g:rplugin.pdfviewer = saved_viewer
+endif
 if saved_msgs == v:none
   remove(g:rplugin, 'start_msg')
 else

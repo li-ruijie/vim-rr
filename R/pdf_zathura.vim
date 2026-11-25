@@ -18,10 +18,14 @@ var has_dbus_send = executable("dbus-send")
 var synctex_editor_cmd = "echo 'call SyncTeX_backward(\"%{input}\",  str2nr(\"%{line}\"))'"
 var OnJobStderr = function('g:ROnJobStderr')
 
+# Zathura prints the editor command with the file name and the line number
+# filled in. The two values are parsed out of the line, and the line is never
+# executed, since a file name may contain quotes, backslashes, or Vim script.
 def ZathuraJobStdout(_ch: channel, msg: string)
-    var cmd = substitute(msg, '[\n\r]', '', 'g')
-    if cmd =~ "^call "
-        execute cmd
+    var m = matchlist(substitute(msg, '[\n\r]', '', 'g'),
+        '^call SyncTeX_backward("\(.*\)",\s*str2nr("\(\d\+\)"))$')
+    if !empty(m)
+        g:SyncTeX_backward(m[1], str2nr(m[2]))
     endif
 enddef
 
