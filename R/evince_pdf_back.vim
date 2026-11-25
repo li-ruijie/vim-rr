@@ -12,6 +12,9 @@ vim9script
 
 import autoload './evince_dbus.vim' as dbus
 
+# The proxy of the backward search.  Its monitor stays alive between searches.
+var px = dbus.NewProxy()
+
 # ── Public API ─────────────────────────────────────────────────────────
 
 # Start backward-search monitoring for a PDF.
@@ -19,22 +22,22 @@ import autoload './evince_dbus.vim' as dbus
 export def Start(path_output: string)
     var uri = 'file://' .. substitute(path_output, ' ', '%20', 'g')
 
-    dbus.Init(uri)
-    dbus.OnConnected = OnConnected
-    dbus.OnSignal    = OnSignal
+    dbus.Init(px, uri)
+    px.OnConnected = OnConnected
+    px.OnSignal    = OnSignal
 
     # Listen for all Evince window signals (DocumentLoaded, SyncSource,
     # Closed) — mirrors bus.add_signal_receiver + connect_to_signal.
-    dbus.StartMonitor()
+    dbus.StartMonitor(px)
 
     # Check whether the document is already open (spawn=false).
-    dbus.FindDocument(false)
+    dbus.FindDocument(px, false)
 enddef
 
 # Stop monitoring and clean up.
 # Equivalent to SIGTERM handler + loop.quit().
 export def Stop()
-    dbus.Shutdown()
+    dbus.Shutdown(px)
 enddef
 
 # ── Callbacks ──────────────────────────────────────────────────────────
@@ -60,17 +63,17 @@ enddef
 # connected yet, use the sender to establish the connection.
 def OnDocumentLoaded(sig: dict<string>, args: list<string>)
     var loaded_uri = dbus.ExtractFirstString(args)
-    if loaded_uri ==# dbus.uri && !dbus.connected
+    if loaded_uri ==# px.uri && !px.connected
         var sender = get(sig, 'sender', '')
         if sender !=# ''
-            dbus.ConnectToEvince(sender)
+            dbus.ConnectToEvince(px, sender)
         endif
     endif
 enddef
 
 # on_sync_source: extract source file + line, call SyncTeX_backward().
 def OnSyncSource(args: list<string>)
-    if dbus.status !=# 'RUNNING'
+    if px.status !=# 'RUNNING'
         return
     endif
 
@@ -100,6 +103,6 @@ enddef
 
 # on_window_close
 def OnWindowClose()
-    dbus.status    = 'CLOSED'
-    dbus.connected = false
+    px.status    = 'CLOSED'
+    px.connected = false
 enddef

@@ -12,6 +12,10 @@ vim9script
 
 import autoload './evince_dbus.vim' as dbus
 
+# The proxy of the forward search.  It is separate from the proxy of the
+# backward search, whose monitor must keep running after a forward search.
+var px = dbus.NewProxy()
+
 # Pending SyncView call (mirrors _tmp_syncview + _handler)
 var s_pending_input: string = ''
 var s_pending_line: number  = 0
@@ -31,15 +35,15 @@ export def SyncView(path_input: string, path_output: string, line_number: number
 
     var uri = 'file://' .. substitute(path_output, ' ', '%20', 'g')
 
-    dbus.Init(uri)
-    dbus.OnConnected = OnConnected
-    dbus.OnSignal    = OnSignal
+    dbus.Init(px, uri)
+    px.OnConnected = OnConnected
+    px.OnSignal    = OnSignal
 
     # Monitor DocumentLoaded only (needed when Evince is being spawned).
-    dbus.StartMonitor(',member=DocumentLoaded')
+    dbus.StartMonitor(px, ',member=DocumentLoaded')
 
     # Ask daemon if document is already open (spawn=false first).
-    dbus.FindDocument(false)
+    dbus.FindDocument(px, false)
 
     # After 400 ms, attempt the SyncView — mirrors GLib.timeout_add(400, ...).
     timer_start(400, (_) => DoSyncView(path_input, line_number))
@@ -49,7 +53,7 @@ enddef
 
 # Mirrors the Python sync_view() timeout callback + EvinceWindowProxy.SyncView().
 def DoSyncView(input_file: string, line_nr: number)
-    if dbus.status ==# 'RUNNING' && dbus.connected
+    if px.status ==# 'RUNNING' && px.connected
         # Window is ready — call SyncView directly.
         CallSyncViewDBus(input_file, line_nr)
     else
@@ -59,7 +63,7 @@ def DoSyncView(input_file: string, line_nr: number)
         s_pending_input = input_file
         s_pending_line  = line_nr
         s_has_pending   = true
-        dbus.FindDocument(true)
+        dbus.FindDocument(px, true)
         execute 'call Evince_Again()'
     endif
 enddef
@@ -68,8 +72,8 @@ enddef
 # Mirrors: self.window.SyncView(input_file, data, 0, ...)
 def CallSyncViewDBus(input_file: string, line_nr: number)
     var cmd = ['gdbus', 'call', '--session',
-        '--dest',        dbus.dbus_name,
-        '--object-path', dbus.window_path,
+        '--dest',        px.dbus_name,
+        '--object-path', px.window_path,
         '--method',      dbus.EV_WINDOW_IFACE .. '.SyncView',
         input_file,
         '(' .. line_nr .. ', 1)',
@@ -83,7 +87,7 @@ enddef
 def OnSyncViewDone()
     # Mirrors: vimr_cmd("let g:rplugin.evince_loop = 0")
     g:rplugin.evince_loop = 0
-    dbus.StopMonitor()
+    dbus.StopMonitor(px)
 enddef
 
 # ── Callbacks ──────────────────────────────────────────────────────────
@@ -108,10 +112,10 @@ enddef
 # connected yet, use the sender to establish the connection.
 def OnDocumentLoaded(sig: dict<string>, args: list<string>)
     var loaded_uri = dbus.ExtractFirstString(args)
-    if loaded_uri ==# dbus.uri && !dbus.connected
+    if loaded_uri ==# px.uri && !px.connected
         var sender = get(sig, 'sender', '')
         if sender !=# ''
-            dbus.ConnectToEvince(sender)
+            dbus.ConnectToEvince(px, sender)
         endif
     endif
 enddef
