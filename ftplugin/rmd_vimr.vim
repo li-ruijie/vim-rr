@@ -251,8 +251,8 @@ g:RCreateMaps('ni',  'RSendChunk',      'cc', ':call b:SendChunkToR("silent", "s
 g:RCreateMaps('ni',  'RESendChunk',     'ce', ':call b:SendChunkToR("echo", "stay")')
 g:RCreateMaps('ni',  'RDSendChunk',     'cd', ':call b:SendChunkToR("silent", "down")')
 g:RCreateMaps('ni',  'REDSendChunk',    'ca', ':call b:SendChunkToR("echo", "down")')
-g:RCreateMaps('n',   'RNextRChunk',     'gn', ':call b:NextRChunk(v:count1)')
-g:RCreateMaps('n',   'RPreviousRChunk', 'gN', ':call b:PreviousRChunk(v:count1)')
+g:RCreateMaps('n',   'RNextRChunk',     'gn', ':<C-U>call b:NextRChunk(v:count1)')
+g:RCreateMaps('n',   'RPreviousRChunk', 'gN', ':<C-U>call b:PreviousRChunk(v:count1)')
 
 # Menu R
 if has("gui_running")
