@@ -297,6 +297,16 @@ int str_here(const char *o,
     return 1;
 }
 
+// Return the start of the line that follows s in an omnils buffer. The fields
+// of a line end with NULL bytes (see check_omils_buffer), so the scan cannot
+// stop at one. It is bounded because count_sep() only accepts a buffer whose
+// last byte is a new line.
+static char *next_line(const char *s) {
+    while (*s != '\n')
+        s++;
+    return (char *)s + 1;
+}
+
 static void
 HandleSigTerm(__attribute__((unused)) int s) // Signal handler for SIGTERM
 {
@@ -845,6 +855,13 @@ void start_server(void) // Start server and listen for connections
 char *count_sep(char *b1, int *size) // Count separators in buffer
 {
     *size = strlen(b1);
+    if (*size > 0 && b1[*size - 1] != '\n') {
+        fprintf(stderr, "Missing new line at the end of the omni list\n");
+        fflush(stderr);
+        free(b1);
+        return NULL;
+    }
+
     // Some packages do not export any objects.
     if (*size == 1)
         return b1;
@@ -1875,10 +1892,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
 
         if (get_list_status(bsnm, df) == 0) {
             while (str_here(p, base1) || str_here(p, base2)) {
-                while (*p != '\n' && *p)
-                    p++;
-                if (*p)
-                    p++;
+                p = next_line(p);
                 nLibObjs--;
             }
             return p;
@@ -1925,11 +1939,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
         // Check if the next list element really is there
         while (str_here(p, base1) || str_here(p, base2)) {
             // Check if this is the last element in the list
-            s = p;
-            while (*s != '\n' && *s)
-                s++;
-            if (*s)
-                s++;
+            s = next_line(p);
             ne--;
             if (ne == 0) {
                 snprintf(prefix, 112, "%s%s", newprfx, strL);
@@ -1975,10 +1985,7 @@ void hi_glbenv_fun(void) {
             p = str_cat(p, g);
             p = str_cat(p, " ");
         }
-        while (*g != '\n' && *g)
-            g++;
-        if (*g)
-            g++;
+        g = next_line(g);
     }
     p = str_cat(p, "')");
     lock_stdout();
@@ -2474,10 +2481,7 @@ void completion_info(const char *wrd, const char *pkg) {
             unlock_stdout();
             return;
         }
-        while (*s != '\n' && *s)
-            s++;
-        if (*s)
-            s++;
+        s = next_line(s);
     }
     lock_stdout();
     {
@@ -2588,10 +2592,7 @@ char *parse_omnils(const char *s, const char *base, const char *pkg, char *p) {
             p = str_cat(p, "'}}, "); // Don't include fields 4, 5 and 6 because
                                      // big data will be truncated.
         } else {
-            while (*s != '\n' && *s)
-                s++;
-            if (*s)
-                s++;
+            s = next_line(s);
         }
     }
     return p;
@@ -2632,10 +2633,7 @@ char *complete_args(char *p, char *funcnm) {
                     p = str_cat(p, "]},");
                     break;
                 } else {
-                    while (*s != '\n' && *s)
-                        s++;
-                    if (*s)
-                        s++;
+                    s = next_line(s);
                 }
             }
         }
