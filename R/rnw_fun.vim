@@ -292,23 +292,26 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     return {texlnum: lstexln, rnwfile: lsrnwf, rnwline: lsrnwl}
 enddef
 
+# The file name comes from a PDF viewer or from a concordance file. It is
+# escaped for the Ex commands below, where a bar would start another command
+# and a percent sign would stand for the current file.
 def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): number
     if expand("%:t") != rnwbn
         if bufloaded(basedir .. '/' .. rnwf)
             var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            execute "sb " .. substitute(basedir .. '/' .. rnwf, ' ', '\\ ', 'g')
+            execute "sb " .. bufnr(basedir .. '/' .. rnwf)
             execute "set switchbuf=" .. savesb
         elseif bufloaded(rnwf)
             var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            execute "sb " .. substitute(rnwf, ' ', '\\ ', 'g')
+            execute "sb " .. bufnr(rnwf)
             execute "set switchbuf=" .. savesb
         else
             if filereadable(basedir .. '/' .. rnwf)
-                execute "tabnew " .. substitute(basedir .. '/' .. rnwf, ' ', '\\ ', 'g')
+                execute "tabnew " .. fnameescape(basedir .. '/' .. rnwf)
             elseif filereadable(rnwf)
-                execute "tabnew " .. substitute(rnwf, ' ', '\\ ', 'g')
+                execute "tabnew " .. fnameescape(rnwf)
             else
                 g:RWarningMsg('Could not find either "' .. rnwbn .. ' or "' .. rnwf .. '" in "' .. basedir .. '".')
                 return 0
