@@ -165,7 +165,7 @@ def g:RInitExit(...args: list<any>)
             g:RWarningMsg(wrn)
         endfor
     endif
-    if cnv_again == 0
+    if cnv_again == 0 && type(g:rplugin.debug_info['Time']['before_nrs.R']) == v:t_list
         g:rplugin.debug_info['Time']['before_nrs.R'] = reltimefloat(reltime(g:rplugin.debug_info['Time']['before_nrs.R'], reltime()))
     endif
 enddef
