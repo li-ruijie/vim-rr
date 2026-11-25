@@ -468,6 +468,11 @@ def g:CompleteR(findstart: number, base: string): any
             return Ofun(findstart, base)
         endif
 
+        # R objects are listed by vimrserver
+        if !g:IsJobRunning("Server")
+            return []
+        endif
+
         # The base might have changed because the user has hit the backspace key
         g:CloseFloatWin()
 
