@@ -241,6 +241,9 @@ SOCKET sfd = INVALID_SOCKET; // File descriptor of socket used in the TCP
                              // connection with the vimrserver.
 static HANDLE tid; // Identifier of thread running TCP connection loop.
 extern void Rconsolecmd(char *cmd); // Defined in R: src/gnuwin32/rui.c.
+// The connection was shut down after a failed send, and the socket stays open
+// until vimcom_Stop() closes it. Used by the main thread only.
+static int sfd_down;
 #else
 static int sfd = -1;  // File descriptor of socket used in the TCP connection
                       // with the vimrserver.
@@ -318,6 +321,10 @@ static char *vimcom_grow_buffers(void) {
 static void send_to_vim(char *msg) {
     if (sfd == -1)
         return;
+#ifdef WIN32
+    if (sfd_down)
+        return;
+#endif
 
     int sent;
     char b[192];
@@ -361,12 +368,14 @@ static void send_to_vim(char *msg) {
             REprintf("Error sending message header to Vim-R: %lu x %d\n",
                      tcp_header_len, sent);
 #ifdef WIN32
-        closesocket(sfd);
-        WSACleanup();
+        // The receiving thread may still be using the socket, which only
+        // vimcom_Stop() closes.
+        shutdown(sfd, SD_BOTH);
+        sfd_down = 1;
 #else
         close(sfd);
-#endif
         sfd = -1;
+#endif
         strcpy(nrs_port, "0");
         return;
     }
@@ -1544,11 +1553,17 @@ static void *client_loop_thread(__attribute__((unused)) void *arg)
     FLAG_UNLOCK();
     eval_queue_free(abandoned);
 #ifdef WIN32
-    closesocket(sfd);
-    WSACleanup();
+    // The main thread may still send through the socket, so it stays open
+    // until vimcom_Stop() closes it. Shutting the connection down tells
+    // vimrserver that it is over and makes every later send fail.
+    shutdown(sfd, SD_BOTH);
     return 0;
 #else
-    close(sfd);
+    // Forget the descriptor before closing it, so that the main thread
+    // neither sends through its number nor closes it again.
+    int fd = sfd;
+    sfd = -1;
+    close(fd);
     return NULL;
 #endif
 }
@@ -1657,6 +1672,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         if (wr != 0) {
             REprintf("WSAStartup failed: %d\n", wr);
         }
+        sfd_down = 0;
 #endif
         // socket create and verification
         sfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -1736,13 +1752,18 @@ void vimcom_Stop(void) {
 
     if (initialized) {
 #ifdef WIN32
-        // Signal the thread to exit by closing the socket, which causes
-        // recv_exact to return -1, breaking client_loop_thread's loop.
-        closesocket(sfd);
-        sfd = -1;
+        // Signal the thread to exit without closing the socket that it is
+        // using. After shutdown() every new recv() fails, and CancelIoEx()
+        // ends the recv() that is already waiting, so recv_exact returns
+        // and client_loop_thread's loop breaks. The socket is closed only
+        // after the thread has ended.
+        shutdown(sfd, SD_BOTH);
+        CancelIoEx((HANDLE)sfd, NULL);
         if (WaitForSingleObject(tid, 5000) == WAIT_TIMEOUT)
             TerminateThread(tid, 0);
         CloseHandle(tid);
+        closesocket(sfd);
+        sfd = -1;
         WSACleanup();
         if (vimcom_hwnd) {
             KillTimer(vimcom_hwnd, VIMCOM_TIMER_ID);
