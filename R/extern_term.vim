@@ -56,7 +56,7 @@ def g:StartR_ExternalTerm(rcmd: string)
 
         writefile(cnflines, g:rplugin.tmpdir .. "/tmux.conf")
         g:AddForDeletion(g:rplugin.tmpdir .. "/tmux.conf")
-        tmuxcnf = '-f "' .. g:rplugin.tmpdir .. "/tmux.conf" .. '"'
+        tmuxcnf = '-f ' .. shellescape(g:rplugin.tmpdir .. "/tmux.conf")
     endif
 
     var envrcmd = 'VIMR_TMPDIR=' .. shellescape(g:rplugin.tmpdir) ..
@@ -71,13 +71,11 @@ def g:StartR_ExternalTerm(rcmd: string)
     system("tmux -L VimR has-session -t " .. g:rplugin.tmuxsname)
     var opencmd: string
     if v:shell_error != 0
-        if term_name == "konsole"
-            opencmd = printf("%s 'tmux -L VimR -2 %s new-session -s %s \"%s\"'",
-                        term_cmd, tmuxcnf, g:rplugin.tmuxsname, envrcmd)
-        else
-            opencmd = printf("%s tmux -L VimR -2 %s new-session -s %s \"%s\"",
-                        term_cmd, tmuxcnf, g:rplugin.tmuxsname, envrcmd)
-        endif
+        # Tmux gives envrcmd to a shell of its own, so here it is one word
+        var tmuxcmd = printf("tmux -L VimR -2 %s new-session -s %s %s",
+                    tmuxcnf, g:rplugin.tmuxsname, shellescape(envrcmd))
+        # Konsole takes the whole command as one word
+        opencmd = term_cmd .. ' ' .. (term_name == "konsole" ? shellescape(tmuxcmd) : tmuxcmd)
     else
         opencmd = printf("%s tmux -L VimR -2 %s attach-session -d -t %s",
                     term_cmd, tmuxcnf, g:rplugin.tmuxsname)
@@ -91,7 +89,7 @@ def g:StartR_ExternalTerm(rcmd: string)
             return
         endif
     else
-        var initterm = ['cd "' .. getcwd() .. '"',
+        var initterm = ['cd ' .. shellescape(getcwd()),
                     opencmd]
         writefile(initterm, g:rplugin.tmpdir .. "/initterm_" .. $VIMR_ID .. ".sh")
         g:rplugin.jobs["Terminal emulator"] = g:StartJob(["sh", g:rplugin.tmpdir .. "/initterm_" .. $VIMR_ID .. ".sh"],
@@ -195,11 +193,11 @@ endif
 
 if !g:R_vim_wd
     if term_name =~ '^\(gnome-terminal\|xfce4-terminal\|lxterminal\)$'
-        term_cmd ..= " --working-directory='" .. expand("%:p:h") .. "'"
+        term_cmd ..= " --working-directory=" .. shellescape(expand("%:p:h"))
     elseif term_name == "konsole"
-        term_cmd ..= " -p tabtitle=R --workdir '" .. expand("%:p:h") .. "'"
+        term_cmd ..= " -p tabtitle=R --workdir " .. shellescape(expand("%:p:h"))
     elseif term_name == "roxterm"
-        term_cmd ..= " --directory='" .. expand("%:p:h") .. "'"
+        term_cmd ..= " --directory=" .. shellescape(expand("%:p:h"))
     endif
 endif
 
