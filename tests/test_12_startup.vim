@@ -27,6 +27,16 @@ def TestStartup(ext: string, ft: string, label: string)
   var tmpfile = tempname() .. ext
   writefile(['# test content'], tmpfile)
 
+  # syntax/sh.vim of Vim 9.1 deletes three commands before it defines them,
+  # and the rst syntax includes that file. The deletion is silenced, but it
+  # still sets v:errmsg. The commands are defined here, so that the runtime
+  # of Vim leaves no message and every message counts against the plugin.
+  for cmd in ['ShFoldFunctions', 'ShFoldHereDoc', 'ShFoldIfDoFor']
+    if exists(':' .. cmd) != 2
+      execute 'command -nargs=* ' .. cmd .. ' <args>'
+    endif
+  endfor
+
   v:errmsg = ''
   var caught = ''
   try
