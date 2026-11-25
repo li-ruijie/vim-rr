@@ -1300,6 +1300,26 @@ static void vimcom_fire(void) {
 
 #ifndef WIN32
 /**
+ * @brief Put a single byte in a pipe to register that we have commands
+ * waiting to be executed. R will crash if we execute commands while it is
+ * busy with other tasks. Both threads call this function.
+ */
+static void vimcom_fire(void) {
+    if (verbose > 4)
+        REprintf("vimcom_fire()\n");
+    FLAG_LOCK();
+    int waiting = fired;
+    fired = 1;
+    FLAG_UNLOCK();
+    if (waiting)
+        return;
+    char buf[16];
+    *buf = 0;
+    if (write(ofd, buf, 1) <= 0)
+        REprintf("vimcom error: write <= 0\n");
+}
+
+/**
  * @brief Check if there is anything in the pipe that we use to register that
  * there are commands to be evaluated. R only executes this function when it
  * can safely execute our commands. This functionality is not available on
@@ -1315,25 +1335,18 @@ static void vimcom_uih(__attribute__((unused)) void *data) {
     char buf[16];
     if (read(ifd, buf, 1) < 1)
         REprintf("vimcom error: read < 1\n");
+    // The flag stays set while the requests are executed, so that the pipe is
+    // empty and this function is not entered again from within one of them.
     R_ToplevelExec(vimcom_exec, NULL);
+    // A request that arrived meanwhile found the flag set and wrote nothing
+    // to the pipe. It would stay in the queue until a later request fired,
+    // so the queue is looked at again after the flag is cleared.
+    FLAG_LOCK();
     fired = 0;
-}
-
-/**
- * @brief Put a single byte in a pipe to register that we have commands
- * waiting to be executed. R will crash if we execute commands while it is
- * busy with other tasks.
- */
-static void vimcom_fire(void) {
-    if (verbose > 4)
-        REprintf("vimcom_fire()\n");
-    if (fired)
-        return;
-    fired = 1;
-    char buf[16];
-    *buf = 0;
-    if (write(ofd, buf, 1) <= 0)
-        REprintf("vimcom error: write <= 0\n");
+    int pending = eval_head != NULL || flag_glbenv || flag_debug;
+    FLAG_UNLOCK();
+    if (pending)
+        vimcom_fire();
 }
 
 /**
