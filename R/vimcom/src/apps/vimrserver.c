@@ -2031,7 +2031,7 @@ void update_glblenv_buffer(char *g) {
     int glbnv_size;
 
     if (glbnv_buffer) {
-        if (strlen(g) > glbnv_buffer_sz) {
+        if (strlen(g) >= glbnv_buffer_sz) {
             free(glbnv_buffer);
             glbnv_buffer_sz = strlen(g) + 4096;
             glbnv_buffer = malloc(glbnv_buffer_sz * sizeof(char));
