@@ -177,6 +177,9 @@ read them? Type the command |:messages| in Normal mode to see them again.
 Run the command `:RDebugInfo` which will show information useful to fix some
 common issues.
 
+Run the command `:RGetNCSInfo` to see the packages whose objects the
+`vimrserver` has loaded for completion and syntax highlighting.
+
 To see messages received by `vimcom`, put in your `~/.Rprofile`:
 >r
   options(vimcom.verbose = 5)
