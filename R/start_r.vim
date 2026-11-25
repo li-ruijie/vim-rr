@@ -372,6 +372,9 @@ def g:SetVimcomInfo(vimcomversion: string, rpid: number, wid: string, r_info: st
         if has("win32")
             if $RCONSOLE == "0"
                 g:RWarningMsg("vimcom did not save R window ID")
+            elseif !exists("g:RStudio_cmd")
+                # RStudio has no R Console window for vimrserver to act on
+                g:JobStdin(g:rplugin.jobs["Server"], "82" .. $RCONSOLE .. "\n")
             endif
         endif
     else

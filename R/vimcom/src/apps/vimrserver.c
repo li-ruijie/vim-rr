@@ -2944,6 +2944,14 @@ void stdin_loop() {
                     unlock_stdout();
                 }
                 break;
+            case '2': // Set the ID of the R Console window
+                msg++;
+#ifdef _WIN64
+                RConsole = (HWND)atoll(msg);
+#else
+                RConsole = (HWND)atol(msg);
+#endif
+                break;
             case '3': // SendToRConsole
                 msg++;
                 SendToRConsole(msg);
