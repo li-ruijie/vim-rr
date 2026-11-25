@@ -190,7 +190,9 @@ def g:SendCmdToRStudio(...args: list<any>): number
     # The line is embedded in an R string literal, which R parses, so a
     # backslash needs escaping as much as a double quote does.
     var cmd = escape(args[0], '\"')
-    g:SendToVimcom("E", 'sendToConsole("' .. cmd .. '", execute=TRUE)')
+    # "S" and not "E", because the text must also reach a prompt that R shows
+    # while a function is running, such as the one of browser().
+    g:SendToVimcom("S", 'sendToConsole("' .. cmd .. '", execute=TRUE)')
     return 1
 enddef
 

@@ -110,12 +110,13 @@ static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 // Linked-list queue for deferred eval commands. Commands are enqueued by the
-// TCP thread (case 'E' / 'L') and drained by vimcom_task (Windows) or
-// vimcom_exec (Unix) on the main R thread.
+// TCP thread (case 'E' / 'S' / 'L') and drained by vimcom_exec on the main R
+// thread.
 #define MAX_EVAL_CMD 65536
 
 typedef struct eval_node {
     struct eval_node *next;
+    int now;    // May it run while R is evaluating something else?
     char cmd[]; // flexible array member — allocated inline with node
 } eval_node_t;
 
@@ -126,7 +127,7 @@ static eval_node_t *eval_tail = NULL;
  * @brief Enqueue a command for deferred execution.
  * Must be called under FLAG_LOCK.
  */
-static void eval_queue_push(const char *cmd) {
+static void eval_queue_push(const char *cmd, int now) {
     size_t len = strlen(cmd);
     if (len > MAX_EVAL_CMD) {
         REprintf("vimcom: command too long (%zu bytes, max %d)\n", len,
@@ -139,6 +140,7 @@ static void eval_queue_push(const char *cmd) {
         return;
     }
     memcpy(node->cmd, cmd, len + 1);
+    node->now = now;
     node->next = NULL;
     if (eval_tail)
         eval_tail->next = node;
@@ -148,13 +150,30 @@ static void eval_queue_push(const char *cmd) {
 }
 
 /**
- * @brief Detach the entire queue and return its head.
+ * @brief Detach commands from the queue and return them in their order.
  * Must be called under FLAG_LOCK. Caller owns the returned list.
+ *
+ * @param all Detach every command, or only the ones that may run while R is
+ * evaluating something else?
  */
-static eval_node_t *eval_queue_drain(void) {
-    eval_node_t *queue = eval_head;
-    eval_head = eval_tail = NULL;
-    return queue;
+static eval_node_t *eval_queue_drain(int all) {
+    eval_node_t *taken = NULL;
+    eval_node_t **taken_tail = &taken;
+    eval_node_t **link = &eval_head;
+    eval_tail = NULL;
+    while (*link) {
+        eval_node_t *node = *link;
+        if (all || node->now) {
+            *link = node->next;
+            node->next = NULL;
+            *taken_tail = node;
+            taken_tail = &node->next;
+        } else {
+            eval_tail = node;
+            link = &node->next;
+        }
+    }
+    return taken;
 }
 
 /**
@@ -170,16 +189,22 @@ static void eval_queue_free(eval_node_t *queue) {
 }
 
 #ifdef WIN32
-extern uintptr_t R_CStackStart; // Declared in Rinterface.h (Unix only);
-// exported from R.dll on Windows. Needed to fix BUG-62: temporarily set the
-// stack base to the current frame so R_CheckStack sees a small delta instead
-// of a garbage ~1.6 GB value when called from the TCP thread.
-static int r_is_busy = 1; // Is R executing a top level command? R memory will
-// become corrupted and R will crash afterwards if we execute a function that
-// creates R objects while R is busy.
-static time_t busy_since = 0; // When r_is_busy was last set to 1. Used by the
-// TCP thread to auto-reset a stale r_is_busy flag (e.g. after RStudio
-// interrupt kills the task callback).
+// R is not thread-safe, so the TCP thread only queues the requests of Vim-R
+// and posts a message to a message-only window that belongs to the main
+// thread. R dispatches the message wherever it processes Windows messages,
+// which is while it waits for console input and also at every interrupt
+// check of a running computation.
+#define VIMCOM_WNDCLASS "vimcom_message_window"
+#define VIMCOM_WM_FIRE (WM_APP + 1)
+#define VIMCOM_TIMER_ID 1
+#define VIMCOM_RETRY_MS 200
+// The evaluation depth that base::Cstack_info() reports when R evaluates
+// nothing else. Its help page says that the value includes "two calls for the
+// call to Cstack_info".
+#define VIMCOM_IDLE_DEPTH 2
+static HWND vimcom_hwnd = NULL; // The message-only window.
+static int vimcom_running = 0;  // Is the main thread executing requests?
+static int vimcom_timer = 0;    // Is the retry timer set?
 #else
 static int fired = 0; // Do we have commands waiting to be executed?
 static int ifd;       // input file descriptor
@@ -209,6 +234,7 @@ static LibInfo *libList; // Linked list of loaded libraries information (names
 static void vimcom_checklibs(void);
 static void send_to_vim(char *msg);
 static void vimcom_eval_expr(const char *buf);
+static void vimcom_exec(void *arg);
 
 #ifdef WIN32
 SOCKET sfd = INVALID_SOCKET; // File descriptor of socket used in the TCP
@@ -1026,12 +1052,6 @@ static void vimcom_checklibs(void) {
 void vimcom_task(void) {
     if (verbose > 4)
         REprintf("vimcom_task()\n");
-#ifdef WIN32
-    FLAG_LOCK();
-    r_is_busy = 1;
-    busy_since = time(NULL);
-    FLAG_UNLOCK();
-#endif
     if (nrs_port[0] != 0) {
         vimcom_checklibs();
         if (autoglbenv)
@@ -1060,42 +1080,27 @@ void vimcom_task(void) {
         }
     }
 #ifdef WIN32
-    // Drain eval queue and flag_glbenv under lock
-    FLAG_LOCK();
-    eval_node_t *queue = eval_queue_drain();
-    int local_glbenv = flag_glbenv;
-    flag_glbenv = 0;
-    FLAG_UNLOCK();
-
-    // Execute all queued commands in FIFO order (outside lock)
-    while (queue) {
-        eval_node_t *tmp = queue;
-        queue = queue->next;
-        vimcom_eval_expr(tmp->cmd);
-        free(tmp); // matches malloc in eval_queue_push
-    }
-    if (local_glbenv)
-        vimcom_globalenv_list();
-
-    // All R API work done. NOW signal idle.
-    FLAG_LOCK();
-    r_is_busy = 0;
-    FLAG_UNLOCK();
+    // A task has just finished, so every request that is waiting can run.
+    vimcom_running = 1;
+    R_ToplevelExec(vimcom_exec, NULL);
+    vimcom_running = 0;
 #endif
 }
 
-#ifndef WIN32
 /**
- * @brief Executed by R when idle.
+ * @brief Execute the requests that Vim-R has queued. It runs on the main R
+ * thread, called through R_ToplevelExec().
  *
- * @param unused Unused parameter.
+ * @param arg NULL to execute every request. Any other value to execute only
+ * the requests that may run while R is evaluating something else.
  */
-static void vimcom_exec(__attribute__((unused)) void *nothing) {
+static void vimcom_exec(void *arg) {
+    int all = arg == NULL;
     int local_glbenv = 0;
 
     FLAG_LOCK();
-    eval_node_t *queue = eval_queue_drain();
-    if (flag_glbenv) {
+    eval_node_t *queue = eval_queue_drain(all);
+    if (all && flag_glbenv) {
         local_glbenv = 1;
         flag_glbenv = 0;
     }
@@ -1112,12 +1117,131 @@ static void vimcom_exec(__attribute__((unused)) void *nothing) {
     if (local_glbenv)
         vimcom_globalenv_list();
 
+#ifndef WIN32
     if (flag_debug) {
         SrcrefInfo();
         flag_debug = 0;
     }
+#endif
 }
 
+#ifdef WIN32
+/**
+ * @brief Is R evaluating nothing at the moment? That is the case while it
+ * waits for input at the top level prompt, and at a browser prompt once an
+ * expression was entered there. Each evaluation in progress adds to the
+ * evaluation depth.
+ */
+static int vimcom_r_is_idle(void) {
+    int depth = -1;
+    int er = 0;
+    SEXP call, ans;
+
+    PROTECT(call = lang1(install("Cstack_info")));
+    ans = R_tryEvalSilent(call, R_BaseEnv, &er);
+    if (!er && TYPEOF(ans) == INTSXP && LENGTH(ans) >= 4)
+        depth = INTEGER(ans)[3];
+    UNPROTECT(1);
+    if (verbose > 4)
+        REprintf("vimcom_r_is_idle(): depth = %d\n", depth);
+    return depth >= 0 && depth <= VIMCOM_IDLE_DEPTH;
+}
+
+/**
+ * @brief Execute on the main thread what the state of R allows. A request
+ * that has to wait stays in the queue, and the retry timer looks at it again.
+ * vimcom_task() takes everything when the running task ends.
+ */
+static void vimcom_dispatch(void) {
+    int pending, more;
+
+    // A message that is dispatched while requests are being executed. The
+    // loop below takes what it announces.
+    if (vimcom_running)
+        return;
+
+    FLAG_LOCK();
+    pending = eval_head != NULL || flag_glbenv;
+    FLAG_UNLOCK();
+
+    if (pending) {
+        vimcom_running = 1;
+        do {
+            // A non-NULL argument limits vimcom_exec() to the requests that
+            // may run during another evaluation.
+            R_ToplevelExec(vimcom_exec,
+                           vimcom_r_is_idle() ? NULL : (void *)&vimcom_running);
+            FLAG_LOCK();
+            more = 0;
+            for (eval_node_t *node = eval_head; node; node = node->next)
+                more = more || node->now;
+            pending = eval_head != NULL || flag_glbenv;
+            FLAG_UNLOCK();
+        } while (more);
+        vimcom_running = 0;
+    }
+
+    if (pending && !vimcom_timer) {
+        vimcom_timer =
+            SetTimer(vimcom_hwnd, VIMCOM_TIMER_ID, VIMCOM_RETRY_MS, NULL) != 0;
+    } else if (!pending && vimcom_timer) {
+        KillTimer(vimcom_hwnd, VIMCOM_TIMER_ID);
+        vimcom_timer = 0;
+    }
+}
+
+/**
+ * @brief Window procedure of the message-only window. R calls it on the main
+ * thread.
+ */
+static LRESULT CALLBACK vimcom_wndproc(HWND hwnd, UINT msg, WPARAM wparam,
+                                       LPARAM lparam) {
+    if (msg == VIMCOM_WM_FIRE ||
+        (msg == WM_TIMER && wparam == VIMCOM_TIMER_ID)) {
+        vimcom_dispatch();
+        return 0;
+    }
+    return DefWindowProc(hwnd, msg, wparam, lparam);
+}
+
+/**
+ * @brief Create the message-only window. It must be called on the main
+ * thread, which is the thread that will receive the messages.
+ */
+static void vimcom_create_window(void) {
+    WNDCLASSEXA wc;
+
+    memset(&wc, 0, sizeof(wc));
+    wc.cbSize = sizeof(wc);
+    wc.lpfnWndProc = vimcom_wndproc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = VIMCOM_WNDCLASS;
+    if (!RegisterClassExA(&wc) &&
+        GetLastError() == ERROR_CLASS_ALREADY_EXISTS) {
+        // Left by a copy of this library that was unloaded without a call to
+        // vimcom_Stop(). Its window procedure is gone.
+        UnregisterClassA(VIMCOM_WNDCLASS, wc.hInstance);
+        RegisterClassExA(&wc);
+    }
+    vimcom_hwnd = CreateWindowExA(0, VIMCOM_WNDCLASS, NULL, 0, 0, 0, 0, 0,
+                                  HWND_MESSAGE, NULL, wc.hInstance, NULL);
+    if (!vimcom_hwnd)
+        REprintf("vimcom: could not create the message window (%lu). "
+                 "Requests of Vim-R will only run after each command.\n",
+                 (unsigned long)GetLastError());
+}
+
+/**
+ * @brief Tell the main thread that there are requests waiting to be
+ * executed. It is called on the TCP thread.
+ */
+static void vimcom_fire(void) {
+    if (vimcom_hwnd)
+        PostMessage(vimcom_hwnd, VIMCOM_WM_FIRE, 0, 0);
+}
+#endif
+
+#ifndef WIN32
 /**
  * @brief Check if there is anything in the pipe that we use to register that
  * there are commands to be evaluated. R only executes this function when it
@@ -1289,9 +1413,7 @@ static void vimcom_parse_received_msg(char *buf) {
         FLAG_LOCK();
         flag_glbenv = 1;
         FLAG_UNLOCK();
-#ifndef WIN32
         vimcom_fire();
-#endif
         break;
 #ifdef WIN32
     case 'C': // Send command to Rgui Console
@@ -1299,10 +1421,6 @@ static void vimcom_parse_received_msg(char *buf) {
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
-            FLAG_LOCK();
-            r_is_busy = 1;
-            busy_since = time(NULL);
-            FLAG_UNLOCK();
             Rconsolecmd(p);
         }
         break;
@@ -1315,68 +1433,25 @@ static void vimcom_parse_received_msg(char *buf) {
             char lazy_cmd[512];
             snprintf(lazy_cmd, sizeof(lazy_cmd), "%s <- %s", p, p);
             FLAG_LOCK();
-            eval_queue_push(lazy_cmd);
+            eval_queue_push(lazy_cmd, 0);
             flag_glbenv = 1;
-#ifdef WIN32
-            if (!r_is_busy) {
-                r_is_busy = 1;
-                busy_since = time(NULL);
-            }
-#endif
             FLAG_UNLOCK();
-#ifndef WIN32
             vimcom_fire();
-#endif
         }
         break;
-    case 'E': // eval expression
+    case 'E': // Evaluate an expression when R is evaluating nothing else
+    case 'S': // Evaluate an expression that only passes text to the console
+              // of the front end, such as rstudioapi::sendToConsole(). On
+              // Windows it does not wait for a running evaluation, so that
+              // it also reaches a prompt that R shows from within a function.
         p = buf;
         p++;
         if (strstr(p, vimr_id) == p) {
             p += strlen(vimr_id);
-#ifdef WIN32
-            // On Windows (RStudio), 'E' must execute immediately on the TCP
-            // thread — deferring to vimcom_task deadlocks because R is idle
-            // waiting for console input. Temporarily set R_CStackStart to
-            // the current stack frame so R_CheckStack sees a small delta
-            // instead of a garbage ~1.6 GB value (BUG-62).
             FLAG_LOCK();
-            int busy = r_is_busy;
-            // Auto-reset stale r_is_busy after 5 seconds. This recovers
-            // from RStudio interrupt killing the task callback, which
-            // would otherwise leave r_is_busy stuck at 1 permanently.
-            if (busy && difftime(time(NULL), busy_since) > 5.0) {
-                if (verbose > 1)
-                    REprintf("vimcom: auto-reset stale r_is_busy "
-                             "(stuck for >5s)\n");
-                busy = 0;
-            }
-            if (!busy) {
-                r_is_busy = 1;
-                busy_since = time(NULL);
-            }
-            FLAG_UNLOCK();
-            if (!busy) {
-                uintptr_t saved_stack_start = R_CStackStart;
-                R_CStackStart = (uintptr_t)&saved_stack_start;
-                vimcom_eval_expr(p);
-                R_CStackStart = saved_stack_start;
-                // Do NOT set r_is_busy = 0 here. sendToConsole is async --
-                // R's main thread may still be executing the queued code.
-                // vimcom_task sets r_is_busy = 0 when R is truly idle.
-            } else {
-                // R is busy (vimcom_task or prior eval). Enqueue for main
-                // thread. vimcom_task drains the queue each cycle.
-                FLAG_LOCK();
-                eval_queue_push(p);
-                FLAG_UNLOCK();
-            }
-#else
-            FLAG_LOCK();
-            eval_queue_push(p);
+            eval_queue_push(p, buf[0] == 'S');
             FLAG_UNLOCK();
             vimcom_fire();
-#endif
         } else {
             REprintf("vimcom: received invalid VIMR_ID\n");
         }
@@ -1465,7 +1540,7 @@ static void *client_loop_thread(__attribute__((unused)) void *arg)
     free(body);
     // Free any queued commands that will never be executed
     FLAG_LOCK();
-    eval_node_t *abandoned = eval_queue_drain();
+    eval_node_t *abandoned = eval_queue_drain(1);
     FLAG_UNLOCK();
     eval_queue_free(abandoned);
 #ifdef WIN32
@@ -1576,6 +1651,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         struct sockaddr_in servaddr;
 #ifdef WIN32
         InitializeCriticalSection(&flag_mutex);
+        vimcom_create_window();
         WSADATA d;
         int wr = WSAStartup(MAKEWORD(2, 2), &d);
         if (wr != 0) {
@@ -1623,13 +1699,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
 
     if (failure == 0) {
         initialized = 1;
-#ifdef WIN32
-        // Don't set r_is_busy = 0 here — R is still loading packages on the
-        // main thread.  Let vimcom_task (first task callback) clear it when R
-        // is genuinely idle.  The 5-second auto-reset in the 'E' handler
-        // serves as a safety net if vimcom_task never fires.
-        busy_since = time(NULL);
-#else
+#ifndef WIN32
         if (debug_r) {
             save_ptr_R_ReadConsole = ptr_R_ReadConsole;
             ptr_R_ReadConsole = vimcom_read_console;
@@ -1674,9 +1744,16 @@ void vimcom_Stop(void) {
             TerminateThread(tid, 0);
         CloseHandle(tid);
         WSACleanup();
+        if (vimcom_hwnd) {
+            KillTimer(vimcom_hwnd, VIMCOM_TIMER_ID);
+            vimcom_timer = 0;
+            DestroyWindow(vimcom_hwnd);
+            vimcom_hwnd = NULL;
+            UnregisterClassA(VIMCOM_WNDCLASS, GetModuleHandle(NULL));
+        }
         // Free any queued commands that will never be executed
         FLAG_LOCK();
-        eval_node_t *abandoned = eval_queue_drain();
+        eval_node_t *abandoned = eval_queue_drain(1);
         FLAG_UNLOCK();
         eval_queue_free(abandoned);
 #else
@@ -1687,7 +1764,7 @@ void vimcom_Stop(void) {
         pthread_join(tid, NULL);
         // Free any queued commands that will never be executed
         FLAG_LOCK();
-        eval_node_t *abandoned_unix = eval_queue_drain();
+        eval_node_t *abandoned_unix = eval_queue_drain(1);
         FLAG_UNLOCK();
         eval_queue_free(abandoned_unix);
 #endif
