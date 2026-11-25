@@ -919,13 +919,13 @@ def g:RDebugJump(fnm: string, lnum: number)
             if &modified
                 split
             endif
-            exe 'edit ' .. fname
+            exe 'edit ' .. fnameescape(fname)
         elseif glob("*") =~ fname
             exe 'sb ' .. g:rplugin.rscript_name
             if &modified
                 split
             endif
-            exe 'edit ' .. fname
+            exe 'edit ' .. fnameescape(fname)
         else
             exe 'set so=' .. saved_so
             return
@@ -934,16 +934,15 @@ def g:RDebugJump(fnm: string, lnum: number)
 
     if bufloaded(fname)
         if fname != expand("%")
-            exe 'sb ' .. fname
+            exe 'sb ' .. bufnr(fname)
         endif
         exe ':' .. flnum
     endif
 
-    # Call sign_place() and sign_unplace() (requires Vim 8.2+)
-    #call sign_unplace('rdebugcurline')
-    #call sign_place(1, 'rdebugcurline', 'dbgline', fname, {'lnum': flnum})
+    # The function takes the file name as it is, while :sign place would
+    # replace a percent sign or a number sign in it
     sign unplace 1
-    exe 'sign place 1 line=' .. flnum .. ' name=dbgline file=' .. fname
+    sign_place(1, '', 'dbgline', fname, {lnum: flnum})
     if g:R_dbg_jump && !rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0 && has_key(g:rplugin, 'R_bufnr')
         exe 'sb ' .. g:rplugin.R_bufnr
         startinsert
