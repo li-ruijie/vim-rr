@@ -270,12 +270,12 @@ g:AssertEqual([err, g:rr_zathura_ran], ['', 0], 'Zathura: text from the output i
 g:AssertEqual(g:rplugin.start_msg, ["Could not find '/nowhere/a\"b\\c.Rnw'."],
   'Zathura: the file name reaches SyncTeX_backward unchanged')
 unlet g:rr_zathura_ran
-if saved_viewer == v:none
+if type(saved_viewer) == v:t_none
   remove(g:rplugin, 'pdfviewer')
 else
   g:rplugin.pdfviewer = saved_viewer
 endif
-if saved_msgs == v:none
+if type(saved_msgs) == v:t_none
   remove(g:rplugin, 'start_msg')
 else
   g:rplugin.start_msg = saved_msgs
@@ -311,7 +311,7 @@ g:AssertEqual(synIDattr(synID(1, 1, 1), 'name'), 'routInput', 'rout: a line star
 g:AssertNotEqual(synIDattr(synID(2, 1, 1), 'name'), 'routInput',
   'rout: a line starting with part of the prompt is not input')
 CloseBuf(routfile)
-if saved_prompt == v:none
+if type(saved_prompt) == v:t_none
   unlet g:Rout_prompt_str
 else
   g:Rout_prompt_str = saved_prompt
@@ -402,7 +402,7 @@ g:AssertEqual(QuitTimers(), 0, 'RStudio: the kill timer is cancelled when the pr
 g:Assert(RIsCleared(), 'RStudio: the state of R is cleared after a quit without saving')
 
 g:rplugin.jobs['RStudio'] = 'no'
-if saved_rstudio_cmd == v:none
+if type(saved_rstudio_cmd) == v:t_none
   unlet g:RStudio_cmd
 else
   g:RStudio_cmd = saved_rstudio_cmd
@@ -441,7 +441,7 @@ g:AssertEqual(g:rplugin.start_msg, ["Could not find '" .. substitute(sumatra_dir
 bwipeout!
 delete(sumatra_dir .. '/child', 'd')
 delete(sumatra_dir, 'd')
-if saved_start_msg == v:none
+if type(saved_start_msg) == v:t_none
   remove(g:rplugin, 'start_msg')
 else
   g:rplugin.start_msg = saved_start_msg
