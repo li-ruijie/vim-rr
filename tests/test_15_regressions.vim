@@ -226,6 +226,52 @@ delete(concbase .. '.tex')
 delete(concbase .. '-concordance.tex')
 
 # ========================================================================
+# PDF viewers: backward search with Okular, and the D-Bus state for Evince
+# ========================================================================
+# Okular prints a backward search as a line of Vim script. The file name in
+# that line is data, so the line is parsed and never executed. The file does
+# not exist, and the warning about it shows the name that was passed on.
+execute 'source ' .. fnameescape(plugin_root .. '/R/pdf_okular.vim')
+var OkularOut = function(matchstr(execute('function /OkularJobStdout'), '<SNR>\d\+_OkularJobStdout'))
+var saved_msgs = get(g:rplugin, 'start_msg', v:none)
+g:rplugin.start_msg = []
+err = Caught(() => {
+  OkularOut(null_channel, 'call SyncTeX_backward("/nowhere/a"b\c.tex",  str2nr("3"))')
+})
+g:AssertEqual(err, '', 'Okular: no error for a quote and a backslash in the file name')
+g:AssertEqual(g:rplugin.start_msg, ["Could not find '/nowhere/a\"b\\c.Rnw'."],
+  'Okular: the file name reaches SyncTeX_backward unchanged')
+g:rr_okular_ran = 0
+g:rplugin.start_msg = []
+err = Caught(() => {
+  OkularOut(null_channel, 'call SyncTeX_backward("/nowhere/x" .. execute("g:rr_okular_ran = 1")'
+    .. ' .. "y.tex",  str2nr("3"))')
+  OkularOut(null_channel, 'call execute("g:rr_okular_ran = 2")')
+})
+g:AssertEqual([err, g:rr_okular_ran], ['', 0], 'Okular: text from a file name is not executed')
+g:AssertEqual(len(g:rplugin.start_msg), 1, 'Okular: a line that is no backward search is ignored')
+unlet g:rr_okular_ran
+if saved_msgs == v:none
+  remove(g:rplugin, 'start_msg')
+else
+  g:rplugin.start_msg = saved_msgs
+endif
+
+# The forward search and the backward search of Evince each own a proxy, so
+# resetting one of them leaves the connection of the other alone
+import '../R/evince_dbus.vim' as evdbus
+var back_px = evdbus.NewProxy()
+var fwd_px = evdbus.NewProxy()
+evdbus.Init(back_px, 'file:///tmp/a.pdf')
+back_px.status = 'RUNNING'
+evdbus.Init(fwd_px, 'file:///tmp/b.pdf')
+fwd_px.status = 'RUNNING'
+evdbus.Shutdown(fwd_px)
+g:AssertEqual([back_px.uri, back_px.status], ['file:///tmp/a.pdf', 'RUNNING'],
+  'Evince: resetting one proxy leaves the other one connected')
+g:AssertEqual([fwd_px.uri, fwd_px.status], ['', 'CLOSED'], 'Evince: Shutdown resets its own proxy')
+
+# ========================================================================
 # Rout syntax: the prompt is matched literally and the option is not rewritten
 # ========================================================================
 var saved_prompt = get(g:, 'Rout_prompt_str', v:none)
