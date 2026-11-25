@@ -242,7 +242,8 @@ static int ascii_ic_cmp(const char *a,
         a++;
         b++;
     }
-    return 0;
+    // One string may be a prefix of the other.
+    return (unsigned char)*a - (unsigned char)*b;
 }
 
 static char *grow_buffer(char **b, unsigned long *sz,
@@ -1349,6 +1350,8 @@ void parse_descr(char *descr, const char *fnm) {
                 }
                 if (prev)
                     prev->next = lib;
+                else
+                    instlibs = lib;
                 lib->next = ptr;
             }
         }
