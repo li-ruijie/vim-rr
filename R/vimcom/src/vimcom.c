@@ -986,6 +986,11 @@ static void send_libnames(void) {
     LibInfo *lib;
     unsigned long totalsz = 9;
     char *libbuf;
+
+    // The list is empty if no library could be recorded.
+    if (!libList)
+        return;
+
     lib = libList;
     do {
         totalsz += lib->strlen;
