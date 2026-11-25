@@ -325,6 +325,9 @@ if !exists('*g:ClearRInfo')
   execute 'source ' .. fnameescape(plugin_root .. '/R/start_r.vim')
 endif
 g:Assert(exists('*g:SendCmdToR_fake'), 'start_r.vim: g:SendCmdToR_fake survives the sourcing')
+g:AssertMatch(execute('verbose function SanitizeRLine'), 'indent[/\\]r\.vim',
+  'start_r.vim: SanitizeRLine() of the R indent script of Vim is left in place')
+g:AssertEqual(g:RSanitizeLine('x <- "a # b" # comment'), 'x <- s', 'RSanitizeLine: a string becomes a letter and the comment is removed')
 g:SendCmdToR = function('g:RWarningMsg')
 g:ClearRInfo()
 g:AssertEqual(string(g:SendCmdToR), "function('g:SendCmdToR_fake')", 'ClearRInfo: the send function is reset')

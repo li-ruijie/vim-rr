@@ -38,9 +38,8 @@ unlet! g:SignalToR
 
 # On re-source (e.g. FuncUndefined fires after partial prior sourcing),
 # delete existing global functions so def g: does not E1073-abort the script.
-# The R indent script of Vim defines SanitizeRLine() as well, so this also
-# runs the first time the file is sourced in a buffer that it indents.
-if exists('*g:SanitizeRLine')
+# The test uses a function that only this file defines.
+if exists('*g:ReallyStartR')
     for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
             'StartR', 'ReallyStartR', 'SignalToR',
             'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
@@ -56,7 +55,7 @@ if exists('*g:SanitizeRLine')
             'AskRDoc', 'ShowRDoc', 'GetSourceArgs', 'RSourceLines',
             'CleanOxygenLine', 'CleanCurrentLine', 'GoDown',
             'SendMotionToR', 'SendFileToR', 'SendMBlockToR',
-            'SanitizeRLine', 'CountBraces', 'SendFunctionToR',
+            'RSanitizeLine', 'CountBraces', 'SendFunctionToR',
             'SendAboveLinesToR', 'SendSelectionToR',
             'SendParagraphToR', 'SendFHChunkToR', 'KnitChild',
             'RParenDiff', 'SendLineToR', 'RSendPartOfLine',
@@ -1482,7 +1481,9 @@ enddef
 
 # Strip strings and comments from an R line so that brace/paren
 # matching is not confused by characters inside literals.
-def g:SanitizeRLine(line: string): string
+# The R indent script of Vim has a SanitizeRLine() of its own, which this
+# function must not replace, hence the different name.
+def g:RSanitizeLine(line: string): string
     # Remove content inside double-quoted strings (handle \" escapes)
     var result = substitute(line, '"[^"\\]*\%(\\.[^"\\]*\)*"', 's', 'g')
     # Remove content inside single-quoted strings (handle \' escapes)
@@ -1510,11 +1511,11 @@ def g:SendFunctionToR(e: string, m: string)
 
     var startline = line(".")
     var save_cursor = getpos(".")
-    var line = g:SanitizeRLine(getline("."))
+    var line = g:RSanitizeLine(getline("."))
     var i = line(".")
     while i > 0 && line !~ "function"
         i -= 1
-        line = g:SanitizeRLine(getline(i))
+        line = g:RSanitizeLine(getline(i))
     endwhile
     if i == 0
         g:RWarningMsg("Begin of function not found.")
@@ -1523,7 +1524,7 @@ def g:SendFunctionToR(e: string, m: string)
     var functionline = i
     while i > 0 && line !~ '\(<-\|=\)[[:space:]]*\($\|function\)'
         i -= 1
-        line = g:SanitizeRLine(getline(i))
+        line = g:RSanitizeLine(getline(i))
     endwhile
     if i == 0
         g:RWarningMsg("The function assign operator  <-  was not found.")
@@ -1531,11 +1532,11 @@ def g:SendFunctionToR(e: string, m: string)
     endif
     var firstline = i
     i = functionline
-    line = g:SanitizeRLine(getline(i))
+    line = g:RSanitizeLine(getline(i))
     var tt = line("$")
     while i < tt && line !~ "{"
         i += 1
-        line = g:SanitizeRLine(getline(i))
+        line = g:RSanitizeLine(getline(i))
     endwhile
     if i == tt
         g:RWarningMsg("The function opening brace was not found.")
@@ -1544,7 +1545,7 @@ def g:SendFunctionToR(e: string, m: string)
     var nb = g:CountBraces(line)
     while i < tt && nb > 0
         i += 1
-        line = g:SanitizeRLine(getline(i))
+        line = g:RSanitizeLine(getline(i))
         nb += g:CountBraces(line)
     endwhile
     if nb != 0
