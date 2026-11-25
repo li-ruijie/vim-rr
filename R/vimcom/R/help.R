@@ -40,7 +40,7 @@ vim.help <- function(topic, w, firstobj, package) {
     }
 
     oldRdOp <- tools::Rd2txt_options()
-    on.exit(tools::Rd2txt_options(oldRdOp))
+    on.exit(tools::Rd2txt_options(oldRdOp), add = TRUE)
     tools::Rd2txt_options(width = w)
 
     oldpager <- getOption("pager")
