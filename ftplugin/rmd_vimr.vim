@@ -13,7 +13,7 @@ endif
 
 g:R_rmdchunk = get(g:, "R_rmdchunk", 2)
 
-if g:R_rmdchunk == 1 || g:R_rmdchunk == 2
+if type(g:R_rmdchunk) == v:t_number && (g:R_rmdchunk == 1 || g:R_rmdchunk == 2)
     # Write code chunk in rnoweb files
     inoremap <buffer><silent> ` <Esc>:call g:RWriteRmdChunk()<CR>a
 elseif type(g:R_rmdchunk) == v:t_string
@@ -37,7 +37,7 @@ if !exists("g:did_vimr_rmd_functions")
                 endif
                 return
             else
-                if g:R_rmdchunk == 2
+                if type(g:R_rmdchunk) == v:t_number && g:R_rmdchunk == 2
                     exe "normal! a`r `\<Esc>i"
                     return
                 endif
