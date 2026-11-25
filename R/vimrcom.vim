@@ -56,8 +56,9 @@ def g:ROnJobStdout(job_id: any, msg: string)
             cmd = payload
         elseif received > size
             # Chunk contains tail of current message + start of next
-            cmd = payload[0 : size - 1]
-            var remainder = payload[size :]
+            # byte counts, so slice by byte
+            cmd = strpart(payload, 0, size)
+            var remainder = strpart(payload, size)
             # Process current message, then re-enter for the remainder
             g:ROnJobStdout_Execute(job_id, cmd)
             if remainder != ''
@@ -83,8 +84,9 @@ def g:ROnJobStdout(job_id: any, msg: string)
             # Extract the exact amount needed, feed remainder back
             var needed = incomplete_input.size - (incomplete_input.received - strlen(cmd))
             waiting_more_input = 0
-            cmd = incomplete_input.str .. cmd[0 : needed - 1]
-            var remainder = cmd[needed :]
+            # taken from this chunk, before cmd is replaced by the whole message
+            var remainder = strpart(cmd, needed)
+            cmd = incomplete_input.str .. strpart(cmd, 0, needed)
             g:ROnJobStdout_Execute(job_id, cmd)
             if remainder != ''
                 g:ROnJobStdout(job_id, remainder)
