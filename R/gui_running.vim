@@ -214,7 +214,7 @@ def g:MakeRMenu()
     menu R.Send.-Sep9- <nul>
     g:RCreateMenuItem('ni0', 'Send.Line', 'RSendLine', 'l', ':call g:SendLineToR("stay")')
     g:RCreateMenuItem('ni0', 'Send.Line\ (and\ down)', 'RDSendLine', 'd', ':call g:SendLineToR("down")')
-    g:RCreateMenuItem('ni0', 'Send.Line\ (and\ insert\ output)', 'RDSendLineAndInsertOutput', 'o', ':call g:SendLineToRAndInsertOutput()')
+    g:RCreateMenuItem('ni0', 'Send.Line\ (and\ insert\ output)', '(RDSendLineAndInsertOutput)', 'o', ':call g:SendLineToRAndInsertOutput()')
     g:RCreateMenuItem('i', 'Send.Line\ (and\ new\ one)', 'RSendLAndOpenNewOne', 'q', ':call g:SendLineToR("newline")')
     g:RCreateMenuItem('n', 'Send.Left\ part\ of\ line\ (cur)', 'RNLeftPart', 'r<Left>', ':call g:RSendPartOfLine("left", 0)')
     g:RCreateMenuItem('n', 'Send.Right\ part\ of\ line\ (cur)', 'RNRightPart', 'r<Right>', ':call g:RSendPartOfLine("right", 0)')
