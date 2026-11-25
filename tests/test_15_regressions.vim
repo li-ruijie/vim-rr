@@ -125,14 +125,20 @@ CloseBuf(rfile)
 # ========================================================================
 # R Markdown buffer
 # ========================================================================
-# R Markdown and Quarto are supported only when R_filetypes names them
+# Quarto is supported only when R_filetypes names it. R Markdown is
+# supported unless the list leaves it out.
 unlet! g:R_filetypes
-for [ext, ft] in [['.Rmd', 'rmd'], ['.qmd', 'quarto']]
-  var plain = OpenBuf(ext, ft, ['text'])
-  g:AssertEqual(maparg('<Plug>RNextRChunk', 'n') .. maparg('`', 'i') .. maparg('<Plug>RQuartoRender', 'n'), '',
-    ft .. ': no maps unless R_filetypes names the file type')
-  CloseBuf(plain)
-endfor
+var plain = OpenBuf('.qmd', 'quarto', ['text'])
+g:AssertEqual(maparg('<Plug>RNextRChunk', 'n') .. maparg('`', 'i') .. maparg('<Plug>RQuartoRender', 'n'), '',
+  'quarto: no maps unless R_filetypes names the file type')
+CloseBuf(plain)
+plain = OpenBuf('.Rmd', 'rmd', ['text'])
+g:Assert(maparg('<Plug>RNextRChunk', 'n') != '', 'rmd: maps are defined without R_filetypes')
+CloseBuf(plain)
+g:R_filetypes = ['r', 'rnoweb']
+plain = OpenBuf('.Rmd', 'rmd', ['text'])
+g:AssertEqual(maparg('<Plug>RNextRChunk', 'n'), '', 'rmd: no maps when R_filetypes leaves the file type out')
+CloseBuf(plain)
 g:R_filetypes = ['r', 'rmd', 'rnoweb', 'rhelp', 'rrst', 'quarto']
 var named = OpenBuf('.qmd', 'quarto', ['text'])
 g:Assert(maparg('<Plug>RNextRChunk', 'n') != '' && maparg('<Plug>RQuartoRender', 'n') != '',

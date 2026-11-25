@@ -76,7 +76,7 @@ enddef
 # ========================================================================
 # Extension-based filetypes (.R first to initialise common_global.vim)
 # ========================================================================
-# R Markdown and Quarto load in full only when R_filetypes names them
+# Quarto loads in full only when R_filetypes names it
 g:R_filetypes = ['r', 'rmd', 'rnoweb', 'rhelp', 'rrst', 'quarto']
 TestStartup('.R',    'r',      'r')
 TestStartup('.Rmd',  'rmd',    'rmd')

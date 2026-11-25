@@ -1,7 +1,8 @@
 vim9script
 
-# R Markdown and Quarto are supported only when R_filetypes names them
-if !exists("g:R_filetypes") || type(g:R_filetypes) != v:t_list || (index(g:R_filetypes, 'rmd') == -1 && index(g:R_filetypes, 'quarto') == -1)
+# R Markdown is supported unless R_filetypes leaves it out. For a Quarto
+# buffer this file is sourced by quarto_vimr.vim, which has its own test.
+if &filetype != 'quarto' && exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filetypes, 'rmd') == -1
     finish
 endif
 
