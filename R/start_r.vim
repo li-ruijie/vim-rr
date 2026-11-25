@@ -436,6 +436,10 @@ def g:OnVimcomDisconnect()
         return
     endif
     g:rplugin.vimcom_connected = 0
+    # A quit that was asked for drops the connection as well
+    if rstudio_quit_pending != 0
+        return
+    endif
     g:RWarningMsg("Connection to R lost")
 enddef
 
@@ -559,6 +563,11 @@ def g:ClearRInfo()
     endif
     g:rplugin.vimcom_connected = 0
     g:rplugin.R_pid = 0
+    # Otherwise the warning that vimcom was not loaded fires after the quit
+    if vimcom_timeout_timer >= 0
+        timer_stop(vimcom_timeout_timer)
+        vimcom_timeout_timer = -1
+    endif
     if has_key(g:rplugin, 'R_bufnr')
         remove(g:rplugin, 'R_bufnr')
     endif
