@@ -125,7 +125,7 @@ export def StartMonitor(match_suffix: string = '')
     var cmd  = ['dbus-monitor', '--session', rule]
     monitor_job = job_start(cmd, {
         out_cb: (ch: channel, line: string) => OnMonitorLine(line),
-        err_cb: (ch: channel, _: string) => {},
+        err_cb: (ch: channel, _: string) => 0,
     })
 enddef
 
