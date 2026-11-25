@@ -7,16 +7,14 @@ g:did_vimr_pdf_qpdfview = 1
 
 def g:ROpenPDF2(fullpath: string)
     system("env VIMR_PORT=" .. g:rplugin.myport
-        .. " qpdfview --unique '" .. fullpath .. "' 2>/dev/null >/dev/null &")
+        .. " qpdfview --unique " .. shellescape(fullpath) .. " 2>/dev/null >/dev/null &")
     if g:R_synctex && fullpath =~ " "
         g:RWarningMsg("Qpdfview does not support file names with spaces: SyncTeX backward will not work.")
     endif
 enddef
 
 def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: number)
-    var texname = substitute(tpath, ' ', '\\ ', 'g')
-    var pdfname = substitute(ppath, ' ', '\\ ', 'g')
     system("VIMR_PORT=" .. g:rplugin.myport .. " qpdfview --unique "
-        .. pdfname .. "#src:" .. texname .. ":" .. texln .. ":1 2> /dev/null >/dev/null &")
+        .. shellescape(ppath .. "#src:" .. tpath .. ":" .. texln .. ":1") .. " 2> /dev/null >/dev/null &")
     g:RRaiseWindow(substitute(substitute(ppath, ".*/", "", ""), ".pdf$", "", ""))
 enddef
