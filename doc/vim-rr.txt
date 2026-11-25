@@ -783,7 +783,7 @@ of Vim with 'termguicolors' (see |true-color|):
      let g:rout_color_true     = 'guifg=#5dd685'
      let g:rout_color_false    = 'guifg=#ff5d5e'
      let g:rout_color_inf      = 'guifg=#10aed7'
-     let g:rout_color_constant = 'guifg=#5fafcf'
+     let g:rout_color_const    = 'guifg=#5fafcf'
      let g:rout_color_string   = 'guifg=#5fd7af'
      let g:rout_color_error    = 'guifg=#ffffff guibg=#c40000'
      let g:rout_color_warn     = 'guifg=#d00000'
@@ -1401,7 +1401,7 @@ behavior while opening R's documentations, you will want to set different
 values to some variables in your |vimrc|, as in the example:
 >vim
    let g:R_editor_w = 80
-   let g:R_editor_h = 60
+   let g:R_help_w = 60
 <
 Unless the value of `R_vimpager` is "tabnew", the buffer name will always be
 "R_doc" to force the reuse of the window when users jump from one help page to
@@ -1536,6 +1536,7 @@ from packages, but you can set a different highlight command for them in your
 >vim
    hi rGlobEnvFun ctermfg=117 guifg=#87d7ff cterm=italic gui=italic
 <
+                                                                    *R_hi_fun*
 If you prefer to completely disable the syntax highlighting of R functions by
 vim-rr, put in your |vimrc|:
 >vim
@@ -2155,11 +2156,13 @@ debugged will also be disabled.
 >vim
    let g:R_debug = 0
 <
+                                                                  *R_dbg_jump*
 vim-rr puts the cursor in the R Console when the debugging starts. If you do
 not want this, put in your |vimrc|:
 >vim
    let g:R_dbg_jump = 0
 <
+                                                              *R_debug_center*
 The highlighted debugged line incrementally moves down the buffer with code
 execution and, with long scripts, it may stay at the bottom of the window as you
 debug. You can hold the highlighted line in the middle of the window with
@@ -2522,6 +2525,7 @@ in your |vimrc|. Valid values are `"\t"`, `";"` and `","`. Example:
 >vim
    let g:R_csv_delim = ','
 <
+                                                                 *R_df_viewer*
 There is also the option of configuring vim-rr to run an R command to
 display the data. Examples:
 >vim
@@ -2799,7 +2803,7 @@ the list of the names for custom key bindings (the prefix RE means "echo"; RD,
    RNRightPart
    RILeftPart
    RIRightPart
-   RDSendLineAndInsertOutput
+   (RDSendLineAndInsertOutput)
 
    Send code to R console:
    RSendAboveLines
