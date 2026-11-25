@@ -398,6 +398,11 @@ static void vimcom_squo(const char *buf, char *buf2, int bsize) {
     int i = 0, j = 0;
     while (j < bsize) {
         if (buf[i] == '\'') {
+            // Both quotes and the final NULL byte must fit.
+            if (j + 2 >= bsize) {
+                buf2[j] = 0;
+                break;
+            }
             buf2[j] = '\'';
             j++;
             buf2[j] = '\'';
