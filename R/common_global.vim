@@ -855,18 +855,18 @@ if exists("g:R_remote_compldir")
     $VIMR_REMOTE_TMPDIR = g:R_remote_compldir .. '/tmp'
     g:rplugin.tmpdir = g:rplugin.compldir .. '/tmp'
     if !isdirectory(g:rplugin.tmpdir)
-        mkdir(g:rplugin.tmpdir, "p", 0700)
+        mkdir(g:rplugin.tmpdir, "p", 0o700)
     endif
 else
     $VIMR_REMOTE_COMPLDIR = g:rplugin.compldir
     $VIMR_REMOTE_TMPDIR = g:rplugin.tmpdir
 endif
 if !isdirectory(g:rplugin.localtmpdir)
-    mkdir(g:rplugin.localtmpdir, "p", 0700)
+    mkdir(g:rplugin.localtmpdir, "p", 0o700)
 endif
 if isdirectory(g:rplugin.localtmpdir) && !g:ValidateTmpdir(g:rplugin.localtmpdir)
     g:rplugin.localtmpdir = fnamemodify(tempname(), ':h') .. '/vim-rr-' .. localtime()
-    mkdir(g:rplugin.localtmpdir, "p", 0700)
+    mkdir(g:rplugin.localtmpdir, "p", 0o700)
     if !exists("g:R_remote_compldir")
         g:rplugin.tmpdir = g:rplugin.localtmpdir
     endif

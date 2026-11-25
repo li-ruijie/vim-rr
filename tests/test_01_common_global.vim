@@ -197,7 +197,7 @@ enddef
 
 # Test: valid directory
 var tdir_imp01 = tempname() .. '_imp01'
-mkdir(tdir_imp01, 'p', 0700)
+mkdir(tdir_imp01, 'p', 0o700)
 g:Assert(ValidateTmpdir(tdir_imp01), 'valid directory passes')
 delete(tdir_imp01, 'd')
 

@@ -494,3 +494,18 @@ delete(conc_root .. '/other/part.Rnw')
 delete(conc_root .. '/main', 'd')
 delete(conc_root .. '/other', 'd')
 delete(conc_root, 'd')
+
+# ========================================================================
+# Temporary directory: its owner alone may use it
+# ========================================================================
+# In Vim9 script 0700 is the decimal number 700. As a mode it gives a directory
+# that its owner can neither read nor enter. An octal number is written 0o700.
+var plugin_scripts = glob(plugin_root .. '/**/*.vim', false, true)
+g:AssertEqual(plugin_scripts
+  ->filter((_, f) => readfile(f)->filter((_, l) => l =~ 'mkdir(.*,\s*0\d\+)')->len() > 0)
+  ->mapnew((_, f) => fnamemodify(f, ':t')), [],
+  'tmpdir: no mkdir() with a mode that Vim9 script reads as decimal')
+if !has('win32') && !has('win32unix')
+  g:AssertEqual([getfperm(g:rplugin.localtmpdir), filewritable(g:rplugin.localtmpdir)], ['rwx------', 2],
+    'tmpdir: the directory that the plugin made is usable by its owner alone')
+endif
