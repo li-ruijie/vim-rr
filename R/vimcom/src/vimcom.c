@@ -1269,6 +1269,20 @@ static void vimcom_create_window(void) {
 }
 
 /**
+ * @brief Destroy the message-only window. It must be called on the main
+ * thread.
+ */
+static void vimcom_destroy_window(void) {
+    if (vimcom_hwnd) {
+        KillTimer(vimcom_hwnd, VIMCOM_TIMER_ID);
+        vimcom_timer = 0;
+        DestroyWindow(vimcom_hwnd);
+        vimcom_hwnd = NULL;
+        UnregisterClassA(VIMCOM_WNDCLASS, GetModuleHandle(NULL));
+    }
+}
+
+/**
  * @brief Tell the main thread that there are requests waiting to be
  * executed. It is called on the TCP thread.
  */
@@ -1705,6 +1719,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
 
     if (atoi(nrs_port) > 0) {
         struct sockaddr_in servaddr;
+        int connected = 0;
 #ifdef WIN32
         InitializeCriticalSection(&flag_mutex);
         vimcom_create_window();
@@ -1739,6 +1754,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
 #endif
                 vimcom_send_running_info(CHAR(STRING_ELT(rinfo, 0)),
                                          CHAR(STRING_ELT(nvv, 0)));
+                connected = 1;
             } else {
                 REprintf("vimcom: connection with the server failed (%s)\n",
                          nrs_port);
@@ -1747,6 +1763,23 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         } else {
             REprintf("vimcom: socket creation failed (%d)\n", atoi(nrs_port));
             failure = 1;
+        }
+        if (!connected) {
+            // Release what was set up for the connection that failed.
+            // vimcom_Stop() only does it after a successful start.
+            if (sfd != -1) {
+#ifdef WIN32
+                closesocket(sfd);
+#else
+                close(sfd);
+#endif
+                sfd = -1;
+            }
+#ifdef WIN32
+            WSACleanup();
+            vimcom_destroy_window();
+            DeleteCriticalSection(&flag_mutex);
+#endif
         }
     } else {
         // Without a port there is no connection, and on Windows flag_mutex
@@ -1806,13 +1839,7 @@ void vimcom_Stop(void) {
         closesocket(sfd);
         sfd = -1;
         WSACleanup();
-        if (vimcom_hwnd) {
-            KillTimer(vimcom_hwnd, VIMCOM_TIMER_ID);
-            vimcom_timer = 0;
-            DestroyWindow(vimcom_hwnd);
-            vimcom_hwnd = NULL;
-            UnregisterClassA(VIMCOM_WNDCLASS, GetModuleHandle(NULL));
-        }
+        vimcom_destroy_window();
         // Free any queued commands that will never be executed
         FLAG_LOCK();
         eval_node_t *abandoned = eval_queue_drain(1);
