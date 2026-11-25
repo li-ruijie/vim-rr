@@ -704,6 +704,10 @@ def g:AutoStartR(...args: list<any>)
         timer_start(100, 'g:AutoStartR')
         return
     endif
+    # FuncUndefined does not fire for a call from a def function
+    if !exists('*g:StartR')
+        execute "source " .. fnameescape(g:rplugin.home .. "/R/start_r.vim")
+    endif
     g:StartR("R")
 enddef
 
