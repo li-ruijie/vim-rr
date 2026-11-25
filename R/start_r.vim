@@ -1243,7 +1243,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
             else
                 g:R_vimpager = "tab"
             endif
-            g:ShowRDoc(rkeyword)
+            g:ShowRDoc(rkeyword, txt)
             return
         else
             echohl WarningMsg
