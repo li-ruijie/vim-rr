@@ -2225,7 +2225,7 @@ def g:ROpenDoc(fullpath: string, browser: string)
         return
     endif
     if fullpath =~ '.odt$' || fullpath =~ '.docx$'
-        system('lowriter ' .. fullpath .. ' &')
+        system('lowriter ' .. shellescape(fullpath) .. ' &')
     elseif fullpath =~ '.pdf$'
         g:ROpenPDF(fullpath)
     elseif fullpath =~ '.html$'
