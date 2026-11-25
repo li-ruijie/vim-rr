@@ -39,7 +39,9 @@ enddef
 
 def g:ROnJobStdout(job_id: any, msg: string)
     var cmd = substitute(msg, '\n', '', 'g')
-    cmd = substitute(cmd, '\r', '', 'g')
+    # Remove only the carriage return that ends the line (Windows text mode).
+    # One inside the payload is counted by the size prefix.
+    cmd = substitute(cmd, '\r$', '', '')
     # DEBUG: writefile([cmd], "/dev/shm/vimrserver_vim_stdout", "a")
 
     if cmd[0 : 0] == "\x11"

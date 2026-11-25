@@ -264,6 +264,17 @@ static char *grow_buffer(char **b, unsigned long *sz,
     return tmp;
 }
 
+// Remove the carriage returns of a text file that R wrote on Windows.
+static void remove_cr(char *s) {
+    char *d = s;
+    while (*s != 0) {
+        if (*s != '\r')
+            *d++ = *s;
+        s++;
+    }
+    *d = 0;
+}
+
 void fix_x13(char *s) // Replace all instances of '\x13' in the string with '\''
 {
     while (*s != 0) {
@@ -862,8 +873,8 @@ char *count_sep(char *b1, int *size) // Count separators in buffer
         return NULL;
     }
 
-    // Some packages do not export any objects.
-    if (*size == 1)
+    // Some packages do not export any objects. R writes "\r\n" on Windows.
+    if (*size == 1 || (*size == 2 && b1[0] == '\r'))
         return b1;
 
     char *s = b1;
@@ -1389,6 +1400,7 @@ void update_inst_libs(void) {
                     descr = read_file(fname, 1);
                     if (descr) {
                         n++;
+                        remove_cr(descr);
                         parse_descr(descr, dir->d_name);
                         free(descr);
                     }
@@ -2131,6 +2143,7 @@ static void fill_inst_libs(void) {
     char *b = read_file(fname, 0);
     if (!b)
         return;
+    remove_cr(b);
     char *s = b;
     char *n, *t, *d;
     while (*s) {
@@ -2358,7 +2371,7 @@ static void init(void) {
         libpaths->path = b;
         LibPath *p = libpaths;
         while (*b) {
-            if (*b == '\n') {
+            if (*b == '\n' || *b == '\r') {
                 while (*b == '\n' || *b == '\r') {
                     *b = 0;
                     b++;
