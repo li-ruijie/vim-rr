@@ -98,12 +98,13 @@ def g:CreateNewFloat(...args: list<any>)
     var frow = mr
     var flwd = 60
     var fanchor = 'NW'
-    var fcol = mc + mw + g:rplugin.compl_event['scrollbar']
+    var sbw = g:rplugin.compl_event['scrollbar'] ? 1 : 0
+    var fcol = mc + mw + sbw
 
     # Required to fix the position and size of the float window
     var dspwd = &columns
     var freebelow = (mr == (line('.') - line('w0')) ? &lines - mr - mh : &lines - mr) - 3
-    var freeright = dspwd - mw - mc - g:rplugin.compl_event['scrollbar']
+    var freeright = dspwd - mw - mc - sbw
     var freeleft = mc - 1
     var freetop = mr - 1
 
@@ -193,11 +194,8 @@ def g:CreateNewFloat(...args: list<any>)
         endif
     endfor
 
-    if has("win32")
-        map(flines, 'substitute(v:val, "^————$", repeat("-", realwidth), "")')
-    else
-        map(flines, 'substitute(v:val, "^————$", repeat("—", realwidth), "")')
-    endif
+    var sepchar = has("win32") ? "-" : "—"
+    map(flines, (_, v) => substitute(v, "^————$", repeat(sepchar, realwidth), ""))
 
     var flht = (len(flines) > maxh) ? maxh : len(flines)
 
@@ -210,7 +208,7 @@ def g:CreateNewFloat(...args: list<any>)
     else
         fpos = 'topleft'
     endif
-    if g:rplugin.compl_float_win
+    if g:rplugin.compl_float_win != 0
         popup_close(g:rplugin.compl_float_win)
     endif
     g:rplugin.compl_float_win = popup_create(flines, {
@@ -251,11 +249,11 @@ def g:AskForComplInfo()
                     # Can't open a float window from here directly:
                     timer_start(1, 'g:CreateNewFloat', {})
                 endif
-            elseif g:rplugin.compl_float_win
+            elseif g:rplugin.compl_float_win != 0
                 g:CloseFloatWin()
             endif
         endif
-    elseif g:rplugin.compl_float_win
+    elseif g:rplugin.compl_float_win != 0
         g:CloseFloatWin()
     endif
 enddef
