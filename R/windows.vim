@@ -131,7 +131,7 @@ def g:StartR_Windows()
     g:SendCmdToR = function('g:SendCmdToR_NotYet')
 
     g:SetRHome()
-    silent execute '!start ' .. g:rplugin.R .. ' ' .. join(g:R_args)
+    silent execute '!start ' .. g:rplugin.R .. ' ' .. join(g:rplugin.r_args)
     g:UnsetRHome()
 
     g:WaitVimcomStart()
