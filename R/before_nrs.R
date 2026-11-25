@@ -36,7 +36,7 @@ cat(libp, sep = "\n", colapse = "\n", file = "libPaths")
 # Check R version
 R_version <- paste0(version[c("major", "minor")], collapse = ".")
 
-if (R_version < "4.0.0")
+if (getRversion() < "4.0.0")
     out("RWarn: vim-rr requires R >= 4.0.0")
 
 R_version <- sub("[0-9]$", "", R_version)
@@ -53,8 +53,8 @@ check_vimcom_installation <- function() {
         }
     } else {
         if (length(np) == 0) {
-            if (dir.exists(paste0(libp[1], "/00LOCK-vimcom"))) {
-                out(paste0('RWarn: Failed to install vimcom. Perhaps you should delete the directory "', libp[1], '/00LOCK-vimcom"'))
+            if (dir.exists(paste0(.libPaths()[1], "/00LOCK-vimcom"))) {
+                out(paste0('RWarn: Failed to install vimcom. Perhaps you should delete the directory "', .libPaths()[1], '/00LOCK-vimcom"'))
             } else {
                 out("RWarn: Failed to install vimcom.")
             }
