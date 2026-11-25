@@ -203,15 +203,24 @@ def g:GetBibAttachment()
                     if e.citekey == wrd
                         if e.file != ''
                             var fpath = e.file
-                            var fls = split(fpath, ':')
-                            if filereadable(fls[0])
-                                fpath = fls[0]
-                            elseif len(fls) > 1 && filereadable(fls[1])
-                                fpath = fls[1]
+                            # "description:path:type"; exporters write the colon
+                            # of a drive letter as "\:" and double the backslashes
+                            var parts = split(fpath, '\\\@<!:', 1)
+                            var cands = [fpath]
+                            for i in range(len(parts))
+                                var p = substitute(parts[i], '\\\([\\:;]\)', '\1', 'g')
+                                add(cands, p)
+                                if i > 0 && parts[i - 1] =~ '^\a$'
+                                    add(cands, parts[i - 1] .. ':' .. p)
+                                endif
+                            endfor
+                            filter(cands, (_, v) => filereadable(v))
+                            if len(cands) > 0
+                                fpath = cands[0]
                             endif
                             if filereadable(fpath)
                                 if has('win32')
-                                    system('start "" ' .. shellescape(fpath, 1))
+                                    system('start "" ' .. shellescape(fpath))
                                 else
                                     system('xdg-open ' .. shellescape(fpath))
                                 endif
