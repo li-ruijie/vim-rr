@@ -246,18 +246,24 @@ static int ascii_ic_cmp(const char *a,
     return (unsigned char)*a - (unsigned char)*b;
 }
 
+// The server cannot go on without memory. An allocation that fails ends it
+// with a message, and Vim reports that the job has exited.
+static void *xalloc(void *p) {
+    if (!p) {
+        fputs("vimrserver: out of memory\n", stderr);
+        fflush(stderr);
+        exit(1);
+    }
+    return p;
+}
+
 static char *grow_buffer(char **b, unsigned long *sz,
                          unsigned long inc) // Function to grow a buffer
 {
     Log("grow_buffer(%lu, %lu) [%lu, %lu]", *sz, inc, compl_buffer_size,
         fb_size);
     unsigned long new_sz = *sz + inc;
-    char *tmp = calloc(new_sz, sizeof(char));
-    if (!tmp) {
-        fprintf(stderr, "grow_buffer: calloc failed (%lu bytes)\n", new_sz);
-        fflush(stderr);
-        return *b + strlen(*b);
-    }
+    char *tmp = xalloc(calloc(new_sz, sizeof(char)));
     strcpy(tmp, *b);
     free(*b);
     *b = tmp;
@@ -527,12 +533,7 @@ static void get_whole_msg(char *b) // Get the whole message from the socket
     } else {
         if (msg_size + 1 > fb_size)
             fb_size = msg_size + 1024;
-        finalbuffer = calloc(fb_size, sizeof(char));
-        if (!finalbuffer) {
-            fprintf(stderr, "get_whole_msg: calloc failed\n");
-            fflush(stderr);
-            return;
-        }
+        finalbuffer = xalloc(calloc(fb_size, sizeof(char)));
     }
 
     // Bulk read exactly msg_size bytes

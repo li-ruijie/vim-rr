@@ -277,7 +277,8 @@ static char *vimcom_strcat(char *dest, const char *src) {
  * @brief Replace buffers used to store omni-completion information with
  * bigger ones.
  *
- * @return Pointer to the NULL terminating byte of glbnvbuf2.
+ * @return Pointer to the NULL terminating byte of glbnvbuf2, or NULL if there
+ * is no memory, in which case the buffers are left as they were.
  */
 static char *vimcom_grow_buffers(void) {
     unsigned long new_size = glbnvbufsize + 32768;
@@ -291,7 +292,7 @@ static char *vimcom_grow_buffers(void) {
         free(new2);
         free(new3);
         REprintf("vimcom: grow_buffers failed\n");
-        return (glbnvbuf2 + strlen(glbnvbuf2));
+        return NULL;
     }
 
     strcpy(new1, glbnvbuf1);
@@ -583,14 +584,18 @@ static LibInfo *vimcom_get_lib(const char *nm) {
  * Example: for `x` in `alist$aS4obj@x`, `curenv` will be `alist$aS4obj@`.
  *
  * @param p A pointer to the current NULL byte terminating the glbnvbuf2
- * buffer.
+ * buffer, or NULL if the list was abandoned for lack of memory.
  *
  * @param depth Current number of levels in lists and S4 objects.
  *
- * @return The pointer p updated after the insertion of the new line.
+ * @return The pointer p updated after the insertion of the new line, or NULL
+ * if the list was abandoned.
  */
 static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
                                char *p, int depth) {
+    if (!p)
+        return NULL;
+
     if (depth > maxdepth)
         return p;
 
@@ -606,8 +611,11 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
     char bbuf[512];
 
     // Grow if less than 2048 bytes remain in the buffer
-    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize)
+    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize) {
         p = vimcom_grow_buffers();
+        if (!p)
+            return NULL;
+    }
 
     p = vimcom_strcat(p, curenv);
     snprintf(ebuf, 63, "%s", xname);
@@ -795,15 +803,22 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
  * @param xname The name of the object.
  * @param type The character that represents the type of the object.
  * @param p A pointer to the current NULL byte terminating the glbnvbuf2
- * buffer.
- * @return The pointer p updated after the insertion of the new line.
+ * buffer, or NULL if the list was abandoned for lack of memory.
+ * @return The pointer p updated after the insertion of the new line, or NULL
+ * if the list was abandoned.
  */
 static char *vimcom_glbnv_noval(const char *xname, char type, char *p) {
     char ebuf[64];
     char buf[32];
 
-    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize)
+    if (!p)
+        return NULL;
+
+    if ((size_t)(p - glbnvbuf2) + 2048 > glbnvbufsize) {
         p = vimcom_grow_buffers();
+        if (!p)
+            return NULL;
+    }
 
     snprintf(ebuf, 63, "%s", xname);
     escape_str(ebuf);
@@ -869,6 +884,10 @@ static void vimcom_globalenv_list(void) {
         UNPROTECT(1);
     }
     UNPROTECT(1);
+
+    // An incomplete list is not sent. Vim-R keeps the last complete one.
+    if (!p)
+        return;
 
     size_t len1 = strlen(glbnvbuf1);
     size_t len2 = strlen(glbnvbuf2);
