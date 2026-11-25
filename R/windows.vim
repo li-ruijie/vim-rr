@@ -117,6 +117,12 @@ enddef
 
 def g:StartR_Windows()
     if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
+        # Until vimcom has connected, the server cannot tell that R is
+        # running, and it would answer with an order to start R again
+        if g:RIsStarting()
+            g:RWarningMsg('R is starting')
+            return
+        endif
         if g:IsJobRunning("Server")
             g:JobStdin(g:rplugin.jobs['Server'], "81Check if R is running\n")
         endif

@@ -573,3 +573,42 @@ if type(saved_quit_msgs) == v:t_none
 else
   g:rplugin.start_msg = saved_quit_msgs
 endif
+
+# ========================================================================
+# StartR_Windows: a second start request while R is still starting
+# ========================================================================
+# Until vimcom has connected, the server cannot tell that R is running, and
+# it answers a second request with an order to start R. While the time that
+# R is given to start has not run out, the request is therefore answered in
+# Vim, and no second R is started.
+if has('win32')
+  var saved_starting_msgs = get(g:rplugin, 'start_msg', v:none)
+  var saved_r_args = get(g:rplugin, 'r_args', v:none)
+  g:rplugin.r_args = []
+  g:rplugin.start_msg = []
+  g:SendCmdToR = function('g:SendCmdToR_NotYet')
+  g:WaitVimcomStart()
+  g:StartR_Windows()
+  g:AssertEqual(g:rplugin.start_msg, ['R is starting'],
+    'StartR_Windows: a second request while R is starting is answered with a warning')
+  g:AssertEqual(string(g:SendCmdToR), "function('g:SendCmdToR_NotYet')",
+    'StartR_Windows: the state of the first start is kept')
+  g:ClearRInfo()
+
+  # After that time the question goes to the server, which is not running here
+  g:rplugin.start_msg = []
+  g:SendCmdToR = function('g:SendCmdToR_NotYet')
+  g:StartR_Windows()
+  g:AssertEqual(g:rplugin.start_msg, [], 'StartR_Windows: no warning from Vim once R is no longer starting')
+  g:ClearRInfo()
+  if type(saved_starting_msgs) == v:t_none
+    remove(g:rplugin, 'start_msg')
+  else
+    g:rplugin.start_msg = saved_starting_msgs
+  endif
+  if type(saved_r_args) == v:t_none
+    remove(g:rplugin, 'r_args')
+  else
+    g:rplugin.r_args = saved_r_args
+  endif
+endif

@@ -42,7 +42,7 @@ unlet! g:SignalToR
 if exists('*g:ReallyStartR')
     for fn in ['IsSendCmdToRFake', 'SendCmdToR_NotYet', 'RSetMyPort',
             'StartR', 'ReallyStartR', 'SignalToR',
-            'VimcomStartTimeout', 'WaitVimcomStart', 'SetVimcomInfo',
+            'VimcomStartTimeout', 'RIsStarting', 'WaitVimcomStart', 'SetVimcomInfo',
             'SetSendCmdToR', 'OnVimcomDisconnect', 'RQuit',
             'RStudioQuitTimeout', 'OnRStudioQuitComplete',
             'RRestart', 'QuitROnClose',
@@ -314,6 +314,11 @@ def g:VimcomStartTimeout(...args: list<any>)
         var msg = "The package vimcom wasn't loaded yet. Please, quit R and try again."
         g:RWarningMsg(msg)
     endif
+enddef
+
+# Is R within the time that it is given to start and to load vimcom?
+def g:RIsStarting(): bool
+    return vimcom_timeout_timer >= 0
 enddef
 
 def g:WaitVimcomStart()
