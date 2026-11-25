@@ -1149,16 +1149,6 @@ static int run_R_code(const char *s, int senderror) {
     snprintf(b, 1023, "VIMR_COMPLDIR=%s", compldir);
     putenv(b);
 
-    DWORD exit_code;
-    WaitForSingleObject(pi.hProcess, INFINITE);
-    GetExitCodeProcess(pi.hProcess, &exit_code);
-
-    // Close handles to the child process and its primary thread.
-    // Some applications might keep these handles to monitor the status
-    // of the child process, for example.
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-
     // Close handle to the stderr pipes no longer needed by the child process.
     // If they are not explicitly closed, there is no way to recognize that the
     // child process has ended.
@@ -1182,6 +1172,18 @@ static int run_R_code(const char *s, int senderror) {
     }
     if (f)
         fclose(f);
+
+    // Wait only after the pipe was read to its end. A child process that
+    // fills the pipe buffer blocks until the parent process reads from it.
+    DWORD exit_code;
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+
+    // Close handles to the child process and its primary thread.
+    // Some applications might keep these handles to monitor the status
+    // of the child process, for example.
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 
     if (exit_code != 0) {
         if (senderror) {
