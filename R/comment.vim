@@ -39,9 +39,9 @@ var curtabstop = ''
 def g:RSimpleCommentLine(mode: string, what: string)
     var [fline, lline] = g:RGetFL(mode)
     var cstr = g:R_rcomment_string
-    if (&filetype == "rnoweb" || &filetype == "rhelp") && g:IsLineInRCode(0, fline) == 0
+    if (&filetype == "rnoweb" || &filetype == "rhelp") && !g:IsLineInRCode(0, fline)
         cstr = "%"
-    elseif (&filetype == "rmd" || &filetype == "quarto" || &filetype == "rrst") && g:IsLineInRCode(0, fline) == 0
+    elseif (&filetype == "rmd" || &filetype == "quarto" || &filetype == "rrst") && !g:IsLineInRCode(0, fline)
         return
     endif
 
@@ -95,9 +95,9 @@ def g:RComment(mode: string)
     else
         cmt = g:R_rcomment_string
     endif
-    if (&filetype == "rnoweb" || &filetype == "rhelp") && g:IsLineInRCode(0, fline) == 0
+    if (&filetype == "rnoweb" || &filetype == "rhelp") && !g:IsLineInRCode(0, fline)
         cmt = "%"
-    elseif (&filetype == "rmd" || &filetype == "quarto" || &filetype == "rrst") && g:IsLineInRCode(0, fline) == 0
+    elseif (&filetype == "rmd" || &filetype == "quarto" || &filetype == "rrst") && !g:IsLineInRCode(0, fline)
         return
     endif
 
