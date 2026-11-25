@@ -312,6 +312,17 @@ static char *vimcom_grow_buffers(void) {
 }
 
 /**
+ * @brief Is there a connection through which send_to_vim() can send?
+ */
+static int vimcom_can_send(void) {
+#ifdef WIN32
+    return sfd != -1 && !sfd_down;
+#else
+    return sfd != -1;
+#endif
+}
+
+/**
  * @brief Send string to vimrserver.
  *
  * The function sends a string to vimrserver through the TCP connection
@@ -320,12 +331,8 @@ static char *vimcom_grow_buffers(void) {
  * @param msg The message to be sent.
  */
 static void send_to_vim(char *msg) {
-    if (sfd == -1)
+    if (!vimcom_can_send())
         return;
-#ifdef WIN32
-    if (sfd_down)
-        return;
-#endif
 
     int sent;
     char b[192];
@@ -377,7 +384,6 @@ static void send_to_vim(char *msg) {
         close(sfd);
         sfd = -1;
 #endif
-        strcpy(nrs_port, "0");
         return;
     }
 
@@ -1089,7 +1095,7 @@ static void vimcom_checklibs(void) {
 void vimcom_task(void) {
     if (verbose > 4)
         REprintf("vimcom_task()\n");
-    if (nrs_port[0] != 0) {
+    if (vimcom_can_send()) {
         vimcom_checklibs();
         if (autoglbenv)
             vimcom_globalenv_list();
