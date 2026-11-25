@@ -13,9 +13,9 @@ vim.print <- function(object, firstobj) {
             mlen <- try(length(methods(object)), silent = TRUE)
             if (class(mlen)[1] == "integer" && mlen > 0) {
                 for (cls in objclass) {
-                    if (exists(paste0(object, ".", objclass))) {
-                        .newobj <- get(paste0(object, ".", objclass))
-                        message(paste0("Note: Printing ", object, ".", objclass))
+                    if (exists(paste0(object, ".", cls))) {
+                        .newobj <- get(paste0(object, ".", cls))
+                        message(paste0("Note: Printing ", object, ".", cls))
                         break
                     }
                 }
