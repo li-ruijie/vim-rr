@@ -682,6 +682,7 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
 
         if (xgroup == 4) {
             snprintf(newenv, 575, "%s%s@", curenv, xname);
+            escape_str(newenv);
             if (len > 0) {
                 for (int i = 0; i < len; i++) {
                     ename = CHAR(STRING_ELT(sn, i));
@@ -693,6 +694,7 @@ static char *vimcom_glbnv_line(SEXP *x, const char *xname, const char *curenv,
         } else {
             SEXP listNames;
             snprintf(newenv, 575, "%s%s$", curenv, xname);
+            escape_str(newenv);
             PROTECT(listNames = getAttrib(*x, R_NamesSymbol));
             len = length(listNames);
             if (len == 0) { /* Empty list? */

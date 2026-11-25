@@ -878,6 +878,7 @@ char *count_sep(char *b1, int *size) // Count separators in buffer
                 char b[64];
                 s++;
                 strncpy(b, s, 16);
+                b[16] = 0;
                 fprintf(stderr, "Number of separators: %d (%s)\n", n, b);
                 fflush(stderr);
                 free(b1);
@@ -2011,8 +2012,12 @@ void update_glblenv_buffer(char *g) {
         glbnv_buffer = malloc(glbnv_buffer_sz * sizeof(char));
     }
     strcpy(glbnv_buffer, g);
-    if (check_omils_buffer(glbnv_buffer, &glbnv_size) == NULL)
+    if (check_omils_buffer(glbnv_buffer, &glbnv_size) == NULL) {
+        // count_sep() has freed the buffer.
+        glbnv_buffer = NULL;
+        glbnv_buffer_sz = 0;
         return;
+    }
 
     max = glbnv_size - 5;
 
