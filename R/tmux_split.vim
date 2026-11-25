@@ -23,21 +23,23 @@ enddef
 # Replace StartR_ExternalTerm with a function that starts R in a Tmux split pane
 def g:StartR_ExternalTerm(rcmd: string)
     g:rplugin.editor_pane = $TMUX_PANE
-    var tmuxconf = ['set-environment VIMR_TMPDIR "' .. g:rplugin.tmpdir .. '"',
-                'set-environment VIMR_COMPLDIR "' .. g:rplugin.compldir .. '"',
-                'set-environment VIMR_ID ' .. $VIMR_ID,
-                'set-environment VIMR_SECRET ' .. $VIMR_SECRET,
-                'set-environment VIMR_PORT ' .. g:rplugin.myport,
-                'set-environment R_DEFAULT_PACKAGES ' .. $R_DEFAULT_PACKAGES]
+    # The values go to Tmux on its command line, each as one shell word. In a
+    # file for "tmux source-file" a space would split a value, and Tmux would
+    # expand a dollar sign between double quotes.
+    var tmuxenv = [['VIMR_TMPDIR', g:rplugin.tmpdir],
+                ['VIMR_COMPLDIR', g:rplugin.compldir],
+                ['VIMR_ID', $VIMR_ID],
+                ['VIMR_SECRET', $VIMR_SECRET],
+                ['VIMR_PORT', string(g:rplugin.myport)],
+                ['R_DEFAULT_PACKAGES', $R_DEFAULT_PACKAGES]]
     if $R_LIBS_USER != ""
-        extend(tmuxconf, ['set-environment R_LIBS_USER ' .. $R_LIBS_USER])
+        add(tmuxenv, ['R_LIBS_USER', $R_LIBS_USER])
     endif
+    var tmuxset = tmuxenv->mapnew((_, v) => 'tmux set-environment ' .. v[0] .. ' ' .. shellescape(v[1]))
     if str2nr(&t_Co) == 256
-        extend(tmuxconf, ['set default-terminal "' .. $TERM .. '"'])
+        add(tmuxset, 'tmux set default-terminal ' .. shellescape($TERM))
     endif
-    writefile(tmuxconf, g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf")
-    system("tmux source-file '" .. g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf" .. "'")
-    delete(g:rplugin.tmpdir .. "/tmux" .. $VIMR_ID .. ".conf")
+    system(tmuxset->join(' ; '))
     var tcmd = "tmux split-window "
     if g:R_rconsole_width == -1
         tcmd ..= "-h"
@@ -48,7 +50,7 @@ def g:StartR_ExternalTerm(rcmd: string)
     endif
 
     # Let Tmux automatically kill the panel when R quits.
-    tcmd ..= " '" .. rcmd .. "'"
+    tcmd ..= " " .. shellescape(rcmd)
 
     var rlog = system(tcmd)
     if v:shell_error != 0
@@ -56,7 +58,7 @@ def g:StartR_ExternalTerm(rcmd: string)
         return
     endif
     g:rplugin.rconsole_pane = g:TmuxActivePane()
-    rlog = system("tmux select-pane -t " .. g:rplugin.editor_pane)
+    rlog = system("tmux select-pane -t " .. shellescape(g:rplugin.editor_pane))
     if v:shell_error != 0
         g:RWarningMsg(rlog)
         return
@@ -64,7 +66,7 @@ def g:StartR_ExternalTerm(rcmd: string)
     g:SendCmdToR = function('g:SendCmdToR_TmuxSplit')
     g:rplugin.last_rcmd = rcmd
     if g:R_tmux_title != "automatic" && g:R_tmux_title != ""
-        system("tmux rename-window " .. g:R_tmux_title)
+        system("tmux rename-window " .. shellescape(g:R_tmux_title))
     endif
     g:WaitVimcomStart()
     # Environment variables persist across Tmux windows.
