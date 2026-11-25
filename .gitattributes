@@ -1,0 +1,2 @@
+# Vim on Unix does not source a script with CRLF line endings
+*.vim text eol=lf

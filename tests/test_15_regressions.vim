@@ -509,3 +509,11 @@ if !has('win32') && !has('win32unix')
   g:AssertEqual([getfperm(g:rplugin.localtmpdir), filewritable(g:rplugin.localtmpdir)], ['rwx------', 2],
     'tmpdir: the directory that the plugin made is usable by its owner alone')
 endif
+
+# ========================================================================
+# Line endings: Vim on Unix does not source a script with CRLF line endings
+# ========================================================================
+g:AssertEqual(glob(plugin_root .. '/**/*.vim', false, true)
+  ->filter((_, f) => readfile(f, 'b')->filter((_, l) => l =~ "\r$")->len() > 0)
+  ->mapnew((_, f) => fnamemodify(f, ':t')), [],
+  'line endings: every Vim script of the plugin ends its lines with LF')
