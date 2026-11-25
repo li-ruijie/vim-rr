@@ -1749,7 +1749,7 @@ def g:SendFHChunkToR()
                 # Regular R chunk
             else
                 idx += 1
-                while curbuf[idx] !~ endchk && idx < here
+                while idx < here && curbuf[idx] !~ endchk
                     codelines += [curbuf[idx]]
                     idx += 1
                 endwhile
