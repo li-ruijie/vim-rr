@@ -77,17 +77,20 @@ if !exists("g:Rout_more_colors")
     g:Rout_more_colors = 0
 endif
 
-g:Rout_prompt_str = escape(get(g:, 'Rout_prompt_str', '>'), '/\|')
-g:Rout_continue_str = escape(get(g:, 'Rout_continue_str', '+'), '/\|')
+g:Rout_prompt_str = get(g:, 'Rout_prompt_str', '>')
+g:Rout_continue_str = get(g:, 'Rout_continue_str', '+')
+# Literal match, built in local variables so the globals stay as written
+var prompt_pat = '^\V' .. escape(g:Rout_prompt_str, '/\')
+var continue_pat = '^\V' .. escape(g:Rout_continue_str, '/\')
 
 if g:Rout_more_colors
     syn include @routR syntax/r.vim
-    execute 'syn region routColoredR start=/^' .. g:Rout_prompt_str .. '/ end=/$/ contains=@routR keepend'
-    execute 'syn region routColoredR start=/^' .. g:Rout_continue_str .. '/ end=/$/ contains=@routR keepend'
+    execute 'syn region routColoredR start=/' .. prompt_pat .. '/ end=/$/ contains=@routR keepend'
+    execute 'syn region routColoredR start=/' .. continue_pat .. '/ end=/$/ contains=@routR keepend'
 else
     # Input
-    execute 'syn match routInput /^' .. g:Rout_prompt_str .. '.*/'
-    execute 'syn match routInput /^' .. g:Rout_continue_str .. '.*/'
+    execute 'syn match routInput /' .. prompt_pat .. '\.\*/'
+    execute 'syn match routInput /' .. continue_pat .. '\.\*/'
 endif
 
 # Index of vectors
