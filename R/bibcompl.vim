@@ -172,7 +172,7 @@ def g:InitBibComplete(_timer: number)
     g:rplugin.debug_info['BibComplete'] = "Vim9script"
     GetBibFileName()
     if !exists("b:rplugin_did_bib_autocmd")
-        autocmd BufWritePost <buffer> call <SID>GetBibFileName()
+        autocmd BufWritePost <buffer> GetBibFileName()
         if &filetype == 'rnoweb'
             b:rplugin_non_r_omnifunc = "g:RnwNonRCompletion"
             autocmd CompleteDone <buffer> call g:RnwOnCompleteDone()
