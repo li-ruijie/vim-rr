@@ -2084,6 +2084,9 @@ higher value for the variable in your |vimrc|. Example:
 >vim
    let g:R_wait = 100
 <
+On Windows, a second request to start R within that time is answered with the
+warning "R is starting". After that time R can be started again, which helps
+when the first start failed.
 
 ------------------------------------------------------------------------------
 6.30. Time to wait for R reply                                  *R_wait_reply*
