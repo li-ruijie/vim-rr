@@ -37,7 +37,7 @@ else
         var rinstallpath = ''
         for rr in ['HKLM', 'HKCU']
             writefile(['reg.exe QUERY "' .. rr .. '\SOFTWARE\R-core\R" /s'], g:rplugin.tmpdir .. '/run_cmd.bat')
-            var ripl = system(g:rplugin.tmpdir .. '/run_cmd.bat')
+            var ripl = system(shellescape(g:rplugin.tmpdir .. '/run_cmd.bat'))
             var rip = split(ripl, "\n")->filter((_, v) => v =~ '.*InstallPath.*REG_SZ')
             if len(rip) == 0
                 # Normally, 32 bit applications access only 32 bit registry and...
@@ -47,7 +47,7 @@ else
                 else
                     writefile(['reg.exe QUERY "' .. rr .. '\SOFTWARE\R-core\R" /s /reg:64'], g:rplugin.tmpdir .. '/run_cmd.bat')
                 endif
-                ripl = system(g:rplugin.tmpdir .. '/run_cmd.bat')
+                ripl = system(shellescape(g:rplugin.tmpdir .. '/run_cmd.bat'))
                 rip = split(ripl, "\n")->filter((_, v) => v =~ '.*InstallPath.*REG_SZ')
             endif
             if len(rip) > 0
@@ -97,7 +97,7 @@ def g:SetRHome()
     if g:R_set_home_env
         saved_home = $HOME
         writefile(['reg.exe QUERY "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Personal"'], g:rplugin.tmpdir .. '/run_cmd.bat')
-        var prs = system(g:rplugin.tmpdir .. '/run_cmd.bat')
+        var prs = system(shellescape(g:rplugin.tmpdir .. '/run_cmd.bat'))
         if prs =~ 'REG_SZ'
             prs = substitute(prs, '.*REG_SZ\s*', '', '')
             prs = substitute(prs, '\n', '', 'g')
