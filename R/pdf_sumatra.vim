@@ -11,7 +11,7 @@ def SumatraInPath(): bool
     if sumatra_in_path
         return true
     endif
-    if $PATH =~ "SumatraPDF"
+    if executable("SumatraPDF.exe")
         sumatra_in_path = 1
         return true
     endif
@@ -48,6 +48,6 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, unused: numb
         job_start(['SumatraPDF.exe', '-reuse-instance',
             '-forward-search', tname, string(texln),
             '-inverse-search', 'vimrserver.exe %f %l',
-            pname], {stoponexit: ''})
+            pname], {stoponexit: '', cwd: tdir})
     endif
 enddef
