@@ -75,11 +75,12 @@ if !exists("g:did_vimr_rrst_functions")
         endif
         rcmd = rcmd .. '; knit("' .. expand("%:t") .. '")'
 
-        if t == "odt"
-            rcmd = rcmd .. '; system("rst2odt ' .. expand("%:r:t") .. ".rst " .. expand("%:r:t") .. '.odt")'
-        else
-            rcmd = rcmd .. '; system("rst2html ' .. expand("%:r:t") .. ".rst " .. expand("%:r:t") .. '.html")'
-        endif
+        # The two file names are written as R strings, and R quotes them for
+        # the shell that it runs the converter with.
+        var base = escape(expand("%:r:t"), '\"')
+        var ext = t == "odt" ? "odt" : "html"
+        rcmd = rcmd .. '; system2("rst2' .. ext .. '", shQuote(c("' .. base .. '.rst", "'
+            .. base .. '.' .. ext .. '")))'
 
         if g:R_openhtml && t == "html"
             rcmd = rcmd .. '; browseURL("' .. expand("%:r:t") .. '.html")'
