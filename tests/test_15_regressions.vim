@@ -542,3 +542,34 @@ g:AssertEqual(execute('function')->split("\n")
   })
   ->filter((_, e) => e != ''), [],
   'compilation: no function of the plugin fails to compile')
+
+# ========================================================================
+# RQuit: the connection that a requested quit drops is not reported as lost
+# ========================================================================
+# R may exit, and the server may report the lost connection, while RQuit()
+# still waits for the quit command to arrive. The stand-in for the send
+# function reports the lost connection at once.
+def g:TestQuitAndDisconnect(...args: list<any>): number
+  g:OnVimcomDisconnect()
+  return 1
+enddef
+var saved_quit_msgs = get(g:rplugin, 'start_msg', v:none)
+g:rplugin.start_msg = []
+g:rplugin.vimcom_connected = 1
+g:rplugin.R_pid = 4242
+g:SendCmdToR = function('g:TestQuitAndDisconnect')
+g:RQuit('nosave')
+g:AssertEqual(g:rplugin.start_msg, [], 'RQuit: no warning for the connection that the quit itself drops')
+g:Assert(RIsCleared(), 'RQuit: the state of R is cleared')
+
+g:rplugin.vimcom_connected = 1
+g:SendCmdToR = function('g:TestSendCmdToR')
+g:OnVimcomDisconnect()
+g:AssertEqual(g:rplugin.start_msg, ['Connection to R lost'],
+  'OnVimcomDisconnect: a connection that is lost without a quit is still reported')
+g:ClearRInfo()
+if type(saved_quit_msgs) == v:t_none
+  remove(g:rplugin, 'start_msg')
+else
+  g:rplugin.start_msg = saved_quit_msgs
+endif

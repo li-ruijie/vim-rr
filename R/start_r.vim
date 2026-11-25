@@ -444,7 +444,7 @@ def g:OnVimcomDisconnect()
     endif
     g:rplugin.vimcom_connected = 0
     # A quit that was asked for drops the connection as well
-    if rstudio_quit_pending != 0
+    if rstudio_quit_pending != 0 || quit_requested
         return
     endif
     g:RWarningMsg("Connection to R lost")
@@ -475,6 +475,7 @@ def g:RQuit(how: string)
             exe 'bunload! Object_Browser'
         endif
 
+        quit_requested = true
         g:SendCmdToR(qcmd)
 
         if has_key(g:rplugin, "tmux_split") || how == 'save'
@@ -568,6 +569,7 @@ def g:ClearRInfo()
     g:rplugin.vimcom_connected = 0
     g:rplugin.R_pid = 0
     rstudio_quit_pending = 0
+    quit_requested = false
     if rstudio_quit_timer >= 0
         timer_stop(rstudio_quit_timer)
         rstudio_quit_timer = -1
@@ -2351,6 +2353,9 @@ endif
 
 var vimcom_timeout_timer: number = -1
 var rstudio_quit_pending = 0
+# RQuit() has sent the quit command and ClearRInfo() has not run yet. R may
+# exit within that time, and the lost connection is then no news.
+var quit_requested = false
 var rstudio_quit_timer: number = -1
 var restart_pending = 0
 var autosttobjbr: number
