@@ -495,9 +495,13 @@ def g:RQuit(how: string)
         # Wait for RStudio to exit asynchronously via exit_cb.
         # ROnJobExit fires OnRStudioQuitComplete, which calls ClearRInfo.
         # A 2-second safety-net timeout force-kills if exit_cb never fires.
+        # A quit that saves the workspace gets no timeout, since killing
+        # RStudio while it writes the file would lose the data.
         if exists("g:RStudio_cmd") && g:IsJobRunning("RStudio")
             rstudio_quit_pending = 1
-            rstudio_quit_timer = timer_start(2000, "g:RStudioQuitTimeout")
+            if how != 'save'
+                rstudio_quit_timer = timer_start(2000, "g:RStudioQuitTimeout")
+            endif
             return
         endif
     endif
@@ -510,22 +514,15 @@ def g:RStudioQuitTimeout(...args: list<any>)
     if !rstudio_quit_pending
         return
     endif
-    rstudio_quit_pending = 0
     if g:IsJobRunning("RStudio")
         g:SignalToRStudio()
     endif
     g:ClearRInfo()
 enddef
 
+# Called when the RStudio job exits, after a quit from Vim and also when the
+# program was closed from its own window.
 def g:OnRStudioQuitComplete()
-    if !rstudio_quit_pending
-        return
-    endif
-    rstudio_quit_pending = 0
-    if rstudio_quit_timer >= 0
-        timer_stop(rstudio_quit_timer)
-        rstudio_quit_timer = -1
-    endif
     g:ClearRInfo()
 enddef
 
@@ -568,6 +565,11 @@ def g:ClearRInfo()
     endif
     g:rplugin.vimcom_connected = 0
     g:rplugin.R_pid = 0
+    rstudio_quit_pending = 0
+    if rstudio_quit_timer >= 0
+        timer_stop(rstudio_quit_timer)
+        rstudio_quit_timer = -1
+    endif
     # Otherwise the warning that vimcom was not loaded fires after the quit
     if vimcom_timeout_timer >= 0
         timer_stop(vimcom_timeout_timer)

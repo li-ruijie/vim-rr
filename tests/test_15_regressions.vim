@@ -258,3 +258,79 @@ g:Assert(exists('*g:SendCmdToR_fake'), 'start_r.vim: g:SendCmdToR_fake survives 
 g:SendCmdToR = function('g:RWarningMsg')
 g:ClearRInfo()
 g:AssertEqual(string(g:SendCmdToR), "function('g:SendCmdToR_fake')", 'ClearRInfo: the send function is reset')
+
+# ========================================================================
+# RStudio: a short hidden job stands in for the program
+# ========================================================================
+if !exists('*g:SignalToRStudio')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/rstudio.vim')
+endif
+
+var sent_to_r: list<string> = []
+def g:TestSendCmdToR(...args: list<any>): number
+  add(sent_to_r, args[0])
+  return 1
+enddef
+
+# Start the stand-in, which exits by itself after about a second
+def StartStandIn(): job
+  var cmd = has('win32') ? ['cmd', '/c', 'ping -n 2 127.0.0.1 >nul'] : ['sleep', '1']
+  var started = job_start(cmd, {exit_cb: 'g:ROnJobExit'})
+  g:rplugin.jobs['RStudio'] = started
+  g:rplugin.vimcom_connected = 1
+  g:rplugin.R_pid = 4242
+  g:SendCmdToR = function('g:TestSendCmdToR')
+  sent_to_r = []
+  return started
+enddef
+
+def WaitForExit(running: job)
+  var t0 = reltime()
+  while job_status(running) == 'run' && reltimefloat(reltime(t0)) < 10
+    sleep 50m
+  endwhile
+  sleep 100m
+enddef
+
+def QuitTimers(): number
+  return timer_info()->filter((_, t) => string(t.callback) =~ 'RStudioQuitTimeout')->len()
+enddef
+
+def RIsCleared(): bool
+  return string(g:SendCmdToR) == "function('g:SendCmdToR_fake')"
+    && g:rplugin.vimcom_connected == 0 && g:rplugin.R_pid == 0
+enddef
+
+var saved_rstudio_cmd = get(g:, 'RStudio_cmd', v:none)
+g:RStudio_cmd = 'rstudio'
+
+# RStudio closed from its own window, without a quit request from Vim
+var standin = StartStandIn()
+WaitForExit(standin)
+g:AssertEqual(job_status(standin), 'dead', 'RStudio: the stand-in exited')
+g:Assert(RIsCleared(), 'RStudio: closing the program by hand clears the state of R')
+
+# A quit that saves the workspace must not be killed after two seconds
+standin = StartStandIn()
+g:RQuit('save')
+g:AssertEqual(sent_to_r, ['quit(save = "yes")'], 'RStudio: the save request is sent')
+g:AssertEqual(QuitTimers(), 0, 'RStudio: no kill timer while the workspace is saved')
+g:AssertEqual(job_status(standin), 'run', 'RStudio: the program keeps running while it saves')
+WaitForExit(standin)
+g:Assert(RIsCleared(), 'RStudio: the state of R is cleared when the saving program exits')
+
+# A quit without saving keeps the timer, and a normal exit cancels it
+standin = StartStandIn()
+g:RQuit('nosave')
+g:AssertEqual(sent_to_r, ['quit(save = "no")'], 'RStudio: the quit request is sent')
+g:AssertEqual(QuitTimers(), 1, 'RStudio: one kill timer after a quit without saving')
+WaitForExit(standin)
+g:AssertEqual(QuitTimers(), 0, 'RStudio: the kill timer is cancelled when the program exits')
+g:Assert(RIsCleared(), 'RStudio: the state of R is cleared after a quit without saving')
+
+g:rplugin.jobs['RStudio'] = 'no'
+if saved_rstudio_cmd == v:none
+  unlet g:RStudio_cmd
+else
+  g:RStudio_cmd = saved_rstudio_cmd
+endif
