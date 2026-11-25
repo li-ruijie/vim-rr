@@ -98,7 +98,7 @@ def g:SetRHome()
         saved_home = $HOME
         writefile(['reg.exe QUERY "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v "Personal"'], g:rplugin.tmpdir .. '/run_cmd.bat')
         var prs = system(g:rplugin.tmpdir .. '/run_cmd.bat')
-        if len(prs) > 0
+        if prs =~ 'REG_SZ'
             prs = substitute(prs, '.*REG_SZ\s*', '', '')
             prs = substitute(prs, '\n', '', 'g')
             prs = substitute(prs, '\r', '', 'g')
