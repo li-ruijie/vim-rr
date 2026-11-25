@@ -480,7 +480,7 @@ SEXP rd2md(SEXP txt) {
 
     // Delete trailing spaces
     p1--;
-    while (p1 && (*p1 == ' ' || *p1 == '\x14')) {
+    while (p1 >= b && (*p1 == ' ' || *p1 == '\x14')) {
         *p1 = 0;
         p1--;
     }
