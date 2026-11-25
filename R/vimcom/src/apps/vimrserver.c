@@ -2457,7 +2457,8 @@ void completion_info(const char *wrd, const char *pkg) {
     memset(compl_buffer, 0, compl_buffer_size);
     char *p = compl_buffer;
 
-    while (*s != 0) {
+    // The buffer is NULL before the first list of objects is received.
+    while (s && *s != 0) {
         if (strcmp(s, wrd) == 0) {
             i = 0;
             while (i < 7) {
