@@ -173,10 +173,13 @@ const NAME_CHARS_PATTERN = '[A-Za-z@!$&*+\-./:;<>?\[\\\]^_`|~]'
 const NAME_PATTERN = NAME_CHARS_PATTERN .. '[A-Za-z0-9@!$&*+\-./:;<>?\[\\\]^_`|~]*'
 
 def LowLevelParse(text: string, macros: dict<string>): list<any>
+  # A list of characters: indexing a list is O(1), while every access to a
+  # large string copies it (and a character index also scans it).
+  var chars = split(text, '\zs')
   var s: dict<any> = {
-    'text': text,
+    'chars': chars,
     'pos': 0,
-    'end': strchars(text),
+    'end': len(chars),
     'macros': macros,
   }
   var results: list<any> = []
@@ -196,22 +199,17 @@ def LowLevelParse(text: string, macros: dict<string>): list<any>
 enddef
 
 def SkipToAt(s: dict<any>): bool
-  var byte_pos = byteidx(s.text, s.pos)
-  if byte_pos < 0
-    s.pos = s.end
-    return false
-  endif
-  var idx = stridx(s.text, '@', byte_pos)
+  var idx = index(s.chars, '@', s.pos)
   if idx < 0
     s.pos = s.end
     return false
   endif
-  s.pos = charidx(s.text, idx) + 1  # skip past '@'
+  s.pos = idx + 1  # skip past '@'
   return true
 enddef
 
 def EatWhitespace(s: dict<any>)
-  while s.pos < s.end && s.text[s.pos] =~ '[ \t\n\r]'
+  while s.pos < s.end && s.chars[s.pos] =~ '[ \t\n\r]'
     s.pos += 1
   endwhile
 enddef
@@ -221,17 +219,26 @@ def MatchPattern(s: dict<any>, pattern: string): string
   if s.pos >= s.end
     return ''
   endif
-  var remainder = s.text[s.pos :]
-  var m = matchstr(remainder, '^\(' .. pattern .. '\)')
-  if m != ''
-    s.pos += strchars(m)
-  endif
+  # Match against a window that grows only when the token fills it
+  var width = 128
+  var m = ''
+  var nchars = 0
+  while true
+    var last = min([s.pos + width, s.end]) - 1
+    m = matchstr(join(s.chars[s.pos : last], ''), '^\(' .. pattern .. '\)')
+    nchars = len(split(m, '\zs'))
+    if nchars < last - s.pos + 1 || last == s.end - 1
+      break
+    endif
+    width *= 4
+  endwhile
+  s.pos += nchars
   return m
 enddef
 
 def MatchLiteral(s: dict<any>, ch: string): bool
   EatWhitespace(s)
-  if s.pos < s.end && s.text[s.pos] == ch
+  if s.pos < s.end && s.chars[s.pos] == ch
     s.pos += 1
     return true
   endif
@@ -254,7 +261,7 @@ enddef
 def ParseString(s: dict<any>, string_end: string, level: number): string
   var result = ''
   while s.pos < s.end
-    var ch = s.text[s.pos]
+    var ch = s.chars[s.pos]
     if string_end == '"' && ch == '"' && level == 0
       s.pos += 1
       return result
@@ -283,7 +290,7 @@ def ParseValuePart(s: dict<any>): string
   if s.pos >= s.end
     return ''
   endif
-  var ch = s.text[s.pos]
+  var ch = s.chars[s.pos]
   if ch == '"'
     s.pos += 1
     return ParseString(s, '"', 0)
@@ -345,7 +352,7 @@ def ParseCommand(s: dict<any>): any
   endif
 
   # Determine delimiter
-  var ch = s.text[s.pos]
+  var ch = s.chars[s.pos]
   var close_ch = ''
   if ch == '{'
     close_ch = '}'
@@ -420,7 +427,7 @@ enddef
 def SkipBracedContent(s: dict<any>)
   var depth = 1
   while s.pos < s.end && depth > 0
-    var ch = s.text[s.pos]
+    var ch = s.chars[s.pos]
     if ch == '{'
       depth += 1
     elseif ch == '}'
