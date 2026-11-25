@@ -187,7 +187,9 @@ def g:SendCmdToRStudio(...args: list<any>): number
         g:RWarningMsg("Is RStudio running?")
         return 0
     endif
-    var cmd = substitute(args[0], '"', '\\"', "g")
+    # The line is embedded in an R string literal, which R parses, so a
+    # backslash needs escaping as much as a double quote does.
+    var cmd = escape(args[0], '\"')
     g:SendToVimcom("E", 'sendToConsole("' .. cmd .. '", execute=TRUE)')
     return 1
 enddef
