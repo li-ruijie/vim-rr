@@ -332,8 +332,11 @@ def BuildAllArgs(_t: number = 0)
         return
     endif
 
-    var flist = glob(g:rplugin.compldir .. '/omnils_*', false, true)
-    map(flist, (_, v) => substitute(v, "/omnils_", "/args_", ""))
+    # glob() returns backslashes on Windows, which the substitute below does
+    # not match and an R string literal does not accept.
+    var cdir = substitute(g:rplugin.compldir, '\\', '/', 'g')
+    var flist = glob(cdir .. '/omnils_*', false, true)
+    map(flist, (_, v) => substitute(substitute(v, '\\', '/', 'g'), "/omnils_", "/args_", ""))
     var rscrpt = ['library("vimcom", warn.conflicts = FALSE)']
     for afile in flist
         if filereadable(afile) == 0
@@ -344,8 +347,8 @@ def BuildAllArgs(_t: number = 0)
     if len(rscrpt) == 1
         return
     endif
-    writefile([""], g:rplugin.compldir .. '/args_lock')
-    rscrpt += ['unlink("' .. g:rplugin.compldir .. '/args_lock")']
+    writefile([""], cdir .. '/args_lock')
+    rscrpt += ['unlink("' .. cdir .. '/args_lock")']
 
     var scrptnm = g:rplugin.tmpdir .. "/build_args.R"
     g:AddForDeletion(scrptnm)

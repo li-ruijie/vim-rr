@@ -47,7 +47,11 @@ if !exists("g:did_vimr_r_functions")
     # Convert R script into Rmd, md and, then, html -- using knitr::spin()
     def g:RSpin()
         update
-        var dir = substitute(expand("%:p:h"), '"', '\\"', 'g')
+        var dir = expand("%:p:h")
+        if has("win32")
+            dir = substitute(dir, '\\', '/', 'g')
+        endif
+        dir = substitute(dir, '"', '\\"', 'g')
         var fname = substitute(expand("%:t"), '"', '\\"', 'g')
         g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' .. dir .. '"); spin("' .. fname .. '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
     enddef

@@ -814,6 +814,10 @@ enddef
 
 if exists("g:R_tmpdir")
     g:rplugin.tmpdir = expand(g:R_tmpdir)
+    if has("win32")
+        # the path is written into R string literals
+        g:rplugin.tmpdir = substitute(g:rplugin.tmpdir, '\\', '/', 'g')
+    endif
 else
     if has("win32")
         if isdirectory($TMP)
