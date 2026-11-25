@@ -313,7 +313,7 @@ def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): numb
             endif
         endif
     endif
-    execute rnwln
+    cursor(rnwln, 1)
     redraw
     return 1
 enddef

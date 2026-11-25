@@ -452,7 +452,7 @@ if len(ff) > 1
             msg += ["  " .. substitute(ffd, "R/functions.vim", "", "g")]
         endfor
         msg  += ["", "Please, uninstall one version of Vim-R.", ""]
-        exe len(msg) .. "split Warning"
+        exe ':' .. len(msg) .. "split Warning"
         setline(1, msg)
         setlocal bufhidden=wipe
         setlocal noswapfile

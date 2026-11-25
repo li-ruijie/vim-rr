@@ -717,7 +717,7 @@ def g:StartObjBrowser()
 
         if autosttobjbr == 1
             autosttobjbr = 0
-            exe edbuf .. 'sb'
+            exe ':' .. edbuf .. 'sb'
         endif
     endif
     exe "set switchbuf=" .. savesb
@@ -856,7 +856,7 @@ def g:FindDebugFunc(srcref: string)
         if tabpagenr() != curtab
             exe 'normal! ' .. curtab .. 'gt'
         endif
-        exe curwin .. 'wincmd w'
+        exe ':' .. curwin .. 'wincmd w'
         if isnormal
             stopinsert
         endif
@@ -960,7 +960,7 @@ enddef
 
 def g:FinishRFormatCode(lnum1: number, lnum2: number, txt: string)
     var lns =  split(substitute(txt, "\x13", "'", "g"), "\x14")
-    silent exe lnum1 .. "," .. lnum2 .. "delete"
+    silent exe ':' .. lnum1 .. "," .. lnum2 .. "delete"
     append(lnum1 - 1, lns)
     echo (lnum2 - lnum1 + 1) .. " lines formatted."
 enddef
@@ -1044,7 +1044,9 @@ def g:RViewDF(oname: string, howto: string, txt: string)
     endif
 
     var location = howto
-    silent exe location .. ' ' .. oname
+    # howto may carry a count ("above 7split"), which Vim9 script rejects
+    # without a colon, so the command runs as legacy script.
+    silent exe 'legacy ' .. location .. ' ' .. oname
     # silent 1,$d
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal filetype=csv
@@ -1216,7 +1218,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
         elseif vimpager_local == "vertical"
             var splr = &splitright
             set splitright
-            exe hwidth .. 'vsplit ' .. rdoctitle
+            exe ':' .. hwidth .. 'vsplit ' .. rdoctitle
             &splitright = splr
         elseif vimpager_local == "horizontal"
             exe 'split ' .. rdoctitle

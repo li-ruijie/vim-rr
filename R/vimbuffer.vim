@@ -63,13 +63,13 @@ def g:StartR_InBuffer()
 
     if g:R_rconsole_width > 0 && winwidth(0) > (g:R_rconsole_width + g:R_min_editor_width + 1 + ((&number ? 1 : 0) * &numberwidth))
         if g:R_rconsole_width > 16 && g:R_rconsole_width < (winwidth(0) - 17)
-            silent execute "belowright " .. g:R_rconsole_width .. "vnew"
+            silent execute "belowright :" .. g:R_rconsole_width .. "vnew"
         else
             silent belowright vnew
         endif
     else
         if g:R_rconsole_height > 0 && g:R_rconsole_height < (winheight(0) - 1)
-            silent execute "belowright " .. g:R_rconsole_height .. "new"
+            silent execute "belowright :" .. g:R_rconsole_height .. "new"
         else
             silent belowright new
         endif
