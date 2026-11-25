@@ -190,6 +190,21 @@ g:AssertEqual(texcmds, [{word: '\bottomrule'}], 'RnwNonRCompletion: completes a 
 
 CloseBuf(rnw1)
 
+# TeX lines past the end of the concordance have no Rnoweb source
+var concbase = tempname()
+writefile(range(1, 6)->mapnew((_, v) => 'line ' .. v), concbase .. '.tex')
+writefile(['\Sconcordance{concordance:doc.tex:doc.Rnw:%', '1 2 1}'], concbase .. '-concordance.tex')
+var conc: dict<list<any>> = {}
+err = Caught(() => {
+  conc = g:SyncTeX_readconc(concbase)
+})
+g:AssertEqual(err, '', 'SyncTeX_readconc: no error')
+g:AssertEqual(get(conc, 'rnwline', []), [1, 2, 3, 0, 0, 0], 'SyncTeX_readconc: line 0 past the concordance')
+g:AssertEqual(get(conc, 'rnwfile', []), ['doc.Rnw', 'doc.Rnw', 'doc.Rnw', '', '', ''],
+  'SyncTeX_readconc: empty file name past the concordance')
+delete(concbase .. '.tex')
+delete(concbase .. '-concordance.tex')
+
 # ========================================================================
 # Rout syntax: the prompt is matched literally and the option is not rewritten
 # ========================================================================

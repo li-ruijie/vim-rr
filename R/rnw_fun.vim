@@ -246,8 +246,10 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     var rnwidx = 0
     var ntexln = len(readfile(basenm .. ".tex"))
     var lstexln = range(1, ntexln)
-    var lsrnwf: list<any> = range(1, ntexln)
-    var lsrnwl: list<any> = range(1, ntexln)
+    # An empty name and line 0 mark the TeX lines that the concordance does
+    # not cover, which the callers report as not found.
+    var lsrnwf: list<any> = repeat([''], ntexln)
+    var lsrnwl: list<any> = repeat([0], ntexln)
     var conc = readfile(basenm .. "-concordance.tex")
     var idx = 0
     var maxidx = len(conc)
