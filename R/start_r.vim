@@ -1039,8 +1039,12 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         var cmd: string
         if g:R_csv_app =~ '%s'
             cmd = printf(g:R_csv_app, tsvnm)
-        else
+        elseif g:R_csv_app =~# '^:'
+            cmd = g:R_csv_app .. ' ' .. fnameescape(tsvnm)
+        elseif g:R_csv_app =~# '^terminal:'
             cmd = g:R_csv_app .. ' ' .. tsvnm
+        else
+            cmd = g:R_csv_app .. ' ' .. shellescape(tsvnm)
         endif
 
         if g:R_csv_app =~# '^:'
