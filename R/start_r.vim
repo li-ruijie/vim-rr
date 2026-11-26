@@ -715,7 +715,7 @@ def g:StartObjBrowser()
             if g:R_objbr_place =~? 'console' && has_key(g:rplugin, 'R_bufnr')
                 sil exe 'sb ' .. g:rplugin.R_bufnr
             elseif g:rplugin.rscript_name != ''
-                sil exe 'sb ' .. g:rplugin.rscript_name
+                sil exe 'sb ' .. bufnr(g:rplugin.rscript_name)
             endif
             if g:R_objbr_place =~# 'right'
                 sil exe 'rightbelow vsplit Object_Browser'
@@ -839,7 +839,7 @@ def g:FindDebugFunc(srcref: string)
         sleep 30m # Time to fill the buffer lines
         rlines = getline(1, "$")
         if g:rplugin.rscript_name != ''
-            exe 'sb ' .. g:rplugin.rscript_name
+            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
         endif
     elseif string(g:SendCmdToR) == "function('g:SendCmdToR_Term')"
         var tout = system('tmux -L VimR capture-pane -p -t ' .. g:rplugin.tmuxsname)
@@ -918,15 +918,17 @@ def g:RDebugJump(fnm: string, lnum: number)
 
     var bname = bufname("%")
 
+    # The window of the R script is found by the number of its buffer, since
+    # :sb would take a space, a bracket, or a percent sign in a name as its own
     if !bufloaded(fname) && fname != g:rplugin.rscript_name && fname != expand("%") && fname != expand("%:p")
         if filereadable(fname)
-            exe 'sb ' .. g:rplugin.rscript_name
+            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
             exe 'edit ' .. fnameescape(fname)
         elseif glob("*") =~ fname
-            exe 'sb ' .. g:rplugin.rscript_name
+            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
@@ -952,7 +954,7 @@ def g:RDebugJump(fnm: string, lnum: number)
         exe 'sb ' .. g:rplugin.R_bufnr
         startinsert
     elseif bname != expand("%")
-        exe 'sb ' .. bname
+        exe 'sb ' .. bufnr(bname)
     endif
     rdebugging = 1
     exe 'set so=' .. saved_so
@@ -1163,7 +1165,7 @@ def g:AskRDoc(rkeyword: string, package: string, getclass: number)
     if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. g:rplugin.rscript_name
+        exe "sb " .. bufnr(g:rplugin.rscript_name)
         exe "set switchbuf=" .. savesb
     else
         if getclass
@@ -1221,7 +1223,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. g:rplugin.rscript_name
+        exe "sb " .. bufnr(g:rplugin.rscript_name)
         exe "set switchbuf=" .. savesb
     endif
     g:SetRTextWidth(rkeyword)

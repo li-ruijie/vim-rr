@@ -57,7 +57,7 @@ def g:StartR_InBuffer()
 
     g:SendCmdToR = function('g:SendCmdToR_NotYet')
 
-    var edbuf = bufname("%")
+    var edbuf = bufnr("%")
     var saved_swb = &switchbuf
     set switchbuf=useopen
 

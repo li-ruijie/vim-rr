@@ -260,6 +260,29 @@ delfunction g:RrTestSend
 unlet g:rr_test_sent
 execute 'buffer ' .. rbuf
 
+# ========================================================================
+# Ex commands: the window of the R script is found by its buffer number
+# ========================================================================
+# RDebugJump() and four other functions went to the window of the R script
+# with ":sb NAME". A space or a bracket in the name made Vim look for another
+# buffer, and a percent sign was replaced with the name of the current file.
+writefile(['x <- 1'], work .. '/s [1] %.R')
+writefile(['f <- function() {', '  1', '}'], work .. '/sourced.R')
+extend(made_files, ['s [1] %.R', 'sourced.R'])
+execute 'edit ' .. fnameescape(work .. '/s [1] %.R')
+var saved_rscript = g:rplugin.rscript_name
+g:rplugin.rscript_name = bufname('%')
+err = Caught(() => {
+  g:RDebugJump(work .. '/sourced.R', 2)
+})
+g:AssertEqual([err, bufexists(work .. '/sourced.R')
+  ? sign_getplaced(work .. '/sourced.R')[0].signs->mapnew((_, v) => v.lnum) : [], expand('%:t')],
+  ['', [2], 's [1] %.R'], 'RDebugJump: goes to the R script "s [1] %.R" and comes back to it')
+sign unplace 1
+silent! only
+g:rplugin.rscript_name = saved_rscript
+execute 'buffer ' .. rbuf
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim

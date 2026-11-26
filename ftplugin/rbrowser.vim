@@ -92,7 +92,7 @@ if !exists("g:did_vimr_rbrowser_functions")
             setlocal nomodifiable
         endif
         if rplugin_switchedbuf
-            exe "sil noautocmd sb " .. g:rplugin.curbuf
+            exe "sil noautocmd sb " .. bufnr(g:rplugin.curbuf)
             exe "set switchbuf=" .. savesb
         endif
         g:rplugin.ob_upobcnt = 0
