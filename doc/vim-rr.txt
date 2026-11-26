@@ -1663,6 +1663,23 @@ Note: You must manually run a successful command in RStudio Console before
 sending code from Vim to RStudio. The command might be something as simple as
 the number `1`.
 
+On Windows, RStudio (versions 2026.04 and 2026.11 at least) treats the
+environment variables `XDG_DATA_HOME`, `XDG_CONFIG_HOME`, and `XDG_CACHE_HOME`
+as lists and splits each at every colon. A value with a drive letter, such as
+`D:\.local\share`, then yields the relative path `D`, and RStudio keeps the
+data of its session in a new directory `D\RStudio` inside its working
+directory. RStudio inherits the current directory of Vim, so the directory
+appears beside the file that was open when RStudio started. The behaviour
+belongs to RStudio and no option of the plugin changes it. RStudio reads the
+variables `RSTUDIO_DATA_HOME`, `RSTUDIO_CONFIG_HOME`, and `RSTUDIO_CACHE_HOME`
+first and takes each one whole, so setting them in the environment of the
+Windows user avoids the stray directory. Example:
+>
+   RSTUDIO_DATA_HOME=D:\.local\share\RStudio
+   RSTUDIO_CONFIG_HOME=D:\.config\RStudio
+   RSTUDIO_CACHE_HOME=D:\.cache\RStudio
+<
+
 
 ------------------------------------------------------------------------------
 6.15. Special R functions
