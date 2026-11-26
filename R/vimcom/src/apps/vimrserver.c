@@ -1759,28 +1759,18 @@ void update_pkg_list(char *libnms) {
         fclose(flib);
     }
 
-    // No command run yet
-    if (!pkgList)
-        return;
-
     // Delete data from unloaded packages to ensure that reloaded packages go
-    // to the bottom of the Object Browser list
-    pkg = pkgList;
-    if (pkg->loaded == 0) {
-        pkgList = pkg->next;
-        pkg_delete(pkg);
-    } else {
-        PkgData *prev = pkg;
-        pkg = pkg->next;
-        while (pkg) {
-            if (pkg->loaded == 0) {
-                prev->next = pkg->next;
-                pkg_delete(pkg);
-                pkg = prev->next;
-            } else {
-                prev = pkg;
-                pkg = prev->next;
-            }
+    // to the bottom of the Object Browser list. Each link that leads to an
+    // unloaded package is moved on to the package after it, at the head of
+    // the list as anywhere else.
+    PkgData **link = &pkgList;
+    while (*link) {
+        pkg = *link;
+        if (pkg->loaded == 0) {
+            *link = pkg->next;
+            pkg_delete(pkg);
+        } else {
+            link = &pkg->next;
         }
     }
 }

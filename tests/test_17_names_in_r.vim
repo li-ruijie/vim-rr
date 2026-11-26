@@ -522,6 +522,43 @@ if executable('gcc')
     ->mapnew((_, l) => matchstr(l, '^ *\zs.\{-}\ze{')), repeat(['|- '], 11) + ['`- '],
     'vimrserver: only the twelfth element of a list of twelve is drawn as the last')
   g:Assert(match(ob_lines, '^   :#zenv\t$') >= 0, 'vimrserver: an environment is listed')
+  # The server deleted the data of the packages that R no longer has loaded,
+  # but when the first package of its list was one of them, it deleted that
+  # one alone, so the objects of the next one stayed in the menu. Packages
+  # are added at the front of the list, so after pz, pa, and pb are loaded,
+  # pb and pa come first.
+  for pk in ['pz', 'pa', 'pb']
+    writefile([[pk .. 'obj', '{', 'num', pk, '', 'Title', 'Text']->join("\x06") .. "\x06"],
+      srv2 .. '/compl/omnils_' .. pk .. '_1.0')
+    writefile([], srv2 .. '/compl/fun_' .. pk .. '_1.0')
+    extend(made_files, ['srv2/compl/omnils_' .. pk .. '_1.0', 'srv2/compl/fun_' .. pk .. '_1.0'])
+  endfor
+  var libs_shown = len(ServerReplies("UpdateOB('libraries')"))
+  ToVimcomIfOpen(rch2, secret2, "+Lpz\x031.0\x04\npa\x031.0\x04\npb\x031.0\x04\n")
+  ServerReplies('UpdateSynRhlist')
+  for _ in range(600)
+    if len(ServerReplies("UpdateOB('libraries')")) > libs_shown
+      break
+    endif
+    sleep 50m
+  endfor
+  libs_shown = len(ServerReplies("UpdateOB('libraries')"))
+  ToRunning(sjob2, "515\x03p\n")
+  ServerReplies('SetComplMenu(15,')
+  # R has detached pa and pb
+  ToVimcomIfOpen(rch2, secret2, "+Lpz\x031.0\x04\n")
+  for _ in range(600)
+    if len(ServerReplies("UpdateOB('libraries')")) > libs_shown
+      break
+    endif
+    sleep 50m
+  endfor
+  ToRunning(sjob2, "516\x03p\n")
+  ServerReplies('SetComplMenu(16,')
+  var pkg_words = [15, 16]->mapnew((_, id) => ServerReplies('SetComplMenu(' .. id .. ',')
+    ->mapnew((_, r) => ServerPassed(r))->get(0, [id, []])[1]->mapnew((_, v) => v.word)->sort())
+  g:AssertEqual(pkg_words, [['paobj', 'pbobj', 'pzobj'], ['pzobj']],
+    'vimrserver: the objects of the packages that R has detached leave the menu')
   if ch_status(rch2) ==# 'open'
     ch_close(rch2)
   endif
