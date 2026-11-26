@@ -2457,6 +2457,23 @@ int count_twice(const char *b1, const char *b2, const char ch) {
     return n1 == n2;
 }
 
+// Tell Vim that there is no information on a word. The answer names the word
+// all the same, since Vim may have selected another item of the menu by the
+// time it reads the answer, and it must then leave the window of that item
+// alone. Without an answer the window of the item that was selected before
+// would stay open.
+static void send_no_info(const char *wrd) {
+    lock_stdout();
+    {
+        size_t msg_len = strlen(compl_info) + strlen(wrd) + 14;
+        printf("\x11%" PRI_SIZET "\x11"
+               "%s({'word': '%s'})\n",
+               msg_len, compl_info, wrd);
+        fflush(stdout);
+    }
+    unlock_stdout();
+}
+
 // Return user_data of a specific item with function usage, title and
 // description to be displayed in the float window
 void completion_info(const char *wrd, const char *pkg) {
@@ -2476,8 +2493,10 @@ void completion_info(const char *wrd, const char *pkg) {
                 pd = pd->next;
         }
 
-        if (pd == NULL)
+        if (pd == NULL) {
+            send_no_info(wrd);
             return;
+        }
 
         s = pd->omnils;
     }
@@ -2510,13 +2529,18 @@ void completion_info(const char *wrd, const char *pkg) {
                 // ahead of each backslash and each double quote of it, and
                 // each byte 0x13 is written as the single quote that it
                 // stands for. A name that would not fit into the buffer is
-                // not asked for, since a command that is cut is no R code.
+                // not asked for, since a command that is cut is no R code,
+                // and nothing is asked while R is not connected. Vim then
+                // learns that no information will come.
                 int n = snprintf(compl_buffer, compl_buffer_size,
                                  "E%svimcom:::vim.GlobalEnv.fun.args(\"",
                                  getenv("VIMR_ID"));
-                if (n < 0 || (unsigned long)n + 2 * strlen(wrd) + 4 >
-                                 compl_buffer_size) {
+                if (n < 0 ||
+                    (unsigned long)n + 2 * strlen(wrd) + 4 >
+                        compl_buffer_size ||
+                    connfd < 0) {
                     compl_buffer[0] = 0;
+                    send_no_info(wrd);
                     return;
                 }
                 p = compl_buffer + n;
@@ -2569,18 +2593,8 @@ void completion_info(const char *wrd, const char *pkg) {
         }
         s = next_line(s);
     }
-    // Nothing was found. The answer names the word all the same, since Vim
-    // may have selected another item of the menu by the time it reads the
-    // answer, and it must then leave the window of that item alone.
-    lock_stdout();
-    {
-        size_t msg_len = strlen(compl_info) + strlen(wrd) + 14;
-        printf("\x11%" PRI_SIZET "\x11"
-               "%s({'word': '%s'})\n",
-               msg_len, compl_info, wrd);
-        fflush(stdout);
-    }
-    unlock_stdout();
+    // Nothing was found
+    send_no_info(wrd);
 }
 
 // Return the menu items for omni completion, but don't include function
@@ -2981,12 +2995,12 @@ void stdin_loop() {
             char *wrd = msg;
             while (*msg != '\002' && *msg)
                 msg++;
-            if (*msg == 0) {
-                unlock_state();
-                break;
+            // A request that names no package is answered as one for a
+            // package that is not loaded, so that Vim gets its answer.
+            if (*msg != 0) {
+                *msg = 0;
+                msg++;
             }
-            *msg = 0;
-            msg++;
             if (strstr(wrd, "::"))
                 wrd = strstr(wrd, "::") + 2;
             // The lists of objects hold the byte 0x13 in the place of each

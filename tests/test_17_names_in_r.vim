@@ -207,6 +207,11 @@ def ServerPassed(reply: string): any
     return v:exception
   endtry
 enddef
+# Send a message to the server as vimcom does, with the secret, the size in
+# nine digits, the message, and the byte 0x11
+def SendAsVimcom(ch: channel, secret: string, msg: string)
+  ch_sendraw(ch, secret .. printf('%09d', strlen(msg)) .. msg .. "\x11")
+enddef
 # Wait until a job has ended
 def JobEnded(job: job, tenths: number)
   for _ in range(tenths)
@@ -275,6 +280,39 @@ if executable('gcc')
     [[{cls: '{', word: "zq\x12x", pkg: 'qpkg', usage: [], ttl: "T\x12t", descr: 'Text'}]],
     [[{cls: 'f', word: 'zqf', pkg: 'qpkg', usage: [['a'], ['b', '2']], ttl: 'Title', descr: 'Text'}]]],
     'vimrserver: a byte 0x12 of a name, a class, or a title reaches Vim, and the arguments are a list')
+  # The server sent no answer for a package that it did not know, for a
+  # request that named no package, and for a function of the global
+  # environment while R was not connected, so the window of the item that
+  # was selected before stayed open. The test connects to the server as
+  # vimcom does, lists a function of the global environment, and asks for it
+  # once while connected and once after the connection has ended.
+  for request in ["6it's\x02nopkg", '6zz']
+    ch_sendraw(sjob, request .. "\n")
+  endfor
+  var unknown_answers = ['''it\%x13s''})$', '''zz''})$']
+    ->mapnew((_, pat) => ServerReplies(pat)->mapnew((_, r) => ServerPassed(r)))
+  var secret = matchstr(get(ServerReplies('VIMR_SECRET'), 0, ''), '''\zs[^'']*')
+  ch_sendraw(sjob, "1\n")
+  var port = matchstr(get(ServerReplies('RSetMyPort'), 0, ''), '\d\+')
+  var from_server: list<string> = []
+  var rch = ch_open('127.0.0.1:' .. port, {mode: 'raw', waittime: 5000,
+    callback: (_, msg) => add(from_server, msg)})
+  SendAsVimcom(rch, secret, "+Ggf\x06\x03\x06\x06.GlobalEnv\x06[\x12not_checked\x12]\x06\x06\x06\n")
+  ServerReplies('UpdateLocalFunctions')
+  ch_sendraw(sjob, "6gf\x02.GlobalEnv\n")
+  for _ in range(100)
+    if join(from_server, '') =~ 'fun\.args'
+      break
+    endif
+    sleep 50m
+  endfor
+  var asked = matchstr(join(from_server, ''), 'vimcom:::.*)')
+  ch_close(rch)
+  ServerReplies('OnVimcomDisconnect')
+  ch_sendraw(sjob, "6gf\x02.GlobalEnv\n")
+  g:AssertEqual([unknown_answers, asked, ServerReplies('''gf''})$')->mapnew((_, r) => ServerPassed(r))],
+    [[[[{word: "it\x13s"}]], [[{word: 'zz'}]]], 'vimcom:::vim.GlobalEnv.fun.args("gf")', [[{word: 'gf'}]]],
+    'vimrserver: a word that cannot be looked up is answered with the word alone')
   ch_sendraw(sjob, "9\n")
   JobEnded(sjob, 30)
   job_stop(sjob, 'kill')
