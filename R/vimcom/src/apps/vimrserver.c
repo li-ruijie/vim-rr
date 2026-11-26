@@ -1097,7 +1097,7 @@ static int run_R_code(const char *s, int senderror) {
 
 #ifdef WIN32
     char tdir[512];
-    snprintf(tdir, 511, "%s", tmpdir);
+    snprintf(tdir, sizeof(tdir), "%s", tmpdir);
     char *p = tdir;
     while (*p) {
         if (*p == '/')
@@ -1607,7 +1607,7 @@ static void finish_bol() {
 
     // Finally create a list of built omnils_ because libnames_ might have
     // already changed and vim-rr would try to read omnils_ files not built yet.
-    snprintf(buf, 511, "%s/libs_in_nrs_%s", localtmpdir, getenv("VIMR_ID"));
+    snprintf(buf, 1023, "%s/libs_in_nrs_%s", localtmpdir, getenv("VIMR_ID"));
     FILE *f = fopen(buf, "w");
     if (f) {
         PkgData *pkg = pkgList;
@@ -1660,7 +1660,7 @@ char *complete_instlibs(char *p, const char *base) {
 
 void update_pkg_list(char *libnms) {
     Log("update_pkg_list()");
-    char buf[512];
+    char buf[1024];
     char *s, *nm, *vrsn;
     PkgData *pkg;
 
@@ -1715,7 +1715,7 @@ void update_pkg_list(char *libnms) {
         char lbnm[128];
         Log("update_pkg_list == NULL");
 
-        snprintf(buf, 511, "%s/libnames_%s", tmpdir, getenv("VIMR_ID"));
+        snprintf(buf, 1023, "%s/libnames_%s", tmpdir, getenv("VIMR_ID"));
         FILE *flib = fopen(buf, "r");
         if (!flib) {
             fprintf(stderr, "Failed to open \"%s\"\n", buf);
@@ -2383,8 +2383,8 @@ static void init(void) {
 
     compl_buffer = xalloc(calloc(compl_buffer_size, sizeof(char)));
 
-    char fname[512];
-    snprintf(fname, 511, "%s/libPaths", tmpdir);
+    char fname[1032];
+    snprintf(fname, 1031, "%s/libPaths", tmpdir);
     char *b = read_file(fname, 1);
     if (b) {
 #ifdef WIN32
