@@ -2209,15 +2209,20 @@ def g:RAction(rcmd: string, ...args: list<any>)
     endif
 enddef
 
-# The command that opens an HTML file. On Windows cmd.exe reads the line, so
-# the path stands between double quotes, where an ampersand does not end the
-# command. A list would reach cmd.exe with quotes only around a path that
-# holds a space.
-def g:RHtmlCommand(fullpath: string, browser: string): any
+# The command that opens an HTML file and the options of its job, as the two
+# arguments of job_start(). On Windows cmd.exe reads the line. In a path that
+# stood in the line, cmd.exe would end the command at an ampersand and would
+# put the value of a variable in the place of "%NAME%", also between double
+# quotes. The path is therefore handed over in the environment of the job, and
+# cmd.exe puts it in with delayed expansion, after which it reads the line no
+# further.
+def g:RHtmlCommand(fullpath: string, browser: string): list<any>
     if browser != ''
-        return split(browser) + [fullpath]
+        return [split(browser) + [fullpath], {}]
     endif
-    return has('win32') ? 'cmd /c start "" "' .. fullpath .. '"' : ['xdg-open', fullpath]
+    return has('win32')
+        ? ['cmd /v:on /c start "" "!VIMR_HTML!"', {env: {VIMR_HTML: fullpath}}]
+        : [['xdg-open', fullpath], {}]
 enddef
 
 def g:RLoadHTML(fullpath: string, browser: string)
@@ -2225,7 +2230,7 @@ def g:RLoadHTML(fullpath: string, browser: string)
         return
     endif
 
-    job_start(g:RHtmlCommand(fullpath, browser))
+    call('job_start', g:RHtmlCommand(fullpath, browser))
 enddef
 
 def g:ROpenDoc(fullpath: string, browser: string)
