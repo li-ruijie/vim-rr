@@ -26,7 +26,7 @@ enddef
 # Return what a stand-in program logged, once it has written its last line.
 # The plugin starts these programs in the background.
 def Logged(logfile: string): list<string>
-  for _ in range(60)
+  for _ in range(600)
     if filereadable(logfile) && get(readfile(logfile), -1, '') ==# 'end'
       break
     endif
@@ -35,6 +35,17 @@ def Logged(logfile: string): list<string>
   var lines = filereadable(logfile) ? readfile(logfile) : []
   delete(logfile)
   return lines
+enddef
+
+# A program in a terminal window may still run after it has written its
+# log, and :buffer refuses to leave a terminal whose job runs (E948)
+def TerminalsDone()
+  for _ in range(600)
+    if term_list()->filter((_, b) => term_getstatus(b) =~# 'running')->empty()
+      return
+    endif
+    sleep 50m
+  endfor
 enddef
 
 # The plugin writes its paths with forward slashes
@@ -142,9 +153,11 @@ if has('unix')
   var odd = work .. "/it's a $(touch INJECTED) dir"
   mkdir(bindir, 'p')
   mkdir(odd, 'p')
+  # In a terminal a program lingers after its log, as it may on a loaded
+  # machine
   for prog in ['myviewer', 'qpdfview', 'lowriter']
     writefile(['#!/bin/sh', 'for a in "$@"; do printf ''%s\n'' "$a"; done >> "$RR_TEST_LOG"',
-      'echo end >> "$RR_TEST_LOG"'], bindir .. '/' .. prog)
+      'echo end >> "$RR_TEST_LOG"', '[ -t 1 ] && sleep 1', 'exit 0'], bindir .. '/' .. prog)
     setfperm(bindir .. '/' .. prog, 'rwx------')
   endfor
   for doc in ['doc.pdf', 'doc.tex', 'doc.odt']
@@ -223,6 +236,7 @@ if has('unix')
     })
     stopinsert
     g:AssertEqual([err, Logged(shlog)], ['', expected], 'RViewDF: "' .. app .. '" gets the path as one argument')
+    TerminalsDone()
     silent! tabonly
     silent! only
     execute 'buffer ' .. rbuf
@@ -278,16 +292,18 @@ endif
 # of the program. :terminal split the path at each space and replaced "%"
 # and "#" as well. Where a C compiler exists, a stand-in program is built
 # that appends its arguments to $RR_TEST_LOG. It is a program of the Windows
-# subsystem, so it opens no console window.
+# subsystem, so it opens no console window. It lingers after its log, as a
+# program may on a loaded machine.
 if has('win32') && executable('gcc')
   var wbin = work .. '/wbin'
   var wodd = work .. "/it's a %b #c $HOME [1] !x dir"
   mkdir(wbin, 'p')
   mkdir(wodd, 'p')
-  writefile(['#include <stdio.h>', '#include <stdlib.h>', 'int main(int argc, char **argv) {',
+  writefile(['#include <stdio.h>', '#include <stdlib.h>', '#include <windows.h>',
+    'int main(int argc, char **argv) {',
     '    FILE *f = fopen(getenv("RR_TEST_LOG"), "a");', '    if (!f)', '        return 1;',
     '    for (int i = 1; i < argc; i++)', '        fprintf(f, "%s\n", argv[i]);', '    fprintf(f, "end\n");',
-    '    fclose(f);', '    return 0;', '}'], wbin .. '/argv.c')
+    '    fclose(f);', '    Sleep(1000);', '    return 0;', '}'], wbin .. '/argv.c')
   var exe = wbin .. '/argv.exe'
   var cc = job_start(['gcc', '-mwindows', wbin .. '/argv.c', '-o', exe],
     {in_io: 'null', out_io: 'null', err_io: 'null'})
@@ -312,6 +328,7 @@ if has('win32') && executable('gcc')
     stopinsert
     g:AssertEqual([err, Logged($RR_TEST_LOG)], ['', expected],
       'RViewDF: "' .. substitute(app, '.*argv\.exe"\=', 'PROGRAM', '') .. '" gets the path as one argument')
+    TerminalsDone()
     silent! tabonly
     silent! only
     execute 'buffer ' .. rbuf
