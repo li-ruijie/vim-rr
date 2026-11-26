@@ -1870,6 +1870,9 @@ void vimcom_Stop(void) {
         eval_node_t *abandoned = eval_queue_drain(1);
         FLAG_UNLOCK();
         eval_queue_free(abandoned);
+        // The thread and the window are gone, and the task callback is
+        // switched off before this function is called.
+        DeleteCriticalSection(&flag_mutex);
 #else
         if (debug_r)
             ptr_R_ReadConsole = save_ptr_R_ReadConsole;
