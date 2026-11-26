@@ -5,7 +5,10 @@ if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filet
 endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+# This line runs before common_global.vim defines g:RExFile(), so the
+# escape of that function is written out here
+var common_buffer = fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+execute 'source ' .. (has('win32') ? substitute(common_buffer, '\[', '[[]', 'g') : common_buffer)
 
 if !exists("g:did_vimr_rrst_functions")
     g:did_vimr_rrst_functions = 1
@@ -183,7 +186,7 @@ g:R_strict_rst = get(g:, "R_strict_rst", 1)
 
 # Menu R
 if has("gui_running")
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/gui_running.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/gui_running.vim')
     g:MakeRMenu()
 endif
 

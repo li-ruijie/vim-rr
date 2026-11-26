@@ -146,7 +146,7 @@ def g:ReallyStartR(whatr: string)
 
     # https://github.com/jalvesaq/Vim-R/issues/157
     if !exists("*FunHiOtherBf")
-        exe "source " .. fnameescape(g:rplugin.home .. "/R/functions.vim")
+        exe "source " .. g:RExFile(g:rplugin.home .. "/R/functions.vim")
     endif
 
     if whatr =~ "custom"
@@ -665,7 +665,13 @@ enddef
 def g:ShowRObj(howto: string, bname: string, ftype: string, txt: string)
     var bfnm = substitute(bname, '[ [:punct:]]', '_', 'g')
     g:AddForDeletion(g:rplugin.tmpdir .. "/" .. bfnm)
-    silent exe howto .. ' ' .. fnameescape(g:rplugin.tmpdir .. '/' .. bfnm)
+    # The command gets the buffer as "#" and its number, and Vim takes the
+    # name of that buffer as it is. fnameescape() leaves a bracket of the
+    # temporary directory alone on Windows, where the command would take it
+    # for a wildcard. howto may carry a count ("above 7split"), which Vim9
+    # script rejects without a colon, and there "#" would start a comment, so
+    # the command runs as legacy script.
+    silent exe 'legacy ' .. howto .. ' #' .. bufadd(g:rplugin.tmpdir .. '/' .. bfnm)
     silent exe 'setlocal ft=' .. ftype
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal nomodified

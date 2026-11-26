@@ -30,10 +30,10 @@ def g:RSetPDFViewer()
     g:rplugin.pdfviewer = tolower(g:R_pdfviewer)
 
     if has_key(viewer_modules, g:rplugin.pdfviewer)
-        execute "source " .. fnameescape(
+        execute "source " .. g:RExFile(
             g:rplugin.home .. "/R/" .. viewer_modules[g:rplugin.pdfviewer])
     else
-        execute "source " .. fnameescape(g:rplugin.home .. "/R/pdf_generic.vim")
+        execute "source " .. g:RExFile(g:rplugin.home .. "/R/pdf_generic.vim")
         if !executable(g:R_pdfviewer)
             g:RWarningMsg("R_pdfviewer (" .. g:R_pdfviewer .. ") not found.")
             return

@@ -7,10 +7,13 @@ if &filetype != 'quarto' && exists("g:R_filetypes") && type(g:R_filetypes) == v:
 endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+# This line runs before common_global.vim defines g:RExFile(), so the
+# escape of that function is written out here
+var common_buffer = fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+execute 'source ' .. (has('win32') ? substitute(common_buffer, '\[', '[[]', 'g') : common_buffer)
 # Bibliographic completion
 if index(g:R_bib_compl, &filetype) > -1
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/bibcompl.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/bibcompl.vim')
 endif
 
 g:R_rmdchunk = get(g:, "R_rmdchunk", 2)
@@ -258,7 +261,7 @@ g:RCreateMaps('n',   'RPreviousRChunk', 'gN', ':<C-U>call b:PreviousRChunk(v:cou
 
 # Menu R
 if has("gui_running")
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/gui_running.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/gui_running.vim')
     g:MakeRMenu()
 endif
 

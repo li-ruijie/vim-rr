@@ -4,7 +4,10 @@ vim9script
 # are common for all file types supported by Vim-R.
 
 # Source scripts common to R, Rnoweb, Rhelp and rdoc files:
-execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_global.vim')
+# This line runs before common_global.vim defines g:RExFile(), so the
+# escape of that function is written out here
+var common_global = fnameescape(expand('<sfile>:h:h') .. '/R/common_global.vim')
+execute 'source ' .. (has('win32') ? substitute(common_global, '\[', '[[]', 'g') : common_global)
 
 b:rplugin_knitr_pattern = ''
 
@@ -20,7 +23,7 @@ if g:R_assign == 3
 endif
 
 if index(g:R_set_omnifunc, &filetype) > -1
-    execute 'source ' .. fnameescape(g:rplugin.home .. '/R/complete.vim')
+    execute 'source ' .. g:RExFile(g:rplugin.home .. '/R/complete.vim')
     g:RComplAutCmds()
 endif
 

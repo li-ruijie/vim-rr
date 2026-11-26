@@ -12,7 +12,10 @@ var cpo_save = &cpo
 set cpo&vim
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+# This line runs before common_global.vim defines g:RExFile(), so the
+# escape of that function is written out here
+var common_buffer = fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
+execute 'source ' .. (has('win32') ? substitute(common_buffer, '\[', '[[]', 'g') : common_buffer)
 setlocal iskeyword=@,48-57,_,.
 
 if !exists("g:did_vimr_rdoc_functions")
@@ -122,7 +125,7 @@ g:RControlMaps()
 
 # Menu R
 if has("gui_running")
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/gui_running.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/gui_running.vim')
     g:MakeRMenu()
 endif
 

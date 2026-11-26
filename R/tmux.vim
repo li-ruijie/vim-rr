@@ -29,5 +29,5 @@ g:rplugin.tmuxsname = "VimR-" .. substitute(string(localtime()), '.*\(...\)', '\
 g:R_setwidth = get(g:, 'R_setwidth', 2)
 
 if !exists('g:R_source') || (exists('g:R_source') && g:R_source !~# 'tmux_split.vim')
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/extern_term.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/extern_term.vim')
 endif

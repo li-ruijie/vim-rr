@@ -22,7 +22,7 @@ if !exists('g:rplugin')
 endif
 
 if !has_key(g:rplugin, 'compldir')
-    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/setcompldir.vim')
+    execute 'source ' .. g:RExFile(expand('<sfile>:h:h') .. '/R/setcompldir.vim')
 endif
 
 g:R_hi_fun = get(g:, 'R_hi_fun', 1)
@@ -30,4 +30,4 @@ g:R_hi_fun = get(g:, 'R_hi_fun', 1)
 # Source the def g: definitions.  This line is only reached on first
 # source — the finish guard above prevents re-sourcing, so the defs in
 # that file are never recompiled and E127 cannot occur.
-execute 'source ' .. fnameescape(expand('<sfile>:h') .. '/functions_def.vim')
+execute 'source ' .. g:RExFile(expand('<sfile>:h') .. '/functions_def.vim')

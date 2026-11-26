@@ -5,7 +5,9 @@ vim9script
 # sourced. The test compares the report for a plugin directory with an odd
 # name with that for the real one.
 var report: list<string> = []
-&runtimepath = escape($RR_TEST_ROOT, ',') .. ',' .. $VIMRUNTIME
+# An entry of 'runtimepath' is a pattern, so a bracket in it is written as a
+# set that holds nothing but itself
+&runtimepath = escape($RR_TEST_ROOT, ',')->substitute('\[', '[[]', 'g') .. ',' .. $VIMRUNTIME
 filetype plugin indent on
 syntax on
 g:R_filetypes = ['r', 'rmd', 'rnoweb', 'rhelp', 'rrst', 'quarto']

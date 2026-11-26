@@ -740,13 +740,20 @@ endif
 # ========================================================================
 # GetROutput(), EditRObject(), ShowRObj(), and ShowRDoc() put a name into an
 # Ex command with nothing or only its spaces escaped. A percent sign in the
-# name was replaced with the name of the current file.
+# name was replaced with the name of the current file. On Windows
+# fnameescape() leaves a bracket alone, and ShowRObj() then opened a file of
+# another directory that the name matches as a wildcard, which a directory
+# beside the temporary one provides.
 var saved_env = [$VIMR_TMPDIR, $VIMR_ID]
 saved_tmpdir = g:rplugin.tmpdir
-mkdir(work .. '/t%d #1', 'p')
-add(made_dirs, 't%d #1')
-g:rplugin.tmpdir = work .. '/t%d #1'
-$VIMR_TMPDIR = work .. '/t%d #1'
+var tdir = 't%d #1 [1]'
+mkdir(work .. '/' .. tdir, 'p')
+mkdir(work .. '/t%d #1 1', 'p')
+writefile(['other'], work .. '/t%d #1 1/x')
+extend(made_files, ['t%d #1 1/x'])
+extend(made_dirs, [tdir, 't%d #1 1'])
+g:rplugin.tmpdir = work .. '/' .. tdir
+$VIMR_TMPDIR = work .. '/' .. tdir
 $VIMR_ID = '7'
 
 err = Caught(() => {
@@ -759,14 +766,14 @@ if bufexists('out%1 #2')
 endif
 silent! tabonly!
 
-writefile(['c(1, 2)'], work .. '/t%d #1/vimcom_edit_1')
-extend(made_files, ['t%d #1/vimcom_edit_1'])
+writefile(['c(1, 2)'], work .. '/' .. tdir .. '/vimcom_edit_1')
+extend(made_files, [tdir .. '/vimcom_edit_1'])
 err = Caught(() => {
-  g:EditRObject(work .. '/t%d #1/vimcom_edit_1')
+  g:EditRObject(work .. '/' .. tdir .. '/vimcom_edit_1')
 })
 g:AssertEqual([err, substitute(expand('%:p'), '\\', '/', 'g'), getline(1)],
-  ['', work .. '/t%d #1/edit_7', 'c(1, 2)'],
-  'EditRObject: the buffer lies in a temporary directory "t%d #1"')
+  ['', work .. '/' .. tdir .. '/edit_7', 'c(1, 2)'],
+  'EditRObject: the buffer lies in a temporary directory "' .. tdir .. '"')
 if bufnr('%') != rbuf
   autocmd! BufUnload <buffer>
   bwipeout!
@@ -777,11 +784,23 @@ err = Caught(() => {
   g:ShowRObj('tabnew', 'x', 'r', "c(1,\x142)")
 })
 g:AssertEqual([err, substitute(expand('%:p'), '\\', '/', 'g'), getline(1, '$')],
-  ['', work .. '/t%d #1/x', ['c(1,', '2)']], 'ShowRObj: the buffer lies in a temporary directory "t%d #1"')
+  ['', work .. '/' .. tdir .. '/x', ['c(1,', '2)']],
+  'ShowRObj: the buffer lies in a temporary directory "' .. tdir .. '"')
 if bufnr('%') != rbuf
   bwipeout!
 endif
 silent! tabonly
+# The map for the head of an object asks for "above 7split", and Vim9 script
+# refused the count without a colon
+err = Caught(() => {
+  g:ShowRObj('above 7split', 'x', 'r', "c(1,\x142)")
+})
+g:AssertEqual([err, substitute(expand('%:p'), '\\', '/', 'g'), winheight(0)], ['', work .. '/' .. tdir .. '/x', 7],
+  'ShowRObj: a count in the command gives the height of the window')
+if bufnr('%') != rbuf
+  bwipeout!
+endif
+silent! only
 
 # OpenRExample() opens the file of the example in that directory, and unloads
 # its buffer first when an example is still shown
@@ -789,7 +808,7 @@ var saved_example_pager = g:R_vimpager
 var example_shown: list<any> = []
 for pager in ['tabnew', 'horizontal']
   g:R_vimpager = pager
-  writefile([pager], work .. '/t%d #1/example.R')
+  writefile([pager], work .. '/' .. tdir .. '/example.R')
   err = Caught(() => {
     g:OpenRExample()
   })
@@ -798,15 +817,15 @@ for pager in ['tabnew', 'horizontal']
   win_gotoid(bufwinid(rbuf) > 0 ? bufwinid(rbuf) : win_findbuf(rbuf)->get(0, 0))
 endfor
 g:AssertEqual(example_shown, ['tabnew', 'horizontal']
-  ->mapnew((_, p) => ['', work .. '/t%d #1/example.R', p]),
-  'OpenRExample: the buffer lies in a temporary directory "t%d #1"')
+  ->mapnew((_, p) => ['', work .. '/' .. tdir .. '/example.R', p]),
+  'OpenRExample: the buffer lies in a temporary directory "' .. tdir .. '"')
 g:R_vimpager = saved_example_pager
-if bufexists(work .. '/t%d #1/example.R')
-  execute 'bwipeout! ' .. bufnr(work .. '/t%d #1/example.R')
+if bufexists(work .. '/' .. tdir .. '/example.R')
+  execute 'bwipeout! ' .. bufnr(work .. '/' .. tdir .. '/example.R')
 endif
 silent! tabonly
 silent! only
-add(made_files, 't%d #1/example.R')
+add(made_files, tdir .. '/example.R')
 g:rplugin.tmpdir = saved_tmpdir
 $VIMR_TMPDIR = saved_env[0]
 $VIMR_ID = saved_env[1]
@@ -840,16 +859,21 @@ execute 'buffer ' .. rbuf
 # The files of the plugin source each other with ":source DIR/R/NAME.vim",
 # where only the spaces of the directory were escaped. A percent sign or a
 # number sign in it was replaced with a file name, and a bar ended the
-# command. The Vim files are copied into such a directory, and a Vim of its
-# own loads every file type from there and from the real directory. Both must
-# source the same scripts.
-var odd_root = work .. (has('win32') ? '/p%l #1' : '/p%l #1|x')
+# command. On Windows fnameescape() leaves a bracket alone, and :source then
+# took another file that the name matches as a wildcard. The Vim files are
+# copied into such a directory, and into a directory beside it that the name
+# matches, and a Vim of its own loads every file type from the first one and
+# from the real directory. Both must source the same scripts.
+var odd_root = work .. (has('win32') ? '/p%l #1 [1]' : '/p%l #1|x [1]')
+var odd_twin = work .. (has('win32') ? '/p%l #1 1' : '/p%l #1|x 1')
 var copied: list<string> = []
 for sub in ['R', 'ftplugin', 'ftdetect', 'syntax']
   mkdir(odd_root .. '/' .. sub, 'p')
+  mkdir(odd_twin .. '/' .. sub, 'p')
   for src in glob(plugin_root .. '/' .. sub .. '/*.vim', false, true)
     var rel = sub .. '/' .. fnamemodify(src, ':t')
     writefile(readfile(src, 'b'), odd_root .. '/' .. rel, 'b')
+    writefile(readfile(src, 'b'), odd_twin .. '/' .. rel, 'b')
     add(copied, rel)
   endfor
 endfor
@@ -878,9 +902,27 @@ g:Assert(match(real_report, '\c^R/common_global\.vim$') >= 0 && match(real_repor
   'source: the plugin loads from its own directory (' .. real_report->join(' ') .. ')')
 g:AssertEqual(odd_report, real_report,
   'source: the plugin loads from a directory with odd characters in its name')
-var odd_tail = fnamemodify(odd_root, ':t')
-extend(made_files, ['loaded_real.txt', 'loaded_odd.txt'] + copied->mapnew((_, c) => odd_tail .. '/' .. c))
-extend(made_dirs, ['/R', '/ftplugin', '/ftdetect', '/syntax', '']->mapnew((_, d) => odd_tail .. d))
+# The Vim above does not run every :source line. Each of them takes the name
+# through g:RExFile(), or through its escape written out where the function
+# is not defined yet. The names of R_source come from an option of the user,
+# and that line is left out.
+var unguarded_sources: list<string> = []
+for file in glob(plugin_root .. '/R/*.vim', false, true) + glob(plugin_root .. '/ftplugin/*.vim', false, true)
+  var lnum = 0
+  for line in readfile(file)
+    lnum += 1
+    if line =~# '\<source [''"]' && line !~# 'g:RExFile(\|? substitute(common_\w\+, \|escape(fl, '
+      add(unguarded_sources, fnamemodify(file, ':t') .. ':' .. lnum)
+    endif
+  endfor
+endfor
+g:AssertEqual(unguarded_sources, [], 'source: every name of a file of the plugin is escaped for a bracket')
+add(made_files, 'loaded_real.txt')
+add(made_files, 'loaded_odd.txt')
+for odd_tail in [fnamemodify(odd_root, ':t'), fnamemodify(odd_twin, ':t')]
+  extend(made_files, copied->mapnew((_, c) => odd_tail .. '/' .. c))
+  extend(made_dirs, ['/R', '/ftplugin', '/ftdetect', '/syntax', '']->mapnew((_, d) => odd_tail .. d))
+endfor
 
 silent! tabonly
 silent! only
