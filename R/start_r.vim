@@ -889,15 +889,6 @@ def g:FindDebugFunc(srcref: string)
     endif
 enddef
 
-# Edit a file in the current window, with its name taken as it is. On Windows
-# fnameescape() leaves a bracket alone, and :edit would open another file that
-# the name matches as a wildcard.
-def OpenFile(fname: string)
-    var nr = bufadd(fname)
-    setbufvar(nr, '&buflisted', true)
-    exe 'buffer ' .. nr
-enddef
-
 def g:RDebugJump(fnm: string, lnum: number)
     var saved_so = &scrolloff
     if g:R_debug_center == 1
@@ -938,13 +929,13 @@ def g:RDebugJump(fnm: string, lnum: number)
             if &modified
                 split
             endif
-            OpenFile(fname)
+            g:RGoToFile('buffer', fname)
         elseif stridx(glob("*"), fname) >= 0
             exe 'sb ' .. bufnr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
-            OpenFile(fname)
+            g:RGoToFile('buffer', fname)
         else
             exe 'set so=' .. saved_so
             return
@@ -1058,7 +1049,11 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         if g:R_csv_app =~ '%s'
             cmd = printf(g:R_csv_app, tsvnm)
         elseif g:R_csv_app =~# '^:'
-            cmd = g:R_csv_app .. ' ' .. fnameescape(tsvnm)
+            # On Windows fnameescape() leaves a bracket alone, and the command
+            # would take the name for a wildcard. The file exists, so there a
+            # bracket is written as a set that holds nothing but itself.
+            cmd = g:R_csv_app .. ' ' .. (has('win32')
+                ? substitute(fnameescape(tsvnm), '\[', '[[]', 'g') : fnameescape(tsvnm))
         elseif g:R_csv_app =~# '^terminal:'
             cmd = g:R_csv_app .. ' ' .. tsvnm
         else

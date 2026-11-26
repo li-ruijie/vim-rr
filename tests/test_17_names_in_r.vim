@@ -437,6 +437,61 @@ else
     'RLoadHTML: xdg-open gets the path as one argument')
 endif
 
+# ========================================================================
+# Ex commands: a bracket in a file name is no wildcard
+# ========================================================================
+# On Windows fnameescape() leaves a bracket alone, so :tabnew and :split
+# opened "a1.tex" for "a[1].tex" when both files existed.
+writefile(['\documentclass{article}', '\begin{document}', 'x', '\end{document}'], work .. '/main.Rnw')
+add(made_files, 'main.Rnw')
+for ext in ['tex', 'Rout', 'tsv']
+  writefile(['plain'], work .. '/a1.' .. ext)
+  extend(made_files, ['a1.' .. ext, 'a[1].' .. ext])
+endfor
+writefile(['bracket'], work .. '/a[1].tex')
+writefile(['bracket'], work .. '/a[1].Rout')
+execute 'edit ' .. fnameescape(work .. '/main.Rnw')
+err = Caught(() => {
+  g:GoToBuf('a[1].tex', 'a[1].tex', work, 1)
+})
+g:AssertEqual([err, expand('%:t'), getline(1)], ['', 'a[1].tex', 'bracket'],
+  'GoToBuf: opens "a[1].tex" and not "a1.tex" beside it')
+silent! tabonly
+execute 'buffer ' .. rbuf
+
+var saved_routnotab = g:R_routnotab
+for notab in [0, 1]
+  g:R_routnotab = notab
+  err = Caught(() => {
+    g:GetRCmdBatchOutput(work .. '/a[1].Rout')
+  })
+  g:AssertEqual([err, bufloaded(work .. '/a[1].Rout'), bufloaded(work .. '/a1.Rout')], ['', 1, 0],
+    'GetRCmdBatchOutput: opens "a[1].Rout" and not "a1.Rout" beside it, R_routnotab = ' .. notab)
+  silent! tabonly
+  silent! only
+  execute 'buffer ' .. rbuf
+endfor
+g:R_routnotab = saved_routnotab
+
+# RViewDF() appends the name of its file to the Ex command of R_csv_app
+var saved_tmpdir = g:rplugin.tmpdir
+var saved_csv_app = get(g:, 'R_csv_app', v:none)
+g:rplugin.tmpdir = work
+g:R_csv_app = ':split'
+err = Caught(() => {
+  g:RViewDF('a[1]', '', "bracket\x141")
+})
+g:AssertEqual([err, expand('%:t'), getline(1)], ['', 'a[1].tsv', 'bracket'],
+  'RViewDF: an Ex command opens "a[1].tsv" and not "a1.tsv" beside it')
+silent! only
+execute 'buffer ' .. rbuf
+g:rplugin.tmpdir = saved_tmpdir
+if type(saved_csv_app) == v:t_none
+  unlet g:R_csv_app
+else
+  g:R_csv_app = saved_csv_app
+endif
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim

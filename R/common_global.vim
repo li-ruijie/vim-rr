@@ -106,6 +106,17 @@ def g:RString(str: string): string
     return '"' .. escape(str, '\"')->substitute("\n", '\\n', 'g') .. '"'
 enddef
 
+# Go to the buffer of a file whose name is taken as it is, with "buffer" for
+# the current window, "sbuffer" for a new one, or "tab sbuffer" for a new tab.
+# An Ex command that takes a file name reads some characters of the name as
+# its own. fnameescape() guards them, but on Windows it leaves a bracket
+# alone, and :edit then opens another file that the name matches as a wildcard.
+def g:RGoToFile(how: string, fname: string)
+    var nr = bufadd(fname)
+    setbufvar(nr, '&buflisted', true)
+    exe how .. ' ' .. nr
+enddef
+
 def g:RWarningMsg(wmsg: string)
     if v:vim_did_enter == 0
         if !exists('g:rplugin.start_msg')

@@ -290,9 +290,10 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     return {texlnum: lstexln, rnwfile: lsrnwf, rnwline: lsrnwl}
 enddef
 
-# The file name comes from a PDF viewer or from a concordance file. It is
-# escaped for the Ex commands below, where a bar would start another command
-# and a percent sign would stand for the current file.
+# The file name comes from a PDF viewer or from a concordance file. Its
+# buffer is given to the Ex commands below by its number, since in a name a
+# bar would start another command and a percent sign would stand for the
+# current file.
 def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): number
     if expand("%:t") != rnwbn
         if bufloaded(basedir .. '/' .. rnwf)
@@ -307,9 +308,9 @@ def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): numb
             execute "set switchbuf=" .. savesb
         else
             if filereadable(basedir .. '/' .. rnwf)
-                execute "tabnew " .. fnameescape(basedir .. '/' .. rnwf)
+                g:RGoToFile('tab sbuffer', basedir .. '/' .. rnwf)
             elseif filereadable(rnwf)
-                execute "tabnew " .. fnameescape(rnwf)
+                g:RGoToFile('tab sbuffer', rnwf)
             else
                 g:RWarningMsg('Could not find either "' .. rnwbn .. ' or "' .. rnwf .. '" in "' .. basedir .. '".')
                 return 0
