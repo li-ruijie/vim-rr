@@ -360,11 +360,6 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
         firstobj = "#n#"
     endif
 
-
-    if firstobj =~ '"'
-        firstobj = substitute(firstobj, '"', '\\"', "g")
-    endif
-
     return [firstobj, v:false]
 enddef
 

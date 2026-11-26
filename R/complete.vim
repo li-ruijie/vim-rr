@@ -308,7 +308,7 @@ def g:GetRArgs(id: any, base: string, rkeyword0: string, listdf: any, firstobj: 
     endif
     var msg = 'vimcom:::vim_complete_args("' .. id .. '", "' .. rkeyword0 .. '", "' .. base .. '"'
     if firstobj != ""
-        msg ..= ', firstobj = "' .. firstobj .. '"'
+        msg ..= ', firstobj = ' .. g:RString(firstobj)
     elseif pkg != ""
         msg ..= ', lib = ' .. pkg
     endif

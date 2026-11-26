@@ -1184,11 +1184,13 @@ def g:AskRDoc(rkeyword: string, package: string, getclass: number)
 
     var rcmd: string
     if firstobj == "" && package == ""
-        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L)'
+        rcmd = 'vimcom:::vim.help(' .. g:RString(rkeyword) .. ', ' .. htw .. 'L)'
     elseif package != ""
-        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L, package="' .. package  .. '")'
+        rcmd = 'vimcom:::vim.help(' .. g:RString(rkeyword) .. ', ' .. htw .. 'L, package=' ..
+            g:RString(package) .. ')'
     else
-        rcmd = 'vimcom:::vim.help("' .. rkeyword .. '", ' .. htw .. 'L, "' .. firstobj .. '")'
+        rcmd = 'vimcom:::vim.help(' .. g:RString(rkeyword) .. ', ' .. htw .. 'L, ' ..
+            g:RString(firstobj) .. ')'
     endif
 
     g:SendToVimcom("E", rcmd)
@@ -1207,7 +1209,8 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
         redraw
         var chn = str2nr(input(msg .. "Please, select one of them: "))
         if chn > 0 && chn <= len(libs)
-            g:SendToVimcom("E", 'vimcom:::vim.help("' .. topic .. '", ' .. htw .. 'L, package="' .. libs[chn - 1] .. '")')
+            g:SendToVimcom("E", 'vimcom:::vim.help(' .. g:RString(topic) .. ', ' .. htw .. 'L, package=' ..
+                        g:RString(libs[chn - 1]) .. ')')
         endif
         return
     endif
@@ -2066,7 +2069,7 @@ def g:PrintRObject(rkeyword: string)
     if firstobj == ""
         g:SendCmdToR("print(" .. rkeyword .. ")")
     else
-        g:SendCmdToR('vim.print("' .. rkeyword .. '", "' .. firstobj .. '")')
+        g:SendCmdToR('vim.print(' .. g:RString(rkeyword) .. ', ' .. g:RString(firstobj) .. ')')
     endif
 enddef
 
@@ -2145,7 +2148,7 @@ def g:RAction(rcmd: string, ...args: list<any>)
         var rfun = rcmd
         if rcmd == "args"
             if g:R_listmethods == 1 && rkeyword !~ '::'
-                g:SendCmdToR('vim.list.args("' .. rkeyword .. '")')
+                g:SendCmdToR('vim.list.args(' .. g:RString(rkeyword) .. ')')
             else
                 g:SendCmdToR('args(' .. rkeyword .. ')')
             endif
@@ -2166,7 +2169,7 @@ def g:RAction(rcmd: string, ...args: list<any>)
         endif
 
         if g:R_open_example && rcmd == "example"
-            g:SendToVimcom("E", 'vimcom:::vim.example("' .. rkeyword .. '")')
+            g:SendToVimcom("E", 'vimcom:::vim.example(' .. g:RString(rkeyword) .. ')')
             return
         endif
 
@@ -2190,16 +2193,16 @@ def g:RAction(rcmd: string, ...args: list<any>)
                 else
                     if has("win32") && &encoding == "utf-8"
                         g:SendToVimcom("E",
-                                    'vimcom:::vim_viewobj("' .. rkeyword .. '"' .. argmnts ..
+                                    'vimcom:::vim_viewobj(' .. g:RString(rkeyword) .. argmnts ..
                                     ', fenc="UTF-8"' .. ')')
                     else
                         g:SendToVimcom("E",
-                                    'vimcom:::vim_viewobj("' .. rkeyword .. '"' .. argmnts .. ')')
+                                    'vimcom:::vim_viewobj(' .. g:RString(rkeyword) .. argmnts .. ')')
                     endif
                 endif
             else
                 g:SendToVimcom("E",
-                            'vimcom:::vim_dput("' .. rkeyword .. '"' .. argmnts .. ')')
+                            'vimcom:::vim_dput(' .. g:RString(rkeyword) .. argmnts .. ')')
             endif
             return
         endif

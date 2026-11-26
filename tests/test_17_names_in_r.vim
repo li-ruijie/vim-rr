@@ -265,6 +265,101 @@ if type(saved_viewer) == v:t_none
 else
   g:rplugin.pdfviewer = saved_viewer
 endif
+# ------------------------------------------------------------------------
+# Text of the buffer and names from R are R strings as well
+# ------------------------------------------------------------------------
+# The word under the cursor, a selection, the first argument of a call, and
+# a name that R sent were put between double quotes as they were. A selection
+# such as d[d$g == "a", ] is ordinary, and its quotes ended the R string. The
+# first argument had its double quotes escaped and its backslashes not.
+# Most of this code goes to the server of vimcom. A program that copies its
+# input into a file stands in for the server. It goes into a table of jobs of
+# its own, which is declared for any value, since a table that a test has
+# saved in a variable and put back takes strings only.
+var names_log = work .. '/names_sent.txt'
+var saved_jobs: dict<any> = g:rplugin.jobs
+var names_jobs: dict<any> = g:rplugin.jobs->copy()
+names_jobs['Server'] = job_start(has('win32') ? ['findstr', '^'] : ['cat'],
+  {out_io: 'file', out_name: names_log, err_io: 'null'})
+g:rplugin.jobs = names_jobs
+var saved_names_opts = ['R_df_viewer', 'R_open_example', 'R_listmethods']
+  ->mapnew((_, o) => [o, get(g:, o, v:none)])
+unlet! g:R_df_viewer
+g:R_open_example = 1
+g:R_listmethods = 1
+writefile(['summary(gsub("\\d", "", x), 1)', 'd[d$g == "a\b", ]'], work .. '/names.R')
+execute 'edit ' .. fnameescape(work .. '/names.R')
+var names_buf = bufnr('%')
+# The whole second line is the selection, and the cursor is on the first line
+setpos("'<", [0, 2, 1, 0])
+setpos("'>", [0, 2, col([2, '$']) - 1, 0])
+cursor(1, 1)
+
+g:AssertEqual(g:RGetFirstObj('summary')[0], 'gsub("\\d", "", x)',
+  'RGetFirstObj: the first argument is returned as the buffer holds it')
+g:AssertEqual(Sent(() => {
+  g:PrintRObject('summary')
+}), 'vim.print("summary", "gsub(\"\\\\d\", \"\", x)")',
+  'PrintRObject: the first argument is an R string')
+g:AssertEqual(Sent(() => {
+  g:RAction('args', 'v')
+}), 'vim.list.args("d[d$g == \"a\\b\", ]")',
+  'RAction: a selection is an R string for vim.list.args()')
+
+# input() in ShowRDoc() takes the number of the library from the keys of :normal
+err = Caught(() => {
+  g:RAction('viewobj', 'v')
+  g:RAction('dputtab', 'v')
+  g:RAction('example', 'v')
+  g:AskRDoc('summary', '', 1)
+  g:AskRDoc('a"b', 'p\q', 0)
+  g:AskRDoc('a"b', '', 0)
+  g:GetRArgs(7, 'ba', 'summary', 0, g:RGetFirstObj('summary')[0], '', false)
+  execute "normal :call g:ShowRDoc('MULTILIB to\"pic', 'lib1 li\\b2')\<CR>2\<CR>"
+})
+g:AssertEqual(err, '', 'R code for vimcom: no error for a name with a quote or a backslash')
+ch_close_in(job_getchannel(g:rplugin.jobs['Server']))
+for _ in range(100)
+  if job_status(g:rplugin.jobs['Server']) !=# 'run'
+    break
+  endif
+  sleep 50m
+endfor
+job_stop(g:rplugin.jobs['Server'], 'kill')
+# The width of the help text depends on the window
+var names_sent = (filereadable(names_log) ? readfile(names_log) : [])
+  ->mapnew((_, l) => l->substitute('\r$', '', '')->substitute('", \d\+L', '", NL', ''))
+var names_fenc = has('win32') && &encoding == 'utf-8' ? ', fenc="UTF-8"' : ''
+var names_expected = [
+  ['vim_viewobj("d[d$g == \"a\\b\", ]"' .. names_fenc .. ')',
+    'RAction: a selection is an R string for vim_viewobj()'],
+  ['vim_dput("d[d$g == \"a\\b\", ]")', 'RAction: a selection is an R string for vim_dput()'],
+  ['vim.example("d[d$g == \"a\\b\", ]")', 'RAction: a selection is an R string for vim.example()'],
+  ['vim.help("summary", NL, "gsub(\"\\\\d\", \"\", x)")', 'AskRDoc: the first argument is an R string'],
+  ['vim.help("a\"b", NL, package="p\\q")', 'AskRDoc: the topic and the package are R strings'],
+  ['vim.help("a\"b", NL)', 'AskRDoc: the topic is an R string'],
+  ['vim_complete_args("7", "summary", "ba", firstobj = "gsub(\"\\\\d\", \"\", x)")',
+    'GetRArgs: the first argument is an R string'],
+  ['vim.help("to\"pic", NL, package="li\\b2")',
+    'ShowRDoc: the topic and the library from R are R strings'],
+]
+for i in range(len(names_expected))
+  g:AssertEqual(get(names_sent, i, 'nothing sent'),
+    '2E' .. $VIMR_ID .. 'vimcom:::' .. names_expected[i][0], names_expected[i][1])
+endfor
+
+g:rplugin.jobs = saved_jobs
+for [name, value] in saved_names_opts
+  if type(value) != v:t_none
+    extend(g:, {[name]: value})
+  elseif has_key(g:, name)
+    remove(g:, name)
+  endif
+endfor
+execute 'buffer ' .. rbuf
+execute 'bwipeout! ' .. names_buf
+extend(made_files, ['names.R', 'names_sent.txt'])
+
 g:SendCmdToR = SavedSend
 delfunction g:RrTestSend
 unlet g:rr_test_sent
