@@ -71,7 +71,7 @@ VimcomEnv$tcb <- FALSE
                  as.integer(hascolor),
                  sep = "\x12"),
            PACKAGE = "vimcom")
-        if (ok)
+        if (ok && !VimcomEnv$tcb)
             add_tcb()
     }
     if (!is.na(utils::localeToCharset()[1]) &&

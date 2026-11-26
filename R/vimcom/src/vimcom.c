@@ -1660,6 +1660,11 @@ static void *client_loop_thread(__attribute__((unused)) void *arg)
  */
 SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
                   SEXP szl, SEXP tml, SEXP nvv, SEXP rinfo) {
+    // The package was attached again without being unloaded, and the
+    // connection of the first start is still in use.
+    if (initialized)
+        return ScalarLogical(1);
+
     verbose = *INTEGER(vrb);
     allnames = *INTEGER(anm);
     setwidth = *INTEGER(swd);
