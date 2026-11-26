@@ -409,6 +409,101 @@ if executable('gcc')
 endif
 
 # ========================================================================
+# vimrserver: a message that lacks a part is read within its end
+# ========================================================================
+# The server stepped past the end of a message that lacked a separator. The
+# menu of arguments without the separator before its items was read and
+# written past the buffer of the message when the message filled it, and a
+# request to open a list without its kind, or to close all lists without
+# their state, updated the libraries. The number of elements of a list was
+# read from its second digit on, so the second element of a list of twelve
+# was drawn as the last one, and for an environment it was read past the end
+# of the line. On Linux the server is built with the address sanitizer where
+# gcc has it, so that a read past the buffer ends the server.
+# A server that the sanitizer has ended takes nothing more, and the checks
+# below then fail without an error
+def ToRunning(job: job, msg: string)
+  if job_status(job) ==# 'run'
+    ch_sendraw(job, msg)
+  endif
+enddef
+def ToVimcomIfOpen(ch: channel, secret: string, msg: string)
+  if ch_status(ch) ==# 'open'
+    SendAsVimcom(ch, secret, msg)
+  endif
+enddef
+if executable('gcc')
+  var srv2 = work .. '/srv2'
+  mkdir(srv2 .. '/lib', 'p')
+  mkdir(srv2 .. '/compl', 'p')
+  mkdir(srv2 .. '/tmp', 'p', 0o700)
+  writefile([], srv2 .. '/tmp/libnames_rrtest')
+  writefile([srv2 .. '/lib'], srv2 .. '/tmp/libPaths')
+  var exe2 = srv2 .. (has('win32') ? '/vimrserver.exe' : '/vimrserver')
+  var src2 = plugin_root .. '/R/vimcom/src/apps/vimrserver.c'
+  if !has('win32')
+    JobEnded(job_start(['gcc', '-fsanitize=address', '-g', '-pthread', '-std=gnu99', src2, '-o', exe2],
+      {in_io: 'null', out_io: 'null', err_io: 'null'}), 1200)
+  endif
+  if !executable(exe2)
+    JobEnded(job_start(has('win32')
+      ? ['gcc', '-mwindows', '-std=gnu99', '-DWIN32', src2, '-o', exe2, '-lWs2_32', '-lbcrypt']
+      : ['gcc', '-pthread', '-std=gnu99', src2, '-o', exe2],
+      {in_io: 'null', out_io: 'null', err_io: 'null'}), 1200)
+  endif
+  server_replies->filter((_, _) => false)
+  var sjob2 = job_start([exe2], {in_mode: 'raw', err_io: 'null',
+    out_cb: (_, msg) => add(server_replies, substitute(msg, '\r$', '', '')),
+    env: {VIMR_ID: 'rrtest', VIMR_COMPLDIR: srv2 .. '/compl', VIMR_TMPDIR: srv2 .. '/tmp',
+      VIMR_LOCAL_TMPDIR: srv2 .. '/tmp', VIMR_COMPLCB: 'g:SetComplMenu', VIMR_COMPLInfo: 'g:SetComplInfo',
+      VIMR_RPATH: 'no_such_r', VIMR_OPENLS: '1', LC_MESSAGES: 'C', LC_ALL: 'C', LANG: 'C',
+      ASAN_OPTIONS: 'detect_leaks=0'}})
+  ServerReplies('nrs_running')
+  var secret2 = matchstr(get(ServerReplies('VIMR_SECRET'), 0, ''), '''\zs[^'']*')
+  ToRunning(sjob2, "1\n")
+  var port2 = matchstr(get(ServerReplies('RSetMyPort'), 0, ''), '\d\+')
+  var rch2 = ch_open('127.0.0.1:' .. port2, {mode: 'raw', waittime: 5000})
+  # The first message of 1023 bytes fills the buffer of 1024 bytes
+  ToVimcomIfOpen(rch2, secret2, '+A13;;' .. repeat('f', 1017))
+  ServerReplies('SetComplMenu(13,')
+  ToRunning(sjob2, "6zz\n")
+  g:AssertEqual([ServerReplies('SetComplMenu(13,')->mapnew((_, r) => ServerPassed(r)),
+    len(ServerReplies('''zz''})$'))], [[[13, []]], 1],
+    'vimrserver: a menu of arguments without its items is answered, and the server goes on')
+  for request in ['33', '34', '6zy']
+    ToRunning(sjob2, request .. "\n")
+  endfor
+  ServerReplies('''zy''})$')
+  g:AssertEqual([ServerReplies('UpdateOB'), len(ServerReplies('''zy''})$'))], [[], 1],
+    'vimrserver: a request about the lists that lacks its last part changes nothing')
+  # A list of twelve numbers and an environment, as vimcom writes them
+  var zl_lines = ["zl\x06[\x06list\x06.GlobalEnv\x06\x06\x06 [12]\x06"]
+    + range(1, 12)->mapnew((_, i) => 'zl$e' .. i .. "\x06{\x06\x06.GlobalEnv\x06\x06\x06\x06")
+    + ["zenv\x06:\x06environment\x06.GlobalEnv\x06\x06\x06\x06"]
+  ToVimcomIfOpen(rch2, secret2, '+G' .. zl_lines->join("\n") .. "\n")
+  ServerReplies('UpdateLocalFunctions')
+  ToRunning(sjob2, "31\n")
+  ServerReplies("UpdateOB('GlobalEnv')")
+  var ob_file = srv2 .. '/tmp/globenv_rrtest'
+  var ob_lines = filereadable(ob_file) ? readfile(ob_file) : []
+  g:AssertEqual(ob_lines->copy()->filter((_, l) => l =~ '#e\d')
+    ->mapnew((_, l) => matchstr(l, '^ *\zs.\{-}\ze{')), repeat(['|- '], 11) + ['`- '],
+    'vimrserver: only the twelfth element of a list of twelve is drawn as the last')
+  g:Assert(match(ob_lines, '^   :#zenv\t$') >= 0, 'vimrserver: an environment is listed')
+  if ch_status(rch2) ==# 'open'
+    ch_close(rch2)
+  endif
+  ToRunning(sjob2, "9\n")
+  JobEnded(sjob2, 30)
+  job_stop(sjob2, 'kill')
+  JobEnded(sjob2, 30)
+  extend(made_files, ['srv2/compl/inst_libs', 'srv2/tmp/libnames_rrtest', 'srv2/tmp/libPaths',
+    'srv2/tmp/libs_in_nrs_rrtest', 'srv2/tmp/bo_code.R', 'srv2/tmp/globenv_rrtest',
+    'srv2/tmp/liblist_rrtest', 'srv2/' .. fnamemodify(exe2, ':t')])
+  extend(made_dirs, ['srv2/lib', 'srv2/compl', 'srv2/tmp', 'srv2'])
+endif
+
+# ========================================================================
 # R code: a file name is an R string, whatever it holds
 # ========================================================================
 # Vim put a file name between double quotes into the R code that it sends, so

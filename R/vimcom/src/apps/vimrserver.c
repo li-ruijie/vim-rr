@@ -385,8 +385,12 @@ static void ParseMsg(char *b) // Parse the message from R
             args = fnm;
             while (*args != 0 && *args != ';')
                 args++;
-            *args = 0;
-            args++;
+            // A message that ends with the name of the function has no
+            // items, and the menu is answered without them
+            if (*args == ';') {
+                *args = 0;
+                args++;
+            }
             b = args;
             while (*b != 0 && *b != '\n')
                 b++;
@@ -1928,16 +1932,19 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
         return p;
 
     if (f[1][0] == '[' || f[1][0] == '$' || f[1][0] == '<' || f[1][0] == ':') {
-        s = f[6];
-        s++;
-        s++;
-        s++; // Number of elements (list)
-        if (f[1][0] == '$') {
-            while (*s && *s != ' ')
-                s++;
-            s++; // Number of columns (data.frame)
+        // vimcom ends the last field with " [n]" for a list or an S4 object
+        // and with " [rows, columns]" for a data frame. An environment and
+        // an object of a package have no such part.
+        ne = 0;
+        s = strrchr(f[6], '[');
+        if (s) {
+            s++; // Number of elements (list)
+            if (f[1][0] == '$') {
+                s = strchr(s, ',');
+                s = s ? s + 1 : f[6] + strlen(f[6]); // Number of columns
+            }
+            ne = atoi(s);
         }
-        ne = atoi(s);
         if (f[1][0] == '[' || f[1][0] == '$' || f[1][0] == ':') {
             snprintf(base1, 127, "%s$", bsnm);  // Named list
             snprintf(base2, 127, "%s[[", bsnm); // Unnamed list
@@ -2839,6 +2846,8 @@ void stdin_loop() {
             case '3': // Open/Close list
                 msg++;
                 t = *msg;
+                if (t == 0)
+                    break;
                 msg++;
                 toggle_list_status(msg);
                 if (t == 'G')
@@ -2848,6 +2857,8 @@ void stdin_loop() {
                 break;
             case '4': // Close/Open all
                 msg++;
+                if (*msg == 0)
+                    break;
                 if (*msg == 'O')
                     change_all(listTree, 1);
                 else

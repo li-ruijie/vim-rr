@@ -1475,7 +1475,9 @@ static void vimcom_parse_received_msg(char *buf) {
     if (verbose > 3) {
         REprintf("vimcom received: %s\n", buf);
     } else if (verbose > 2) {
-        p = buf + strlen(vimr_id) + 1;
+        // A message such as "G" holds no identifier
+        size_t skip = strlen(vimr_id) + 1;
+        p = strlen(buf) > skip ? buf + skip : "";
         REprintf("vimcom Received: [%c] %s\n", buf[0], p);
     }
 
