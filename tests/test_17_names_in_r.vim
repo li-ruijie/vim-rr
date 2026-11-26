@@ -1036,6 +1036,67 @@ g:AssertEqual(root_found, root_cases->mapnew((_, c) => ['', work .. '/' .. c[2] 
   work .. '/' .. c[2] .. '/main.tex', 2]),
   'SyncTeX: the root, the PDF directory, and the TeX file of a child or of a root in another directory')
 
+# The name of a child is matched as it is. SyncTeX_forward() looked for the
+# line of the master that includes the child, and for the lines of the
+# concordance that belong to a file, with the names as patterns, and
+# GoToBuf() took the buffer of the TeX file from bufnr(), which takes a name
+# for a pattern as well. A bracket then matched another file, a tilde raised
+# E33 or matched the text of the last substitution, and a name matched
+# within a longer one. Each master below names a decoy first, which the
+# pattern form matches, and the buffer of a decoy TeX file is loaded beside
+# the real one. The knitr master names its child, and the Sweave master
+# includes its children, which the concordance names, one of them with a
+# directory.
+var odd_kid = has('win32') ? 'k~1.Rnw' : 'k*~\1.Rnw'
+var kid_cases = [
+  ['kx', 'm[1]', ['\documentclass{article}', "<<child='kid1.Rnw'>>=", '@', "<<child='kid[1].Rnw'>>=", '@'],
+    'kid[1].Rnw', [['m[1].Rnw', 6]], 1, 4],
+  ['sx', 'main', ['\documentclass{article}', '\SweaveInput{kid1.Rnw}', '\SweaveInput{kid[1].Rnw}'],
+    'kid[1].Rnw', [['main.Rnw', 3], ['kid1.Rnw', 3], ['./kid[1].Rnw', 3]], 2, 8],
+  ['ox', 'main', ['\documentclass{article}', '% text', '% text', "<<child='" .. odd_kid .. "'>>=", '@'],
+    odd_kid, [['main.Rnw', 6]], 1, 4],
+  ['dx', 'main', ['\documentclass{article}', "<<child='xkid.Rnw'>>=", '@', "<<child='./kid.Rnw'>>=", '@'],
+    'kid.Rnw', [['main.Rnw', 6]], 1, 4]]
+# Run the forward search from a child to the TeX file of its master, in a
+# tree that holds the master, its TeX file and concordance, a decoy TeX file,
+# and the child, and return the error, the file, and the line that it went to
+def KidFound(kdir: string, master: string, mlines: list<string>, kname: string,
+    blocks: list<any>, kline: number): list<any>
+  var dir = work .. '/' .. kdir
+  mkdir(dir, 'p')
+  writefile(mlines, dir .. '/' .. master .. '.Rnw')
+  var ntex = blocks->mapnew((_, b) => b[1])->reduce((a, b) => a + b, 0)
+  writefile(range(1, ntex)->mapnew((_, n) => 'line ' .. n), dir .. '/' .. master .. '.tex')
+  writefile(blocks->mapnew((_, b) => ['\Sconcordance{concordance:' .. master .. '.tex:' .. b[0] .. ':%',
+    '1 ' .. (b[1] - 1) .. ' 1}'])->flattennew(), dir .. '/' .. master .. '-concordance.tex')
+  writefile(['decoy'], dir .. '/m1.tex')
+  writefile(['% !Rnw root = ' .. master .. '.Rnw', 'line 2', 'line 3'], dir .. '/' .. kname)
+  var tex_bufs = [master .. '.tex', 'm1.tex']->mapnew((_, t) => bufadd(dir .. '/' .. t))
+  for tb in tex_bufs
+    bufload(tb)
+  endfor
+  var kid_buf = bufadd(dir .. '/' .. kname)
+  execute 'buffer ' .. kid_buf
+  cursor(kline, 1)
+  var kerr = Caught(() => {
+    g:SyncTeX_forward(1)
+  })
+  var found = [kerr, substitute(expand('%:p'), '\\', '/', 'g'), line('.')]
+  silent! only
+  execute 'buffer ' .. rbuf
+  for tb in tex_bufs + [kid_buf]
+    execute 'bwipeout! ' .. tb
+  endfor
+  extend(made_files, [master .. '.Rnw', master .. '.tex', master .. '-concordance.tex', 'm1.tex', kname]
+    ->mapnew((_, f) => kdir .. '/' .. f))
+  add(made_dirs, kdir)
+  return found
+enddef
+var kid_found = kid_cases->mapnew((_, c) => KidFound(c[0], c[1], c[2], c[3], c[4], c[5]))
+g:AssertEqual(kid_found,
+  kid_cases->mapnew((_, c) => ['', work .. '/' .. c[0] .. '/' .. c[1] .. '.tex', c[6]]),
+  'SyncTeX_forward: a child named "kid[1].Rnw" or "' .. odd_kid .. '" is found, and no decoy is taken')
+
 # ========================================================================
 # Ex commands: names from R and the temporary directory are taken as they are
 # ========================================================================

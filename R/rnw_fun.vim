@@ -288,18 +288,20 @@ enddef
 # The file name comes from a PDF viewer or from a concordance file. Its
 # buffer is given to the Ex commands below by its number, since in a name a
 # bar would start another command and a percent sign would stand for the
-# current file.
+# current file. bufnr() takes a name for a pattern, so that "a[1].tex" gives
+# the buffer of "a1.tex", and bufadd() gives the number of the buffer that has
+# the name itself, which bufloaded() has found.
 def g:GoToBuf(rnwbn: string, rnwf: string, basedir: string, rnwln: number): number
     if expand("%:t") != rnwbn
         if bufloaded(basedir .. '/' .. rnwf)
             var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            execute "sb " .. bufnr(basedir .. '/' .. rnwf)
+            execute "sb " .. bufadd(basedir .. '/' .. rnwf)
             execute "set switchbuf=" .. savesb
         elseif bufloaded(rnwf)
             var savesb = &switchbuf
             set switchbuf=useopen,usetab
-            execute "sb " .. bufnr(rnwf)
+            execute "sb " .. bufadd(rnwf)
             execute "set switchbuf=" .. savesb
         else
             if filereadable(basedir .. '/' .. rnwf)
@@ -384,14 +386,17 @@ def g:SyncTeX_forward(...args: list<any>)
             var mpath = RootFile(mfile)
             if filereadable(substitute(mpath, '\....$', '', '') .. "-concordance.tex")
                 var mlines = readfile(mpath)
+                # The name of the child is matched as it is, after a brace, a
+                # quote, or the slash of a directory
+                var kid = '\V' .. escape(expand("%:t"), '\') .. '\m'
                 for ii in range(len(mlines))
                     # Sweave has detailed child information
-                    if mlines[ii] =~ 'SweaveInput.*' .. expand("%:t")
+                    if mlines[ii] =~ 'SweaveInput.*[{/\\]' .. kid
                         lnum = line(".")
                         break
                     endif
                     # Knitr does not include detailed child information
-                    if mlines[ii] =~ '<<.*child *=.*' .. expand("%:t") .. '["' .. "']"
+                    if mlines[ii] =~ '<<.*child *=.*[''"/\\]' .. kid .. '[''"]'
                         lnum = ii + 1
                         rnwf = mpath
                         break
@@ -424,7 +429,8 @@ def g:SyncTeX_forward(...args: list<any>)
     var rnwline = concdata["rnwline"]
     var texln = 0
     for ii in range(len(texlnum))
-        if rnwfile[ii] =~ rnwf && rnwline[ii] >= lnum
+        # The concordance may name the file with a directory
+        if substitute(rnwfile[ii], '.*[/\\]', '', '') ==# rnwf && rnwline[ii] >= lnum
             texln = texlnum[ii]
             break
         endif
