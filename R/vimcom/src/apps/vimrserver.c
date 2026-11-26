@@ -1831,7 +1831,7 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
                                  int closeddf, FILE *fl) {
     char base1[128];
     char base2[128];
-    char prefix[128];
+    char prefix[136]; // Room for newprfx and for strL or strT
     char newprfx[128];
     char nm[160];
     char descr[160];
@@ -1982,12 +1982,12 @@ static const char *write_ob_line(const char *p, const char *bs, char *prfx,
             s = next_line(p);
             ne--;
             if (ne == 0) {
-                snprintf(prefix, 112, "%s%s", newprfx, strL);
+                snprintf(prefix, sizeof(prefix), "%s%s", newprfx, strL);
             } else {
                 if (str_here(s, base1) || str_here(s, base2))
-                    snprintf(prefix, 112, "%s%s", newprfx, strT);
+                    snprintf(prefix, sizeof(prefix), "%s%s", newprfx, strT);
                 else
-                    snprintf(prefix, 112, "%s%s", newprfx, strL);
+                    snprintf(prefix, sizeof(prefix), "%s%s", newprfx, strL);
             }
 
             if (*p) {
