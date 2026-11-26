@@ -232,8 +232,13 @@ var html_sent = Sent(() => {
 })
 g:Assert(stridx(html_sent, '; knit("' .. odd_r .. '.Rrst"); system2(') > 0,
   'RMakeHTMLrrst: the file that is knitted is an R string (' .. html_sent .. ')')
-g:Assert(html_sent =~# '\V; browseURL("\.\{-}' .. escape(odd_r, '\') .. '.html")\$',
-  'RMakeHTMLrrst: the file for the browser is an R string (' .. html_sent .. ')')
+# knit() writes its output into the working directory, which RSetWD() has set
+# to that of the file. The names had the modifiers of expand() in the wrong
+# order, so they held the whole path of the file.
+var html_end = '; system2("rst2html", shQuote(c("' .. odd_r .. '.rst", "' .. odd_r .. '.html")))'
+  .. '; browseURL("' .. odd_r .. '.html")'
+g:AssertEqual(strpart(html_sent, len(html_sent) - len(html_end)), html_end,
+  'RMakeHTMLrrst: the converter and the browser get the names without a directory')
 g:R_rst2pdfpath = 'C:\tools\rst "2" pdf'
 var pdf_sent = Sent(() => {
   g:RMakePDFrrst()

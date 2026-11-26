@@ -77,7 +77,7 @@ if !exists("g:did_vimr_rrst_functions")
 
         # The two file names are written as R strings, and R quotes them for
         # the shell that it runs the converter with.
-        var base = expand("%:r:t")
+        var base = expand("%:t:r")
         var ext = t == "odt" ? "odt" : "html"
         rcmd = rcmd .. '; system2("rst2' .. ext .. '", shQuote(c(' .. g:RString(base .. '.rst') .. ', '
             .. g:RString(base .. '.' .. ext) .. ')))'
