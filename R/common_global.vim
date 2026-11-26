@@ -797,8 +797,10 @@ if !has_key(g:rplugin, "compldir")
 endif
 
 def g:ValidateTmpdir(dir: string): bool
-    # Reject symlinks — real path must equal given path
-    if resolve(dir) != dir
+    # Reject symlinks — real path must equal given path. expand() may have
+    # put a slash at the end of the name, which resolve() leaves out.
+    var path = substitute(dir, '/\+$', '', '')
+    if resolve(path) != path
         g:RWarningMsg('Tmpdir is a symlink: ' .. dir)
         return false
     endif

@@ -378,6 +378,30 @@ if has('unix') && filereadable('/proc/sys/kernel/pid_max')
   job_stop(zjob, 'kill')
 endif
 
+# ========================================================================
+# ValidateTmpdir: a slash at the end of the name is no symlink
+# ========================================================================
+# The temporary directory of R_tmpdir goes through expand(), which on Unix
+# puts a slash at the end of a name that holds a single quote. The directory
+# was then compared with its resolved name, which has no such slash, and was
+# refused as a symlink.
+var saved_msgs = get(g:rplugin, 'start_msg', v:none)
+mkdir(work .. "/it's v", 'p', 0o700)
+add(made_dirs, "it's v")
+g:Assert(g:ValidateTmpdir(substitute(expand(work .. "/it's v"), '\\', '/', 'g')),
+  'ValidateTmpdir: a directory with a single quote in its name is accepted')
+if has('unix') && !has('win32unix')
+  system('ln -s ' .. shellescape(work .. "/it's v") .. ' ' .. shellescape(work .. '/vlink'))
+  g:Assert(!g:ValidateTmpdir(work .. '/vlink/'),
+    'ValidateTmpdir: a symlink is refused, with a slash at its end too')
+  delete(work .. '/vlink')
+endif
+if type(saved_msgs) != v:t_none
+  g:rplugin.start_msg = saved_msgs
+elseif has_key(g:rplugin, 'start_msg')
+  remove(g:rplugin, 'start_msg')
+endif
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim
