@@ -195,7 +195,7 @@ static void unlock_state(void) {
 }
 struct sockaddr_in servaddr; // Server address structure
 static int sockfd;           // socket file descriptor
-static int connfd;           // Connection file descriptor
+static int connfd = -1;      // Connection file descriptor
 
 #define Debug_NRS_
 __attribute__((format(printf, 1, 2))) static void
