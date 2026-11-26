@@ -665,7 +665,7 @@ enddef
 def g:ShowRObj(howto: string, bname: string, ftype: string, txt: string)
     var bfnm = substitute(bname, '[ [:punct:]]', '_', 'g')
     g:AddForDeletion(g:rplugin.tmpdir .. "/" .. bfnm)
-    silent exe howto .. ' ' .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. '/' .. bfnm
+    silent exe howto .. ' ' .. fnameescape(g:rplugin.tmpdir .. '/' .. bfnm)
     silent exe 'setlocal ft=' .. ftype
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal nomodified
@@ -674,7 +674,7 @@ enddef
 # This function is called by vimcom
 def g:EditRObject(fname: string)
     var fcont = readfile(fname)
-    exe "tabnew " .. substitute($VIMR_TMPDIR .. "/edit_" .. $VIMR_ID, ' ', '\\ ', 'g')
+    g:RGoToFile('tab sbuffer', $VIMR_TMPDIR .. "/edit_" .. $VIMR_ID)
     setline(".", fcont)
     setlocal filetype=r
     stopinsert
@@ -1031,7 +1031,7 @@ def g:GetROutput(fnm: string, txt: string)
         setlocal buftype=nofile
         setlocal noswapfile
     else
-        exe 'tabnew ' .. fnm
+        g:RGoToFile('tab sbuffer', fnm)
         setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     endif
     normal! gT
@@ -1235,23 +1235,22 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     endif
     g:SetRTextWidth(rkeyword)
 
-    var rdoccaption = substitute(rdoctitle, '\\', '', "g")
     if rkeyword =~ "R History"
-        rdoccaption = "R_History"
         rdoctitle = "R_History"
     endif
-    if bufloaded(rdoccaption)
+    if bufloaded(rdoctitle)
         var curtabnr = tabpagenr()
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. rdoctitle
+        exe "sb " .. bufnr(rdoctitle)
         exe "set switchbuf=" .. savesb
         if g:R_vimpager == "tabnew"
             exe "tabmove " .. curtabnr
         endif
     else
         if g:R_vimpager == "tab" || g:R_vimpager == "tabnew"
-            exe 'tabnew ' .. rdoctitle
+            # With R_vimpager = "tabnew" the title is the topic that R names
+            g:RGoToFile('tab sbuffer', rdoctitle)
         elseif vimpager_local == "vertical"
             var splr = &splitright
             set splitright
@@ -2073,10 +2072,10 @@ enddef
 
 def g:OpenRExample()
     if bufloaded(g:rplugin.tmpdir .. "/example.R")
-        exe "bunload! " .. substitute(g:rplugin.tmpdir .. "/example.R", ' ', '\\ ', 'g')
+        exe "bunload! " .. bufnr(g:rplugin.tmpdir .. "/example.R")
     endif
     if g:R_vimpager == "tabnew" || g:R_vimpager == "tab"
-        exe "tabnew " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
+        g:RGoToFile('tab sbuffer', g:rplugin.tmpdir .. "/example.R")
     else
         var vimpager = g:R_vimpager
         if g:R_vimpager == "vertical"
@@ -2088,9 +2087,9 @@ def g:OpenRExample()
             endif
         endif
         if vimpager == "vertical"
-            exe "belowright vsplit " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
+            g:RGoToFile('belowright vertical sbuffer', g:rplugin.tmpdir .. "/example.R")
         else
-            exe "belowright split " .. substitute(g:rplugin.tmpdir, ' ', '\\ ', 'g') .. "/example.R"
+            g:RGoToFile('belowright sbuffer', g:rplugin.tmpdir .. "/example.R")
         endif
     endif
     nnoremap <buffer><silent> q :q<CR>

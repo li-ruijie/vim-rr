@@ -492,6 +492,105 @@ else
   g:R_csv_app = saved_csv_app
 endif
 
+# ========================================================================
+# Ex commands: names from R and the temporary directory are taken as they are
+# ========================================================================
+# GetROutput(), EditRObject(), ShowRObj(), and ShowRDoc() put a name into an
+# Ex command with nothing or only its spaces escaped. A percent sign in the
+# name was replaced with the name of the current file.
+var saved_env = [$VIMR_TMPDIR, $VIMR_ID]
+saved_tmpdir = g:rplugin.tmpdir
+mkdir(work .. '/t%d #1', 'p')
+add(made_dirs, 't%d #1')
+g:rplugin.tmpdir = work .. '/t%d #1'
+$VIMR_TMPDIR = work .. '/t%d #1'
+$VIMR_ID = '7'
+
+err = Caught(() => {
+  g:GetROutput('out%1 #2', "a\x14b")
+})
+g:AssertEqual([err, bufexists('out%1 #2') ? getbufline('out%1 #2', 1, '$') : []], ['', ['a', 'b']],
+  'GetROutput: the buffer has the name that R gave')
+if bufexists('out%1 #2')
+  execute 'bwipeout! ' .. bufnr('out%1 #2')
+endif
+silent! tabonly!
+
+writefile(['c(1, 2)'], work .. '/t%d #1/vimcom_edit_1')
+extend(made_files, ['t%d #1/vimcom_edit_1'])
+err = Caught(() => {
+  g:EditRObject(work .. '/t%d #1/vimcom_edit_1')
+})
+g:AssertEqual([err, substitute(expand('%:p'), '\\', '/', 'g'), getline(1)],
+  ['', work .. '/t%d #1/edit_7', 'c(1, 2)'],
+  'EditRObject: the buffer lies in a temporary directory "t%d #1"')
+if bufnr('%') != rbuf
+  autocmd! BufUnload <buffer>
+  bwipeout!
+endif
+silent! tabonly
+
+err = Caught(() => {
+  g:ShowRObj('tabnew', 'x', 'r', "c(1,\x142)")
+})
+g:AssertEqual([err, substitute(expand('%:p'), '\\', '/', 'g'), getline(1, '$')],
+  ['', work .. '/t%d #1/x', ['c(1,', '2)']], 'ShowRObj: the buffer lies in a temporary directory "t%d #1"')
+if bufnr('%') != rbuf
+  bwipeout!
+endif
+silent! tabonly
+
+# OpenRExample() opens the file of the example in that directory, and unloads
+# its buffer first when an example is still shown
+var saved_example_pager = g:R_vimpager
+var example_shown: list<any> = []
+for pager in ['tabnew', 'horizontal']
+  g:R_vimpager = pager
+  writefile([pager], work .. '/t%d #1/example.R')
+  err = Caught(() => {
+    g:OpenRExample()
+  })
+  add(example_shown, [err, substitute(expand('%:p'), '\\', '/', 'g'), getline(1)])
+  # Back to the window of the R script, with the example still open
+  win_gotoid(bufwinid(rbuf) > 0 ? bufwinid(rbuf) : win_findbuf(rbuf)->get(0, 0))
+endfor
+g:AssertEqual(example_shown, ['tabnew', 'horizontal']
+  ->mapnew((_, p) => ['', work .. '/t%d #1/example.R', p]),
+  'OpenRExample: the buffer lies in a temporary directory "t%d #1"')
+g:R_vimpager = saved_example_pager
+if bufexists(work .. '/t%d #1/example.R')
+  execute 'bwipeout! ' .. bufnr(work .. '/t%d #1/example.R')
+endif
+silent! tabonly
+silent! only
+add(made_files, 't%d #1/example.R')
+g:rplugin.tmpdir = saved_tmpdir
+$VIMR_TMPDIR = saved_env[0]
+$VIMR_ID = saved_env[1]
+
+# With R_vimpager = "tabnew" the title that R gives is the name of the buffer
+var saved_vimpager = g:R_vimpager
+g:R_vimpager = 'tabnew'
+execute 'buffer ' .. rbuf
+err = Caught(() => {
+  g:ShowRDoc('x%y #1 (help)', "first\x14text")
+})
+var doc_buf = bufnr('x%y #1 (help)')
+g:AssertEqual([err, bufname('%'), getline(1)], ['', 'x%y #1 (help)', 'first'],
+  'ShowRDoc: the buffer has the title that R gave')
+tabfirst
+err = Caught(() => {
+  g:ShowRDoc('x%y #1 (help)', "second\x14text")
+})
+g:AssertEqual([err, bufnr('%') == doc_buf, getline(1)], ['', true, 'second'],
+  'ShowRDoc: the buffer of a title is found again')
+g:R_vimpager = saved_vimpager
+silent! tabonly
+if doc_buf > 0
+  execute 'bwipeout! ' .. doc_buf
+endif
+execute 'buffer ' .. rbuf
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim
