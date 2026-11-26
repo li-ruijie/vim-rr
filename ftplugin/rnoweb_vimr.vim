@@ -5,10 +5,10 @@ if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filet
 endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
+execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
 # Bibliographic completion
 if index(g:R_bib_compl, 'rnoweb') > -1
-    execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/bibcompl.vim'
+    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/bibcompl.vim')
 endif
 
 if exists('g:R_cite_pattern')
@@ -27,7 +27,7 @@ if g:R_rnowebchunk == 1
     inoremap <buffer><silent> < <Esc>:call g:RWriteChunk()<CR>a
 endif
 
-execute 'source ' .. substitute(g:rplugin.home, " ", "\\ ", "g") .. '/R/rnw_fun.vim'
+execute 'source ' .. fnameescape(g:rplugin.home .. '/R/rnw_fun.vim')
 
 def CompleteEnv(base: string): list<dict<string>>
     # List from LaTeX-Box
@@ -212,7 +212,7 @@ g:RCreateMaps('n', 'RPreviousRChunk', 'gN', ':call b:PreviousRChunk()')
 
 # Menu R
 if has("gui_running")
-    execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/gui_running.vim'
+    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/gui_running.vim')
     g:MakeRMenu()
 endif
 

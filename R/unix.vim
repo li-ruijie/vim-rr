@@ -20,5 +20,5 @@ endif
 if (type(g:R_external_term) == v:t_number && g:R_external_term == 1)
         || type(g:R_external_term) == v:t_string
         || (exists('g:R_source') && g:R_source =~# 'tmux_split.vim')
-    execute 'source ' .. substitute(g:rplugin.home, ' ', '\\ ', 'g') .. '/R/tmux.vim'
+    execute 'source ' .. fnameescape(g:rplugin.home .. '/R/tmux.vim')
 endif

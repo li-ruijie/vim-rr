@@ -4,7 +4,7 @@ vim9script
 # are common for all file types supported by Vim-R.
 
 # Source scripts common to R, Rnoweb, Rhelp and rdoc files:
-execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_global.vim'
+execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_global.vim')
 
 b:rplugin_knitr_pattern = ''
 
@@ -20,7 +20,7 @@ if g:R_assign == 3
 endif
 
 if index(g:R_set_omnifunc, &filetype) > -1
-    execute 'source ' .. substitute(g:rplugin.home, ' ', '\\ ', 'g') .. '/R/complete.vim'
+    execute 'source ' .. fnameescape(g:rplugin.home .. '/R/complete.vim')
     execute 'call RComplAutCmds()'
 endif
 

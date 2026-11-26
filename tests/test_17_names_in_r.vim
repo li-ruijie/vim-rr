@@ -591,6 +591,54 @@ if doc_buf > 0
 endif
 execute 'buffer ' .. rbuf
 
+# ========================================================================
+# :source: the directory of the plugin is taken as it is
+# ========================================================================
+# The files of the plugin source each other with ":source DIR/R/NAME.vim",
+# where only the spaces of the directory were escaped. A percent sign or a
+# number sign in it was replaced with a file name, and a bar ended the
+# command. The Vim files are copied into such a directory, and a Vim of its
+# own loads every file type from there and from the real directory. Both must
+# source the same scripts.
+var odd_root = work .. (has('win32') ? '/p%l #1' : '/p%l #1|x')
+var copied: list<string> = []
+for sub in ['R', 'ftplugin', 'ftdetect', 'syntax']
+  mkdir(odd_root .. '/' .. sub, 'p')
+  for src in glob(plugin_root .. '/' .. sub .. '/*.vim', false, true)
+    var rel = sub .. '/' .. fnamemodify(src, ':t')
+    writefile(readfile(src, 'b'), odd_root .. '/' .. rel, 'b')
+    add(copied, rel)
+  endfor
+endfor
+for ext in ['R', 'Rmd', 'Rnw', 'Rd', 'Rrst', 'qmd', 'Rout']
+  writefile(['text'], work .. '/x.' .. ext)
+  add(made_files, 'x.' .. ext)
+endfor
+# Load the plugin from a directory in a Vim of its own and return its report
+def LoadedFrom(root: string, outfile: string): list<string>
+  var job = job_start([v:progpath, '-N', '-u', 'NONE', '-i', 'NONE', '-es', '-S',
+    plugin_root .. '/tests/data/plugin_dir.vim'], {in_io: 'null', out_io: 'null', err_io: 'null',
+    env: {RR_TEST_ROOT: root, RR_TEST_WORK: work, RR_TEST_OUT: outfile}})
+  for _ in range(600)
+    if job_status(job) !=# 'run'
+      break
+    endif
+    sleep 100m
+  endfor
+  job_stop(job, 'kill')
+  return filereadable(outfile) ? readfile(outfile) : ['no report']
+enddef
+var real_report = LoadedFrom(plugin_root, work .. '/loaded_real.txt')
+var odd_report = LoadedFrom(odd_root, work .. '/loaded_odd.txt')
+# On Windows the report holds the names in lower case
+g:Assert(match(real_report, '\c^R/common_global\.vim$') >= 0 && match(real_report, '^error') < 0,
+  'source: the plugin loads from its own directory (' .. real_report->join(' ') .. ')')
+g:AssertEqual(odd_report, real_report,
+  'source: the plugin loads from a directory with odd characters in its name')
+var odd_tail = fnamemodify(odd_root, ':t')
+extend(made_files, ['loaded_real.txt', 'loaded_odd.txt'] + copied->mapnew((_, c) => odd_tail .. '/' .. c))
+extend(made_dirs, ['/R', '/ftplugin', '/ftdetect', '/syntax', '']->mapnew((_, d) => odd_tail .. d))
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim

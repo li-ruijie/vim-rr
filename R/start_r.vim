@@ -146,7 +146,7 @@ def g:ReallyStartR(whatr: string)
 
     # https://github.com/jalvesaq/Vim-R/issues/157
     if !exists("*FunHiOtherBf")
-        exe "source " .. substitute(g:rplugin.home, " ", "\\ ", "g") .. "/R/functions.vim"
+        exe "source " .. fnameescape(g:rplugin.home .. "/R/functions.vim")
     endif
 
     if whatr =~ "custom"

@@ -23,7 +23,7 @@ def g:SourceRFunList(lib: string)
 
     # Highlight R functions
     if !exists('g:R_hi_fun_paren') || g:R_hi_fun_paren == 0
-        execute 'source ' .. substitute(fnm, ' ', '\\ ', 'g')
+        execute 'source ' .. fnameescape(fnm)
     else
         var lines = readfile(fnm)
         for line in lines

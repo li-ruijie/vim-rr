@@ -5,7 +5,7 @@ if exists("g:R_filetypes") && type(g:R_filetypes) == v:t_list && index(g:R_filet
 endif
 
 # Define some buffer variables common to R, Rnoweb, Rmd, Rrst, Rhelp and rdoc:
-execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_buffer.vim'
+execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_buffer.vim')
 
 if !exists("g:did_vimr_r_functions")
     g:did_vimr_r_functions = 1
@@ -83,7 +83,7 @@ g:RCreateMaps('nvi', 'RSetwd',    'rd', ':call g:RSetWD()')
 
 # Menu R
 if has("gui_running")
-    execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/gui_running.vim'
+    execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/gui_running.vim')
     g:MakeRMenu()
 endif
 

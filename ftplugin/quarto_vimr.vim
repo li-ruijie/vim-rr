@@ -25,9 +25,9 @@ if !exists("g:did_vimr_quarto_functions")
 endif
 
 # Necessary for RCreateMaps():
-execute 'source ' .. substitute(expand('<sfile>:h:h'), ' ', '\ ', 'g') .. '/R/common_global.vim'
+execute 'source ' .. fnameescape(expand('<sfile>:h:h') .. '/R/common_global.vim')
 g:RCreateMaps('n', 'RQuartoRender',  'qr', ':call g:RQuarto("render")')
 g:RCreateMaps('n', 'RQuartoPreview', 'qp', ':call g:RQuarto("preview")')
 g:RCreateMaps('n', 'RQuartoStop',    'qs', ':call g:RQuarto("stop")')
 
-execute 'source ' .. substitute(expand('<sfile>:h'), ' ', '\ ', 'g') .. '/rmd_vimr.vim'
+execute 'source ' .. fnameescape(expand('<sfile>:h') .. '/rmd_vimr.vim')
