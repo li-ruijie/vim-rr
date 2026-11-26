@@ -308,21 +308,32 @@ def g:SetComplInfo(dctnr: dict<any>)
         g:CloseFloatWin()
         return
     endif
-    if !g:IsComplAnswerForSelected(get(dctnr, 'word', ''))
+    # The server writes the byte 0x13 in the place of each single quote of
+    # the word
+    var info = deepcopy(dctnr)
+    if has_key(info, 'word')
+        info['word'] = substitute(info['word'], "\x13", "'", 'g')
+    endif
+    if !g:IsComplAnswerForSelected(get(info, 'word', ''))
         return
     endif
     # Replace user_data with the complete version
-    g:rplugin.compl_event['completed_item']['user_data'] = deepcopy(dctnr)
+    g:rplugin.compl_event['completed_item']['user_data'] = info
 
-    if has_key(dctnr, 'cls') && dctnr['cls'] == 'f'
-        var usage = deepcopy(dctnr['usage'])
+    if has_key(info, 'cls') && info['cls'] == 'f'
+        var usage = deepcopy(info['usage'])
         map(usage, 'join(v:val, " = ")')
         var usagestr = join(usage, ", ")
-        g:rplugin.compl_usage = dctnr['word'] .. '(' .. usagestr .. ')'
-    elseif has_key(dctnr, 'word') && dctnr['word'] =~ '\k\{-}\$\k\{-}'
-        # R sends the word back with the summary
-        g:SendToVimcom("E", 'vimcom:::vim.get.summary(' .. dctnr['word'] .. ', 59, '
-            .. g:RString(dctnr['word']) .. ')')
+        g:rplugin.compl_usage = info['word'] .. '(' .. usagestr .. ')'
+    elseif has_key(info, 'word') && info['word'] =~ '\k\{-}\$\k\{-}'
+        # The word joins the names of a column or an element with "$" or
+        # "@". Each name goes between backticks, so that a name with a quote
+        # or a space is R code as well. R sends the word back with the
+        # summary.
+        var obj = substitute(info['word'], '\%(^\|[$@]\)\zs[^$@[]\+',
+            (m) => '`' .. escape(m[0], '\`') .. '`', 'g')
+        g:SendToVimcom("E", 'vimcom:::vim.get.summary(' .. obj .. ', 59, '
+            .. g:RString(info['word']) .. ')')
         return
     endif
 
@@ -461,8 +472,13 @@ enddef
 
 def g:SetComplMenu(id: any, cmn: list<any>)
     g:rplugin.compl_menu = deepcopy(cmn)
+    # The server writes the byte 0x13 in the place of each single quote of a
+    # name, and of the class of an object, which the menu shows
     for idx in range(len(g:rplugin.compl_menu))
         g:rplugin.compl_menu[idx]['word'] = substitute(g:rplugin.compl_menu[idx]['word'], "\x13", "'", "g")
+        if has_key(g:rplugin.compl_menu[idx], 'menu')
+            g:rplugin.compl_menu[idx]['menu'] = substitute(g:rplugin.compl_menu[idx]['menu'], "\x13", "'", "g")
+        endif
     endfor
     g:rplugin.waiting_compl_menu = 0
 enddef

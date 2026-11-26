@@ -162,6 +162,36 @@ err = Caught(() => {
 })
 g:AssertEqual([err, g:rplugin.compl_event], ['', {}], 'SetComplInfo: no selected item raises nothing')
 
+# The server writes the byte 0x13 in the place of each single quote of a name
+Select("f'n", {cls: 'f', pkg: 'qpkg'}, "f'n")
+err = Caught(() => {
+  g:SetComplInfo({cls: 'f', word: "f\x13n", pkg: 'qpkg', usage: [['a']], ttl: '', descr: ''})
+})
+g:AssertEqual([err, g:rplugin.compl_usage], ['', "f'n(a)"],
+  'SetComplInfo: the answer for a function whose name holds a single quote is applied')
+
+# ========================================================================
+# SetComplMenu: the items of the menu, which the server sends
+# ========================================================================
+# The server writes the byte 0x13 in the place of each single quote of a name
+# and of the class of an object, which the menu shows
+var saved_menu = get(g:rplugin, 'compl_menu', v:none)
+var saved_waiting = get(g:rplugin, 'waiting_compl_menu', v:none)
+err = Caught(() => {
+  g:SetComplMenu(7, [{word: "it\x13s", menu: "my\x13cls [.GlobalEnv]", user_data: {cls: '{'}},
+    {word: "it\x13s"}])
+})
+g:AssertEqual([err, get(g:rplugin, 'compl_menu', [])],
+  ['', [{word: "it's", menu: "my'cls [.GlobalEnv]", user_data: {cls: '{'}}, {word: "it's"}]],
+  'SetComplMenu: the word and the class of an item have their single quotes')
+for [key, value] in [['compl_menu', saved_menu], ['waiting_compl_menu', saved_waiting]]
+  if type(value) != v:t_none
+    g:rplugin[key] = value
+  elseif has_key(g:rplugin, key)
+    remove(g:rplugin, key)
+  endif
+endfor
+
 # For an element of a list or a column of a data frame the plugin asks R for
 # the summary, and names the word a second time, as a string that R sends
 # back. A program that copies its input into a file stands in for the
@@ -179,11 +209,16 @@ answers_jobs['Server'] = job_start(has('win32') ? ['findstr', '^'] : ['cat'],
   {out_io: 'file', out_name: sent_log, err_io: 'null'})
 g:rplugin.jobs = answers_jobs
 Select('zetadf$first', {cls: '{', pkg: '.GlobalEnv'}, 'zetadf$first')
+# The server writes the byte 0x13 in the place of each single quote of a name
+var quoted = {cls: '{', word: "d\x13f$it\x13s", pkg: '.GlobalEnv', usage: [], ttl: '', descr: ''}
 err = Caught(() => {
   g:SetComplInfo(column)
   # The same answer once the user has moved to the other column
   g:rplugin.compl_asked = 'zetadf$second'
   g:SetComplInfo(column)
+  # A column whose name and whose data frame hold a single quote
+  Select("it's", {cls: 'v', env: '.GlobalEnv', word: "d'f$it's"}, "d'f$it's")
+  g:SetComplInfo(quoted)
 })
 ch_close_in(job_getchannel(g:rplugin.jobs['Server']))
 for _ in range(100)
@@ -195,9 +230,32 @@ endfor
 job_stop(g:rplugin.jobs['Server'], 'kill')
 var sent_lines = (filereadable(sent_log) ? readfile(sent_log) : [])
   ->mapnew((_, l) => substitute(l, '\r$', '', ''))
-g:AssertEqual([err, sent_lines],
-  ['', ['2E' .. $VIMR_ID .. 'vimcom:::vim.get.summary(zetadf$first, 59, "zetadf$first")']],
-  'SetComplInfo: the summary is asked once, for the selected column, with its word as a string')
+var summary_head = '2E' .. $VIMR_ID .. 'vimcom:::vim.get.summary('
+g:AssertEqual([err, sent_lines], ['', [summary_head .. '`zetadf`$`first`, 59, "zetadf$first")',
+  summary_head .. "`d'f`$`it's`, 59, \"d'f$it's\")"]],
+  'SetComplInfo: the summary is asked once for each selected column, with its word as a string')
+g:AssertEqual(get(Data(), 'word', 'no word'), "d'f$it's",
+  'SetComplInfo: the word of the answer has the single quotes of its names')
+# R itself runs the request, with a function in the place of the one of
+# vimcom that writes what it receives into a file
+if executable('Rscript') && len(sent_lines) == 2
+  var summary_out = work .. '/summary.out'
+  writefile(["`d'f` <- data.frame(`it's` = c(1.5, 2.5), check.names = FALSE)",
+    'vim_summary <- function(obj, wdth, word) writeLines(c(format(sum(obj)), word), '
+      .. g:RString(summary_out) .. ')',
+    substitute(sent_lines[1], '^.\{-}vimcom:::vim\.get\.summary', 'vim_summary', '')], work .. '/summary.R')
+  var rjob = job_start(['Rscript', '--vanilla', work .. '/summary.R'], {out_io: 'null', err_io: 'null'})
+  for _ in range(600)
+    if job_status(rjob) !=# 'run'
+      break
+    endif
+    sleep 100m
+  endfor
+  g:AssertEqual(filereadable(summary_out) ? readfile(summary_out) : [], ['4', "d'f$it's"],
+    'SetComplInfo: R takes the column of a data frame whose names hold a single quote')
+  delete(work .. '/summary.R')
+  delete(summary_out)
+endif
 g:rplugin.jobs = saved_jobs
 g:SendCmdToR = SavedSend
 delfunction g:RrTestAnswersSend

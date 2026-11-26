@@ -178,6 +178,91 @@ g:AssertEqual(server_source[info_first : info_last]->filter((_, l) => l =~ '\<se
   ->mapnew((_, l) => trim(l)), [], 'vimrserver: completion_info() sends under the lock of its caller')
 
 # ========================================================================
+# vimrserver: a name between single quotes holds the byte 0x13 for a quote
+# ========================================================================
+# The lists of objects hold the byte 0x13 in the place of each single quote
+# of a name, and Vim turns it back. The word that Vim asked the server about
+# was looked up with its quotes, so the server found nothing for it. The name
+# of a library went into the menu with its quotes, which ended the string.
+# Where a C compiler exists, the server is built and asked about such names,
+# with the list of a package and a library of its own and without R.
+# What the server wrote to Vim, one line for each command
+var server_replies: list<string> = []
+# Wait for a reply that matches a pattern, and return the replies that do
+def ServerReplies(pat: string): list<string>
+  for _ in range(100)
+    if match(server_replies, pat) >= 0
+      break
+    endif
+    sleep 50m
+  endfor
+  return server_replies->copy()->filter((_, r) => r =~ pat)
+enddef
+# The arguments that a command of the server passes to Vim, or the error that
+# Vim raises for them
+def ServerPassed(reply: string): any
+  try
+    return eval('[' .. matchstr(reply, '^\%(\%x11\d\+\%x11\)\=g:\w\+(\zs.*\ze)$') .. ']')
+  catch
+    return v:exception
+  endtry
+enddef
+# Wait until a job has ended
+def JobEnded(job: job, tenths: number)
+  for _ in range(tenths)
+    if job_status(job) !=# 'run'
+      return
+    endif
+    sleep 100m
+  endfor
+enddef
+if executable('gcc')
+  var srv = work .. '/srv'
+  mkdir(srv .. "/lib/it's", 'p')
+  mkdir(srv .. '/compl', 'p')
+  # On Unix the server refuses a temporary directory that others may use
+  mkdir(srv .. '/tmp', 'p', 0o700)
+  writefile(['Package: its', "Title: It's a title", "Description: It's a package."],
+    srv .. "/lib/it's/DESCRIPTION")
+  # An object of the package, with its seven fields
+  writefile([["it's", '{', "my'cls", 'qpkg', '', 'A number', 'Text']->join("\x06") .. "\x06"],
+    srv .. '/compl/omnils_qpkg_1.0')
+  writefile([], srv .. '/compl/fun_qpkg_1.0')
+  writefile(['qpkg_1.0'], srv .. '/tmp/libnames_rrtest')
+  writefile([srv .. '/lib'], srv .. '/tmp/libPaths')
+  var exe = srv .. (has('win32') ? '/vimrserver.exe' : '/vimrserver')
+  var src = plugin_root .. '/R/vimcom/src/apps/vimrserver.c'
+  JobEnded(job_start(has('win32')
+    ? ['gcc', '-mwindows', '-std=gnu99', '-DWIN32', src, '-o', exe, '-lWs2_32', '-lbcrypt']
+    : ['gcc', '-pthread', '-std=gnu99', src, '-o', exe], {in_io: 'null', out_io: 'null', err_io: 'null'}), 1200)
+  var sjob = job_start([exe], {in_mode: 'raw', err_io: 'null',
+    out_cb: (_, msg) => add(server_replies, substitute(msg, '\r$', '', '')),
+    env: {VIMR_ID: 'rrtest', VIMR_COMPLDIR: srv .. '/compl', VIMR_TMPDIR: srv .. '/tmp',
+      VIMR_LOCAL_TMPDIR: srv .. '/tmp', VIMR_COMPLCB: 'g:SetComplMenu', VIMR_COMPLInfo: 'g:SetComplInfo',
+      VIMR_RPATH: 'no_such_r'}})
+  ServerReplies('nrs_running')
+  # The completion of a word, the information on the word, and the
+  # completion of the name of a library
+  for request in ["51\x03it", "6it's\x02qpkg", "52\x03\x04it"]
+    ch_sendraw(sjob, request .. "\n")
+  endfor
+  ServerReplies('SetComplMenu(2,')
+  g:AssertEqual(ServerReplies('g:SetCompl')->mapnew((_, r) => ServerPassed(r)), [
+    [1, [{word: "it\x13s", menu: "my\x13cls [qpkg]", user_data: {cls: '{', pkg: 'qpkg'}}]],
+    [{cls: '{', word: "it\x13s", pkg: 'qpkg', usage: [], ttl: 'A number', descr: 'Text'}],
+    [2, [{word: "it\x13s", menu: '[pkg]', user_data: {ttl: "It\x13s a title", descr: "It\x13s a package.",
+      cls: 'l'}}]]], 'vimrserver: a name with a single quote reaches Vim in a list and a dictionary')
+  ch_sendraw(sjob, "9\n")
+  JobEnded(sjob, 30)
+  job_stop(sjob, 'kill')
+  JobEnded(sjob, 30)
+  extend(made_files, ['srv/compl/omnils_qpkg_1.0', 'srv/compl/fun_qpkg_1.0', 'srv/compl/inst_libs',
+    'srv/tmp/libnames_rrtest', 'srv/tmp/libPaths', 'srv/tmp/libs_in_nrs_rrtest', 'srv/tmp/bo_code.R',
+    "srv/lib/it's/DESCRIPTION", 'srv/' .. fnamemodify(exe, ':t')])
+  extend(made_dirs, ["srv/lib/it's", 'srv/lib', 'srv/compl', 'srv/tmp', 'srv'])
+endif
+
+# ========================================================================
 # R code: a file name is an R string, whatever it holds
 # ========================================================================
 # Vim put a file name between double quotes into the R code that it sends, so

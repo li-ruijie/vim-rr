@@ -1648,7 +1648,12 @@ char *complete_instlibs(char *p, const char *base) {
 
         if (str_here(il->name, base) && il->si) {
             p = str_cat(p, "{'word': '");
+            // The name of the directory goes between single quotes, so a
+            // single quote of it is written as the byte 0x13, which Vim turns
+            // back into a quote, as it does for the names of objects.
+            char *nm = p;
             p = str_cat(p, il->name);
+            fix_single_quote(nm);
             p = str_cat(p, "', 'menu': '[pkg]', 'user_data': {'ttl': '");
             p = str_cat(p, il->title);
             p = str_cat(p, "', 'descr': '");
@@ -2492,9 +2497,10 @@ void completion_info(const char *wrd, const char *pkg) {
             // two bytes into a single quote.
             if (f[1][0] == '\003' && str_here(f[4], "['not_checked']")) {
                 // The name goes into an R string, so a backslash is put
-                // ahead of each backslash and each double quote of it. A
-                // name that would not fit into the buffer is not asked for,
-                // since a command that is cut is no R code.
+                // ahead of each backslash and each double quote of it, and
+                // each byte 0x13 is written as the single quote that it
+                // stands for. A name that would not fit into the buffer is
+                // not asked for, since a command that is cut is no R code.
                 int n = snprintf(compl_buffer, compl_buffer_size,
                                  "E%svimcom:::vim.GlobalEnv.fun.args(\"",
                                  getenv("VIMR_ID"));
@@ -2507,7 +2513,7 @@ void completion_info(const char *wrd, const char *pkg) {
                 for (const char *w = wrd; *w != 0; w++) {
                     if (*w == '\\' || *w == '"')
                         *p++ = '\\';
-                    *p++ = *w;
+                    *p++ = *w == '\x13' ? '\'' : *w;
                 }
                 strcpy(p, "\")\n");
                 // The caller holds the lock of the state.
@@ -2970,6 +2976,9 @@ void stdin_loop() {
             msg++;
             if (strstr(wrd, "::"))
                 wrd = strstr(wrd, "::") + 2;
+            // The lists of objects hold the byte 0x13 in the place of each
+            // single quote of a name, and so does the word of the answer.
+            fix_single_quote(wrd);
             completion_info(wrd, msg);
             unlock_state();
             break;
