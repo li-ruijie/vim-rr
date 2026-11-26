@@ -303,11 +303,6 @@ def g:FinishGetSummary(txt: string, word: string)
 enddef
 
 def g:SetComplInfo(dctnr: dict<any>)
-    # The server found nothing for the word
-    if len(dctnr) == 0
-        g:CloseFloatWin()
-        return
-    endif
     # The server writes the byte 0x13 in the place of each single quote of
     # the word
     var info = deepcopy(dctnr)
@@ -315,6 +310,12 @@ def g:SetComplInfo(dctnr: dict<any>)
         info['word'] = substitute(info['word'], "\x13", "'", 'g')
     endif
     if !g:IsComplAnswerForSelected(get(info, 'word', ''))
+        return
+    endif
+    # The server found nothing for the word, and the answer holds the word
+    # alone
+    if !has_key(info, 'cls')
+        g:CloseFloatWin()
         return
     endif
     # Replace user_data with the complete version

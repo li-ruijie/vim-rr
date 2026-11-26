@@ -170,6 +170,41 @@ err = Caught(() => {
 g:AssertEqual([err, g:rplugin.compl_usage], ['', "f'n(a)"],
   'SetComplInfo: the answer for a function whose name holds a single quote is applied')
 
+# When the server finds nothing for a word, it sends the word alone, and the
+# window of the item closes. The answer was an empty dictionary, which closed
+# the window of whatever item was selected when it arrived, so the late answer
+# for an item that the user had left closed the window of the next one.
+var saved_float = g:rplugin.compl_float_win
+var float_data = {cls: '{', pkg: '.GlobalEnv', descr: 'text'}
+# Whether the window that was opened for the selected item is still open
+def FloatOpen(id: number): bool
+  return g:rplugin.compl_float_win == id && popup_getpos(id) != {}
+enddef
+var float_states: list<any> = []
+err = Caught(() => {
+  for answer in [{word: 'zetaother'}, {}]
+    Select('zetanum', copy(float_data), 'zetanum')
+    var id = popup_create(['window of zetanum'], {})
+    g:rplugin.compl_float_win = id
+    g:SetComplInfo(answer)
+    add(float_states, [FloatOpen(id), Data()])
+    popup_close(id)
+  endfor
+  for [word, answer] in [['zetanum', {word: 'zetanum'}], ["f'n", {word: "f\x13n"}]]
+    Select(word, copy(float_data), word)
+    var id = popup_create(['window of ' .. word], {})
+    g:rplugin.compl_float_win = id
+    g:SetComplInfo(answer)
+    add(float_states, [FloatOpen(id), Data()])
+    popup_close(id)
+  endfor
+})
+g:AssertEqual([err, float_states[0 : 1]], ['', [[true, float_data], [true, float_data]]],
+  'SetComplInfo: an answer of nothing found for another item, or with no word, leaves the window open')
+g:AssertEqual(float_states[2 :], [[false, float_data], [false, float_data]],
+  'SetComplInfo: an answer of nothing found for the selected item closes its window')
+g:rplugin.compl_float_win = saved_float
+
 # ========================================================================
 # SetComplMenu: the items of the menu, which the server sends
 # ========================================================================

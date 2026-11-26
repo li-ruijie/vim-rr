@@ -252,6 +252,11 @@ if executable('gcc')
     [{cls: '{', word: "it\x13s", pkg: 'qpkg', usage: [], ttl: 'A number', descr: 'Text'}],
     [2, [{word: "it\x13s", menu: '[pkg]', user_data: {ttl: "It\x13s a title", descr: "It\x13s a package.",
       cls: 'l'}}]]], 'vimrserver: a name with a single quote reaches Vim in a list and a dictionary')
+  # A word that the server does not find. The answer was an empty dictionary,
+  # which did not tell Vim which item it was for.
+  ch_sendraw(sjob, "6no'pe\x02qpkg\n")
+  g:AssertEqual(ServerReplies('no\%x13pe')->mapnew((_, r) => ServerPassed(r)), [[{word: "no\x13pe"}]],
+    'vimrserver: the answer of nothing found names the word')
   ch_sendraw(sjob, "9\n")
   JobEnded(sjob, 30)
   job_stop(sjob, 'kill')

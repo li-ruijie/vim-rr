@@ -2559,12 +2559,15 @@ void completion_info(const char *wrd, const char *pkg) {
         }
         s = next_line(s);
     }
+    // Nothing was found. The answer names the word all the same, since Vim
+    // may have selected another item of the menu by the time it reads the
+    // answer, and it must then leave the window of that item alone.
     lock_stdout();
     {
-        size_t msg_len = strlen(compl_info) + 4;
+        size_t msg_len = strlen(compl_info) + strlen(wrd) + 14;
         printf("\x11%" PRI_SIZET "\x11"
-               "%s({})\n",
-               msg_len, compl_info);
+               "%s({'word': '%s'})\n",
+               msg_len, compl_info, wrd);
         fflush(stdout);
     }
     unlock_stdout();
