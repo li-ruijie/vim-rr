@@ -210,8 +210,9 @@ g:rplugin.compl_float_win = saved_float
 # ========================================================================
 # The server writes the byte 0x13 in the place of each single quote of a name
 # and of the class of an object, which the menu shows
-var saved_menu = get(g:rplugin, 'compl_menu', v:none)
-var saved_waiting = get(g:rplugin, 'waiting_compl_menu', v:none)
+var menu_keys = ['compl_menu', 'waiting_compl_menu', 'completion_id', 'is_completing']
+var saved_menu_state = menu_keys->mapnew((_, k) => [k, get(g:rplugin, k, v:none)])
+g:rplugin.completion_id = 7
 err = Caught(() => {
   g:SetComplMenu(7, [{word: "it\x13s", menu: "my\x13cls [.GlobalEnv]", user_data: {cls: '{'}},
     {word: "it\x13s"}])
@@ -219,7 +220,31 @@ err = Caught(() => {
 g:AssertEqual([err, get(g:rplugin, 'compl_menu', [])],
   ['', [{word: "it's", menu: "my'cls [.GlobalEnv]", user_data: {cls: '{'}}, {word: "it's"}]],
   'SetComplMenu: the word and the class of an item have their single quotes')
-for [key, value] in [['compl_menu', saved_menu], ['waiting_compl_menu', saved_waiting]]
+
+# WaitRCompletion() waits a second for the menu. It returned the menu that
+# it found then, which was that of an earlier request when R had not
+# answered yet, and SetComplMenu() took the late answer for an earlier
+# request as the answer for the one that was awaited. The answers come from
+# timers here, which run while WaitRCompletion() sleeps.
+var waited: list<any> = []
+err = Caught(() => {
+  # No answer comes
+  g:rplugin.completion_id = 12
+  g:rplugin.compl_menu = [{word: 'earlier'}]
+  g:rplugin.waiting_compl_menu = 1
+  add(waited, g:WaitRCompletion())
+  # The answer for the earlier request comes late, and then the answer for
+  # the request that is awaited
+  timer_start(100, (_) => g:SetComplMenu(11, [{word: 'late'}]))
+  timer_start(300, (_) => g:SetComplMenu(12, [{word: 'awaited'}]))
+  add(waited, g:WaitRCompletion())
+  # The late answer comes after the answer that was awaited
+  g:SetComplMenu(11, [{word: 'late'}])
+  add(waited, [g:rplugin.compl_menu, g:rplugin.waiting_compl_menu])
+})
+g:AssertEqual([err, waited], ['', [[], [{word: 'awaited'}], [[{word: 'awaited'}], 0]]],
+  'WaitRCompletion: no menu without an answer, and a late answer for an earlier request is dropped')
+for [key, value] in saved_menu_state
   if type(value) != v:t_none
     g:rplugin[key] = value
   elseif has_key(g:rplugin, key)

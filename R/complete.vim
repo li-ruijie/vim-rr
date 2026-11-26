@@ -468,7 +468,13 @@ def g:NeedRArguments(line: string, cpos: list<number>): list<any>
     return []
 enddef
 
+# The answer names the request that it is for. One that comes after
+# WaitRCompletion() has given up on its request, while the menu of a newer
+# one is shown or awaited, is dropped.
 def g:SetComplMenu(id: any, cmn: list<any>)
+    if id != g:rplugin.completion_id
+        return
+    endif
     g:rplugin.compl_menu = deepcopy(cmn)
     # The server writes the byte 0x13 in the place of each single quote of a
     # name, and of the class of an object, which the menu shows
@@ -557,7 +563,8 @@ def g:WaitRCompletion(): any
         nwait += 1
         sleep 10m
     endwhile
-    if exists('g:rplugin.compl_menu')
+    # Without an answer the menu is that of an earlier request
+    if !g:rplugin.waiting_compl_menu && exists('g:rplugin.compl_menu')
         g:rplugin.is_completing = 1
         return g:rplugin.compl_menu
     endif
