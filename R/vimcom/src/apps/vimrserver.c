@@ -608,11 +608,10 @@ static void *receive_msg() // Thread function to receive messages on Unix
 #endif
 }
 
-void send_to_vimcom(
-    char *msg) // Function to send messages to R (vimcom package)
-{
+// Send a message to R (the vimcom package). The caller holds the lock of the
+// state, which guards the connection.
+static void send_to_vimcom_locked(char *msg) {
     Log("TCP out: %s", msg);
-    lock_state();
     if (connfd >= 0) {
         size_t len = strlen(msg);
         // vimcom closes the connection when it receives a longer message.
@@ -622,7 +621,6 @@ void send_to_vimcom(
                     " bytes\n",
                     len);
             fflush(stderr);
-            unlock_state();
             return;
         }
         char header[9];
@@ -630,19 +628,24 @@ void send_to_vimcom(
         if (send(connfd, header, 8, 0) != 8) {
             fprintf(stderr, "Failed to send header to vimcom.\n");
             fflush(stderr);
-            unlock_state();
             return;
         }
         if (send(connfd, msg, len, 0) != (ssize_t)len) {
             fprintf(stderr, "Partial/failed write to vimcom.\n");
             fflush(stderr);
-            unlock_state();
             return;
         }
     } else {
         fprintf(stderr, "vimcom is not connected\n");
         fflush(stderr);
     }
+}
+
+void send_to_vimcom(
+    char *msg) // Function to send messages to R (vimcom package)
+{
+    lock_state();
+    send_to_vimcom_locked(msg);
     unlock_state();
 }
 
@@ -2483,7 +2486,11 @@ void completion_info(const char *wrd, const char *pkg) {
             if (*s == '\n')
                 s++;
 
-            if (f[1][0] == '\003' && str_here(f[4], "[\x12not_checked\x12]")) {
+            // vimcom writes "not_checked" between two bytes 0x12 in the
+            // place of the arguments of a function of the global
+            // environment, and check_omils_buffer() has turned each of the
+            // two bytes into a single quote.
+            if (f[1][0] == '\003' && str_here(f[4], "['not_checked']")) {
                 // The name goes into an R string, so a backslash is put
                 // ahead of each backslash and each double quote of it. A
                 // name that would not fit into the buffer is not asked for,
@@ -2503,7 +2510,8 @@ void completion_info(const char *wrd, const char *pkg) {
                     *p++ = *w;
                 }
                 strcpy(p, "\")\n");
-                send_to_vimcom(compl_buffer);
+                // The caller holds the lock of the state.
+                send_to_vimcom_locked(compl_buffer);
                 return;
             }
 

@@ -154,6 +154,22 @@ unlet! g:rr_test_taken
 var server_source = readfile(plugin_root .. '/R/vimcom/src/apps/vimrserver.c')
 g:AssertEqual(server_source->copy()->filter((_, l) => l =~ 'vimcom:::[^ ]*(\\"%s')
   ->mapnew((_, l) => trim(l)), [], 'vimrserver: no name goes raw into an R string for vimcom')
+# vimcom does not look up the arguments of a function of the global
+# environment when it lists the objects. It writes "not_checked" between two
+# bytes 0x12 in their place, and the server asks R for the arguments when Vim
+# wants the information on such a function. The server looked for the mark
+# with the two bytes, which check_omils_buffer() has turned into single
+# quotes by then. So it never asked, and the usage line of the completion
+# read "f(not_checked)".
+g:AssertEqual(server_source->copy()->filter((_, l) => l =~ 'str_here(f\[4\], ".*not_checked')
+  ->mapnew((_, l) => matchstr(l, 'str_here(f\[4\], \zs".*not_checked[^"]*"')), ['"[''not_checked'']"'],
+  'vimrserver: the mark of a function without arguments is compared as check_omils_buffer() leaves it')
+# The request is sent while the state is locked for the lookup. A function
+# that locks the state itself would wait for its own caller on Unix.
+var info_first = match(server_source, '^void completion_info(')
+var info_last = match(server_source, '^}', info_first)
+g:AssertEqual(server_source[info_first : info_last]->filter((_, l) => l =~ '\<send_to_vimcom(')
+  ->mapnew((_, l) => trim(l)), [], 'vimrserver: completion_info() sends under the lock of its caller')
 
 # ========================================================================
 # R code: a file name is an R string, whatever it holds
