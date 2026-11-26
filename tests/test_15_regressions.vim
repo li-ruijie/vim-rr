@@ -612,3 +612,18 @@ if has('win32')
     g:rplugin.r_args = saved_r_args
   endif
 endif
+
+# ========================================================================
+# start_r.vim: a second sourcing deletes every global function it defines
+# ========================================================================
+# A global function that is missing from the list stops the second sourcing
+# with E1073, and the functions below it keep their old definitions.
+var start_r_lines = readfile(plugin_root .. '/R/start_r.vim')
+var start_r_defined = start_r_lines
+  ->mapnew((_, l) => matchstr(l, '^def g:\zs\w\+'))
+  ->filter((_, n) => n != '')
+var start_r_list_first = match(start_r_lines, '^\s*for fn in \[')
+var start_r_list_last = match(start_r_lines, "^\\s*execute 'silent! delfunc g:'")
+var start_r_listed = start_r_lines[start_r_list_first : start_r_list_last]->join(' ')
+g:AssertEqual(start_r_defined->copy()->filter((_, n) => start_r_listed !~ "'" .. n .. "'"), [],
+  'start_r.vim: every global function is in the list that a second sourcing deletes')

@@ -61,7 +61,7 @@ if exists('*g:ReallyStartR')
             'RParenDiff', 'SendLineToR', 'RSendPartOfLine',
             'RClearConsole', 'RClearAll', 'RSetWD', 'RKnit',
             'StartTxtBrowser', 'RSourceDirectory', 'PrintRObject',
-            'OpenRExample', 'RAction', 'RLoadHTML', 'ROpenDoc',
+            'OpenRExample', 'RAction', 'RHtmlCommand', 'RLoadHTML', 'ROpenDoc',
             'RMakeRmd', 'RBuildTags']
         execute 'silent! delfunc g:' .. fn
     endfor
