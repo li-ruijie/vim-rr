@@ -34,7 +34,7 @@ if !exists("g:did_vimr_r_functions")
     def g:ShowRout()
         var routfile = expand("%:r") .. ".Rout"
         if bufloaded(routfile)
-            exe "bunload " .. bufnr(routfile)
+            exe "bunload " .. g:RBufNr(routfile)
             delete(routfile)
         endif
 

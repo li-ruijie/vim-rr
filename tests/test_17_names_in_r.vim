@@ -1353,6 +1353,207 @@ for odd_tail in [fnamemodify(odd_root, ':t'), fnamemodify(odd_twin, ':t')]
   extend(made_dirs, ['/R', '/ftplugin', '/ftdetect', '/syntax', '']->mapnew((_, d) => odd_tail .. d))
 endfor
 
+# ========================================================================
+# Buffers: a name is found as it is, not as a pattern
+# ========================================================================
+# bufnr(), sign_place(), :sbuffer, and :bunload take a name as a file
+# pattern. With "k1.R" and "k[1].R" both loaded, the bracket matched the other
+# buffer, so the plugin went to "k1.R", placed the sign of the debugger there,
+# or unloaded it, when it meant "k[1].R". The buffers are loaded with
+# bufload(), since an Ex command on Windows would take the bracket for a
+# wildcard as well.
+var buf_cwd = getcwd()
+execute 'cd ' .. fnameescape(work)
+var saved_rscript_b = g:rplugin.rscript_name
+for n in ['k1.R', 'k[1].R']
+  writefile(['f <- function() {', '  1', '}'], work .. '/' .. n)
+endfor
+extend(made_files, ['k1.R', 'k[1].R'])
+var k1buf = bufadd(work .. '/k1.R')
+var kbbuf = bufadd(work .. '/k[1].R')
+bufload(k1buf)
+bufload(kbbuf)
+# The plugin's own buffers. The Object Browser is a buffer without a file, R
+# runs in a terminal buffer named after its command, and the help pages are
+# made below by g:ShowRDoc() itself.
+execute 'buffer ' .. rbuf
+silent split Object_Browser
+setlocal buftype=nofile noswapfile
+var obbuf = bufnr()
+close
+var term_bufs = ['!R --args k1', '!R --args k[1]']->mapnew((_, n) =>
+  term_start(has('win32') ? 'cmd /c exit' : 'true', {hidden: true, term_name: n}))
+for _ in range(200)
+  if term_bufs->copy()->filter((_, b) => term_getstatus(b) =~ 'running')->empty()
+    break
+  endif
+  sleep 50m
+endfor
+g:AssertEqual(!exists('*g:RBufNr') ? ['g:RBufNr() is not defined'] : [g:RBufNr(work .. '/k[1].R'),
+  g:RBufNr(work .. '/k1.R'), g:RBufNr('k[1].R'), g:RBufNr(bufname(kbbuf)), g:RBufNr('Object_Browser'),
+  g:RBufNr('!R --args k[1]'), g:RBufNr('!R --args k1'), g:RBufNr(work .. '/k?.R'), g:RBufNr('')],
+  [kbbuf, k1buf, kbbuf, kbbuf, obbuf, term_bufs[1], term_bufs[0], -1, rbuf],
+  'RBufNr: each buffer is found by its own name')
+# The plugin keeps names from bufname(), which are relative to the directory
+# that was current then, and bufnr() still found such a buffer after a change
+# of directory, as "autochdir" makes. The buffer whose path ends with the
+# name is taken, if it is the only one, and the name is still no pattern.
+for d in ['cw', 'u1', 'u2']
+  mkdir(work .. '/' .. d, 'p')
+endfor
+writefile(['x'], work .. '/u1/x.R')
+writefile(['x'], work .. '/u2/x.R')
+var tail_bufs = ['u1', 'u2']->mapnew((_, d) => bufadd(work .. '/' .. d .. '/x.R'))
+extend(made_files, ['u1/x.R', 'u2/x.R'])
+extend(made_dirs, ['cw', 'u1', 'u2'])
+execute 'cd ' .. fnameescape(work .. '/cw')
+g:AssertEqual(!exists('*g:RBufNr') ? ['g:RBufNr() is not defined'] : [g:RBufNr('k[1].R'), g:RBufNr('k1.R'),
+  g:RBufNr('k?.R'), g:RBufNr('x.R'), g:RBufNr('u1/x.R')], [kbbuf, k1buf, -1, -1, tail_bufs[0]],
+  'RBufNr: a name from another directory is found when only one buffer ends with it')
+execute 'cd ' .. fnameescape(work)
+for b in tail_bufs
+  execute 'bwipeout! ' .. b
+endfor
+# The test finds a buffer by the name that bufname() gives it
+def BufOf(name: string): number
+  var found = getbufinfo()->filter((_, b) => bufname(b.bufnr) ==# name)
+  return empty(found) ? -1 : found[0].bufnr
+enddef
+
+# RDebugJump() went to "k1.R" and placed the sign there for "k[1].R"
+def DbgLines(nr: number): list<number>
+  return sign_getplaced(nr)[0].signs->mapnew((_, v) => v.lnum)
+enddef
+g:rplugin.rscript_name = bufname(kbbuf)
+err = Caught(() => {
+  g:RDebugJump(work .. '/k[1].R', 2)
+})
+g:AssertEqual([err, DbgLines(kbbuf), DbgLines(k1buf), bufnr()], ['', [2], [], rbuf],
+  'RDebugJump: the sign goes into "k[1].R", and the window of the script comes back')
+sign unplace 1
+silent! only
+# It came back to "k1.R" from a file that it opened for "k[1].R"
+execute 'buffer ' .. kbbuf
+err = Caught(() => {
+  g:RDebugJump(work .. '/sourced.R', 2)
+})
+g:AssertEqual([err, bufnr()], ['', kbbuf], 'RDebugJump: comes back to the window of "k[1].R"')
+sign unplace 1
+silent! only
+execute 'buffer ' .. rbuf
+
+# ShowRDoc() replaced the text of the help page "h1" for the topic "h[1]".
+# With the R console in front it went to the window of the R script first,
+# and the console is stood in for here by the buffer of main.R.
+var saved_vimpager_b = g:R_vimpager
+var saved_rbufnr_b = get(g:rplugin, 'R_bufnr', v:none)
+g:R_vimpager = 'tabnew'
+g:rplugin.R_bufnr = rbuf
+# Entering the buffer of main.R made it the R script
+g:rplugin.rscript_name = bufname(kbbuf)
+var script_shown_b = -1
+err = Caught(() => {
+  g:ShowRDoc('h1', 'one')
+  script_shown_b = tabpagebuflist(tabpagenr() - 1)[tabpagewinnr(tabpagenr() - 1) - 1]
+  g:ShowRDoc('h[1]', 'two')
+  g:ShowRDoc('h[1]', 'three')
+})
+g:AssertEqual([err, script_shown_b], ['', kbbuf], 'ShowRDoc: goes from the R console to "k[1].R"')
+g:AssertEqual([getbufline(BufOf('h1'), 1, '$'), getbufline(BufOf('h[1]'), 1, '$')],
+  [['one'], ['three']], 'ShowRDoc: the text of "h[1]" goes into its own page')
+if type(saved_rbufnr_b) == v:t_none
+  remove(g:rplugin, 'R_bufnr')
+else
+  g:rplugin.R_bufnr = saved_rbufnr_b
+endif
+silent! tabonly
+silent! only
+execute 'buffer ' .. rbuf
+
+# OpenRExample() unloaded the example of another temporary directory, so the
+# old text of its own example stayed
+var saved_tmpdir_b = g:rplugin.tmpdir
+mkdir(work .. '/t1', 'p')
+mkdir(work .. '/t[1]', 'p')
+writefile(['old'], work .. '/t1/example.R')
+writefile(['old'], work .. '/t[1]/example.R')
+var ex1 = bufadd(work .. '/t1/example.R')
+var exb = bufadd(work .. '/t[1]/example.R')
+bufload(ex1)
+bufload(exb)
+writefile(['new'], work .. '/t[1]/example.R')
+g:rplugin.tmpdir = work .. '/t[1]'
+err = Caught(() => {
+  g:OpenRExample()
+})
+g:AssertEqual([err, bufloaded(ex1), getline(1, '$'), filereadable(work .. '/t[1]/example.R')],
+  ['', 1, ['new'], 0], 'OpenRExample: unloads the example of its own directory')
+g:rplugin.tmpdir = saved_tmpdir_b
+g:R_vimpager = saved_vimpager_b
+silent! tabonly
+silent! only
+execute 'buffer ' .. rbuf
+add(made_files, 't1/example.R')
+extend(made_dirs, ['t1', 't[1]'])
+
+# ShowRout() unloaded "q1.Rout" for "q[1].Rout". R itself runs the file.
+if executable('R')
+  for n in ['q1', 'q[1]']
+    writefile(['x <- 1'], work .. '/' .. n .. '.R')
+    writefile(['old'], work .. '/' .. n .. '.Rout')
+  endfor
+  extend(made_files, ['q1.R', 'q[1].R', 'q1.Rout', 'q[1].Rout'])
+  var rout1 = bufadd(work .. '/q1.Rout')
+  var routb = bufadd(work .. '/q[1].Rout')
+  bufload(rout1)
+  bufload(routb)
+  execute 'buffer ' .. bufadd(work .. '/q[1].R')
+  var saved_rcmd_b = g:rplugin.Rcmd
+  g:rplugin.Rcmd = exepath('R')
+  err = Caught(() => {
+    g:ShowRout()
+  })
+  for _ in range(1200)
+    if job_status(g:rplugin.jobs['R_CMD']) !=# 'run' && bufloaded(routb)
+      break
+    endif
+    sleep 50m
+  endfor
+  g:AssertEqual([err, bufloaded(rout1), getbufline(rout1, 1, '$'),
+    match(getbufline(routb, 1, '$'), '^> x <- 1') >= 0],
+    ['', 1, ['old'], true], 'ShowRout: unloads "q[1].Rout" and leaves "q1.Rout" alone')
+  g:rplugin.Rcmd = saved_rcmd_b
+  silent! tabonly
+  silent! only
+  execute 'buffer ' .. rbuf
+endif
+
+# No other line of the plugin gives a name to bufnr() or to an Ex command that
+# takes a buffer, or matches the name of the current buffer as a pattern
+var name_lookups: list<string> = []
+var buf_cmd = '\%(^\s*\|[''"]\)\%(sil\%[ent]!\= \)\=\%(noautocmd \)\='
+  .. '\%(sb\|sbuffer\|bunload\|bdelete\|bwipeout\)!\= \h'
+for file in glob(plugin_root .. '/R/*.vim', false, true)
+    + glob(plugin_root .. '/ftplugin/*.vim', false, true)
+  var lnum = 0
+  for line in readfile(file)
+    lnum += 1
+    if line !~ '^\s*#' && (line =~# '\<bufnr(\%(\s*)\|\s*[''"]%[''"]\s*)\)\@!'
+        || line =~# buf_cmd || line =~# 'bufname("%") =\~')
+      add(name_lookups, fnamemodify(file, ':t') .. ':' .. lnum)
+    endif
+  endfor
+endfor
+g:AssertEqual(name_lookups, [], 'buffers: no name of a buffer is taken as a pattern')
+g:rplugin.rscript_name = saved_rscript_b
+# The example of OpenRExample() wipes itself once its window is closed
+for b in [obbuf, k1buf, kbbuf, ex1, exb] + term_bufs
+  if bufexists(b)
+    execute 'bwipeout! ' .. b
+  endif
+endfor
+execute 'cd ' .. fnameescape(buf_cwd)
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim

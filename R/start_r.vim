@@ -477,7 +477,7 @@ def g:RQuit(how: string)
         endif
     else
         if bufloaded('Object_Browser')
-            exe 'bunload! Object_Browser'
+            exe 'bunload! ' .. g:RBufNr('Object_Browser')
         endif
 
         quit_requested = true
@@ -697,7 +697,7 @@ def g:StartObjBrowser()
     if bufloaded('Object_Browser')
         var curwin = win_getid()
         var curtab = tabpagenr()
-        exe 'sb Object_Browser'
+        exe 'sb ' .. g:RBufNr('Object_Browser')
         var objbrtab = tabpagenr()
         quit
         win_gotoid(curwin)
@@ -719,7 +719,7 @@ def g:StartObjBrowser()
             if g:R_objbr_place =~? 'console' && has_key(g:rplugin, 'R_bufnr')
                 sil exe 'sb ' .. g:rplugin.R_bufnr
             elseif g:rplugin.rscript_name != ''
-                sil exe 'sb ' .. bufnr(g:rplugin.rscript_name)
+                sil exe 'sb ' .. g:RBufNr(g:rplugin.rscript_name)
             endif
             if g:R_objbr_place =~# 'right'
                 sil exe 'rightbelow vsplit Object_Browser'
@@ -843,7 +843,7 @@ def g:FindDebugFunc(srcref: string)
         sleep 30m # Time to fill the buffer lines
         rlines = getline(1, "$")
         if g:rplugin.rscript_name != ''
-            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
+            exe 'sb ' .. g:RBufNr(g:rplugin.rscript_name)
         endif
     elseif string(g:SendCmdToR) == "function('g:SendCmdToR_Term')"
         var tout = system('tmux -L VimR capture-pane -p -t ' .. g:rplugin.tmuxsname)
@@ -929,13 +929,13 @@ def g:RDebugJump(fnm: string, lnum: number)
     # :sb would take a space, a bracket, or a percent sign in a name as its own
     if !bufloaded(fname) && fname != g:rplugin.rscript_name && fname != expand("%") && fname != expand("%:p")
         if filereadable(fname)
-            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
+            exe 'sb ' .. g:RBufNr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
             g:RGoToFile('buffer', fname)
         elseif stridx(glob("*"), fname) >= 0
-            exe 'sb ' .. bufnr(g:rplugin.rscript_name)
+            exe 'sb ' .. g:RBufNr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
@@ -946,22 +946,24 @@ def g:RDebugJump(fnm: string, lnum: number)
         endif
     endif
 
+    var fnr = g:RBufNr(fname)
     if bufloaded(fname)
-        if bufnr(fname) != bufnr("%")
-            exe 'sb ' .. bufnr(fname)
+        if fnr != bufnr("%")
+            exe 'sb ' .. fnr
         endif
         exe ':' .. flnum
     endif
 
-    # The function takes the file name as it is, while :sign place would
-    # replace a percent sign or a number sign in it
+    # The buffer is given by its number, since :sign place would replace a
+    # percent sign or a number sign in a name, and sign_place() takes a name
+    # as a pattern
     sign unplace 1
-    sign_place(1, '', 'dbgline', fname, {lnum: flnum})
+    sign_place(1, '', 'dbgline', fnr, {lnum: flnum})
     if g:R_dbg_jump && !rdebugging && type(g:R_external_term) == v:t_number && g:R_external_term == 0 && has_key(g:rplugin, 'R_bufnr')
         exe 'sb ' .. g:rplugin.R_bufnr
         startinsert
     elseif bname != expand("%")
-        exe 'sb ' .. bufnr(bname)
+        exe 'sb ' .. g:RBufNr(bname)
     endif
     rdebugging = 1
     exe 'set so=' .. saved_so
@@ -1190,10 +1192,10 @@ enddef
 # (based  on pydoc plugin)
 def g:AskRDoc(rkeyword: string, package: string, getclass: number)
     var firstobj = ""
-    if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
+    if &filetype == "rbrowser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. bufnr(g:rplugin.rscript_name)
+        exe "sb " .. g:RBufNr(g:rplugin.rscript_name)
         exe "set switchbuf=" .. savesb
     else
         if getclass
@@ -1251,10 +1253,10 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     endif
     running_rhelp = 0
 
-    if bufname("%") =~ "Object_Browser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
+    if &filetype == "rbrowser" || (has_key(g:rplugin, "R_bufnr") && bufnr("%") == g:rplugin.R_bufnr)
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. bufnr(g:rplugin.rscript_name)
+        exe "sb " .. g:RBufNr(g:rplugin.rscript_name)
         exe "set switchbuf=" .. savesb
     endif
     g:SetRTextWidth(rkeyword)
@@ -1266,7 +1268,7 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
         var curtabnr = tabpagenr()
         var savesb = &switchbuf
         set switchbuf=useopen,usetab
-        exe "sb " .. bufnr(rdoctitle)
+        exe "sb " .. g:RBufNr(rdoctitle)
         exe "set switchbuf=" .. savesb
         if g:R_vimpager == "tabnew"
             exe "tabmove " .. curtabnr
@@ -2082,7 +2084,7 @@ enddef
 
 def g:PrintRObject(rkeyword: string)
     var firstobj: string
-    if bufname("%") =~ "Object_Browser"
+    if &filetype == "rbrowser"
         firstobj = ""
     else
         firstobj = g:RGetFirstObj(rkeyword)[0]
@@ -2096,7 +2098,7 @@ enddef
 
 def g:OpenRExample()
     if bufloaded(g:rplugin.tmpdir .. "/example.R")
-        exe "bunload! " .. bufnr(g:rplugin.tmpdir .. "/example.R")
+        exe "bunload! " .. g:RBufNr(g:rplugin.tmpdir .. "/example.R")
     endif
     if g:R_vimpager == "tabnew" || g:R_vimpager == "tab"
         g:RGoToFile('tab sbuffer', g:rplugin.tmpdir .. "/example.R")
@@ -2153,7 +2155,7 @@ def g:RAction(rcmd: string, ...args: list<any>)
             if g:R_vimpager == "no"
                 g:SendCmdToR("help(" .. rkeyword .. ")")
             else
-                if bufname("%") =~ "Object_Browser"
+                if &filetype == "rbrowser"
                     if g:rplugin.curview == "libraries"
                         rhelppkg = g:RBGetPkgName()
                     endif

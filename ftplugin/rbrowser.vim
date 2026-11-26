@@ -59,8 +59,8 @@ if !exists("g:did_vimr_rbrowser_functions")
 
         var rplugin_switchedbuf = 0
         var savesb: string
-        var bufl = execute("buffers")
-        if bufl !~ "Object_Browser"
+        var obnr = g:RBufNr('Object_Browser')
+        if obnr < 0 || !buflisted(obnr)
             g:rplugin.ob_upobcnt = 0
             return "Object_Browser not listed"
         endif
@@ -79,7 +79,7 @@ if !exists("g:did_vimr_rbrowser_functions")
         if has_key(g:rplugin, "curbuf") && g:rplugin.curbuf != "Object_Browser"
             savesb = &switchbuf
             set switchbuf=useopen,usetab
-            sil noautocmd sb Object_Browser
+            exe 'sil noautocmd sb ' .. obnr
             rplugin_switchedbuf = 1
         endif
 
@@ -91,11 +91,11 @@ if !exists("g:did_vimr_rbrowser_functions")
         @" = save_unnamed_reg
         setline(1, fcntt)
         cursor(curline, curcol)
-        if bufname("%") =~ "Object_Browser"
+        if bufnr() == obnr
             setlocal nomodifiable
         endif
         if rplugin_switchedbuf
-            exe "sil noautocmd sb " .. bufnr(g:rplugin.curbuf)
+            exe "sil noautocmd sb " .. g:RBufNr(g:rplugin.curbuf)
             exe "set switchbuf=" .. savesb
         endif
         g:rplugin.ob_upobcnt = 0

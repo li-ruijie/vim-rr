@@ -117,6 +117,34 @@ def g:RGoToFile(how: string, fname: string)
     exe how .. ' ' .. nr
 enddef
 
+# The number of the buffer whose name is name, or -1. bufnr(), sign_place(),
+# and :sbuffer take a name as a file pattern, so a bracket or a star in it
+# found another buffer, or none when the name matched two. Here a name is
+# compared as it is, with the name of each buffer and with its full path, as
+# bufexists() does. A relative name that the plugin kept from bufname()
+# belongs to the directory that was current then. When no buffer has that
+# name in the current directory, the buffer whose full path ends with the
+# name is taken, if there is only one, as bufnr() did. An empty name stands
+# for the current buffer, as it does for bufnr().
+def g:RBufNr(name: string): number
+    if name == ''
+        return bufnr()
+    endif
+    var Full = (n: string): string => has('win32')
+        ? fnamemodify(n, ':p')->substitute('\\', '/', 'g') : fnamemodify(n, ':p')
+    var Same = (a: string, b: string): bool => &fileignorecase ? a ==? b : a ==# b
+    var full = Full(name)
+    var named = getbufinfo()->mapnew((_, b) => b.bufnr)->filter((_, nr) => bufname(nr) != '')
+    var found = named->copy()->filter((_, nr) => Same(bufname(nr), name) || Same(Full(bufname(nr)), full))
+    if empty(found) && name !~ '^\%([/\\]\|\a:\)'
+        var tail = '/' .. (has('win32') ? substitute(name, '\\', '/', 'g') : name)
+        var Ends = (f: string): bool => Same(strpart(f, strlen(f) - strlen(tail)), tail)
+        found = named->filter((_, nr) => Ends(Full(bufname(nr))))
+        return len(found) == 1 ? found[0] : -1
+    endif
+    return empty(found) ? -1 : found[0]
+enddef
+
 # Show a buffer by its number in the window that an Ex command such as
 # "tabnew" or "above 7split" opens. The command gets no name, since it would
 # read some characters of the name as its own, and even in the name that it
