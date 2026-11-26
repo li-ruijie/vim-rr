@@ -309,7 +309,7 @@ vim.interlace.rnoweb <- function(rnwf, rnwdir, latexcmd = "latexmk",
             if (!grepl("^/", pdff))
                 pdff <- paste0(getwd(), "/", pdff)
             .C("vimcom_msg_to_vim",
-               paste0("g:ROpenDoc('", pdff, "', '')"),
+               paste0("g:ROpenDoc(", vim.sq(pdff), ", '')"),
                PACKAGE = "vimcom")
         }
     }
@@ -339,7 +339,7 @@ vim.interlace.rrst <- function(Rrstfile, rrstdir, compiler = "rst2pdf", ...) {
     Sys.sleep(0.2)
     pdff <- sub("\\.Rrst$", ".pdf", Rrstfile, ignore.case = TRUE)
     .C("vimcom_msg_to_vim",
-       paste0("g:ROpenDoc('", pdff, "', '')"),
+       paste0("g:ROpenDoc(", vim.sq(pdff), ", '')"),
        PACKAGE = "vimcom")
 }
 
@@ -385,7 +385,7 @@ vim.interlace.rmd <- function(Rmdfile, outform = NULL, rmddir, ...) {
             brwsr <- ""
     }
     .C("vimcom_msg_to_vim",
-       paste0("g:ROpenDoc('", res, "', '", brwsr, "')"),
+       paste0("g:ROpenDoc(", vim.sq(res), ", ", vim.sq(brwsr), ")"),
        PACKAGE = "vimcom")
     return(invisible(NULL))
 }

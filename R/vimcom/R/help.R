@@ -49,7 +49,7 @@ vim.help <- function(topic, w, firstobj, package) {
 
     warn <- function(msg) {
         .C("vimcom_msg_to_vim",
-           paste0("g:RWarningMsg('", as.character(msg), "')"),
+           paste0("g:RWarningMsg(", vim.sq(as.character(msg)), ")"),
            PACKAGE = "vimcom")
     }
 
@@ -84,7 +84,7 @@ vim.help <- function(topic, w, firstobj, package) {
 
     if (length(h) == 0) {
         msg <- paste0('No documentation for "', topic, '" in loaded packages and libraries.')
-        .C("vimcom_msg_to_vim", paste0("g:RWarningMsg('", msg, "')"), PACKAGE = "vimcom")
+        warn(msg)
         return(invisible(NULL))
     }
     if (length(h) > 1) {
@@ -92,14 +92,15 @@ vim.help <- function(topic, w, firstobj, package) {
             h <- sub("/help/.*", "", h)
             h <- sub(".*/", "", h)
             .C("vimcom_msg_to_vim",
-               paste0("g:ShowRDoc('MULTILIB ", topic, "', '", paste(h, collapse = " "), "')"),
+               paste0("g:ShowRDoc(", vim.sq(paste("MULTILIB", topic)), ", ",
+                      vim.sq(paste(h, collapse = " ")), ")"),
                PACKAGE = "vimcom")
             return(invisible(NULL))
         } else {
             h <- h[grep(paste0("/", package, "/"), h)]
             if (length(h) == 0) {
                 msg <- paste0("Package '", package, "' has no documentation for '", topic, "'")
-                .C("vimcom_msg_to_vim", paste0("g:RWarningMsg('", msg, "')"), PACKAGE = "vimcom")
+                warn(msg)
                 return(invisible(NULL))
             }
         }
@@ -119,7 +120,7 @@ vim.example <- function(topic) {
                        package = NULL), silent = TRUE)
     if (inherits(ret, "try-error")) {
         .C("vimcom_msg_to_vim",
-           paste0("g:RWarningMsg('", as.character(ret), "')"), PACKAGE = "vimcom")
+           paste0("g:RWarningMsg(", vim.sq(as.character(ret)), ")"), PACKAGE = "vimcom")
     } else {
         if (is.character(ret)) {
             if (length(ret) > 0) {
@@ -127,12 +128,13 @@ vim.example <- function(topic) {
                 .C("vimcom_msg_to_vim", "g:OpenRExample()", PACKAGE = "vimcom")
             } else {
                 .C("vimcom_msg_to_vim",
-                   paste0("g:RWarningMsg('There is no example for \"", topic, "\"')"),
+                   paste0("g:RWarningMsg(",
+                          vim.sq(paste0('There is no example for "', topic, '"')), ")"),
                    PACKAGE = "vimcom")
             }
         } else {
             .C("vimcom_msg_to_vim",
-               paste0("g:RWarningMsg('There is no help for \"", topic, "\".')"),
+               paste0("g:RWarningMsg(", vim.sq(paste0('There is no help for "', topic, '".')), ")"),
                PACKAGE = "vimcom")
         }
     }

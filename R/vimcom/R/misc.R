@@ -1,3 +1,12 @@
+# Write a string as a Vim string between single quotes, for a command that Vim
+# executes. Vim reads two single quotes in such a string as one and takes every
+# other character as it is. A line break becomes a space, since Vim receives
+# the command as one line.
+vim.sq <- function(x) {
+    x <- gsub("'", "''", x, fixed = TRUE)
+    paste0("'", gsub("[\r\n]", " ", x), "'")
+}
+
 # Function called by R if options(editor = vim.edit).
 # Vim-R sets this option during vimcom loading.
 vim.edit <- function(name, file, title) {
@@ -18,7 +27,7 @@ vim.edit <- function(name, file, title) {
     sink()
 
     .C("vimcom_msg_to_vim",
-       paste0("g:EditRObject('", initial, "')"),
+       paste0("g:EditRObject(", vim.sq(initial), ")"),
        PACKAGE = "vimcom")
 
     while (file.exists(waitf))
@@ -42,7 +51,7 @@ vim_capture_source_output <- function(s, nm) {
     o <- capture.output(base::source(s, echo = TRUE), file = NULL)
     o <- paste0(o, collapse = "\x14")
     o <- gsub("'", "\x13", o)
-    .C("vimcom_msg_to_vim", paste0("g:GetROutput('", nm, "', '", o, "')"),
+    .C("vimcom_msg_to_vim", paste0("g:GetROutput(", vim.sq(nm), ", '", o, "')"),
        PACKAGE = "vimcom")
 }
 
@@ -55,7 +64,7 @@ vim_dput <- function(oname, howto = "tabnew") {
     o <- paste0(o, collapse = "\x14")
     o <- gsub("'", "\x13", o)
     .C("vimcom_msg_to_vim",
-       paste0("g:ShowRObj('", howto, "', '", oname, "', 'r', '", o, "')"),
+       paste0("g:ShowRObj(", vim.sq(howto), ", ", vim.sq(oname), ", 'r', '", o, "')"),
        PACKAGE = "vimcom")
 }
 
@@ -89,7 +98,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         }
         if (inherits(ok, "try-error")) {
             .C("vimcom_msg_to_vim",
-               paste0("g:RWarningMsg('", '"', oname, '"', " not found in .GlobalEnv')"),
+               paste0("g:RWarningMsg(", vim.sq(paste0('"', oname, '" not found in .GlobalEnv')), ")"),
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -100,7 +109,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         }
         if (!is.null(R_df_viewer)) {
             .C("vimcom_msg_to_vim",
-               paste0("g:SendCmdToR(printf(g:R_df_viewer, '", oname, "'))"),
+               paste0("g:SendCmdToR(printf(g:R_df_viewer, ", vim.sq(oname), "))"),
                PACKAGE = "vimcom")
             return(invisible(NULL))
         }
@@ -114,7 +123,7 @@ vim_viewobj <- function(oname, fenc = "", nrows = NULL, howto = "tabnew", R_df_v
         txt <- paste0(txt, collapse = "\x14")
         txt <- gsub("'", "\x13", txt)
         .C("vimcom_msg_to_vim",
-           paste0("g:RViewDF('", oname, "', '", howto, "', '", txt, "')"),
+           paste0("g:RViewDF(", vim.sq(oname), ", ", vim.sq(howto), ", '", txt, "')"),
            PACKAGE = "vimcom")
     } else {
         vim_dput(oname, howto)
@@ -231,13 +240,14 @@ vim_insert <- function(cmd, howto = "tabnew") {
     try(o <- capture.output(cmd))
     if (inherits(o, "try-error")) {
         .C("vimcom_msg_to_vim",
-           paste0("g:RWarningMsg('Error trying to execute the command \"", cmd, "\"')"),
+           paste0("g:RWarningMsg(",
+                  vim.sq(paste0('Error trying to execute the command "', cmd, '"')), ")"),
            PACKAGE = "vimcom")
     } else {
         o <- paste0(o, collapse = "\x14")
         o <- gsub("'", "\x13", o)
         .C("vimcom_msg_to_vim",
-           paste0("g:FinishRInsert('", howto, "', '", o, "')"),
+           paste0("g:FinishRInsert(", vim.sq(howto), ", '", o, "')"),
            PACKAGE = "vimcom")
     }
     return(invisible(NULL))
