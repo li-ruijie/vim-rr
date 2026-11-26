@@ -76,6 +76,9 @@ cmds <- c(
     command(env[["vim_complete_args"]]("11", "nf", "")),
     command(env[["vim_complete_args"]]("12", "nf", "", firstobj = "d'f", ldf = TRUE)),
     # The arguments of that function for the usage line
-    command(env[["vim.GlobalEnv.fun.args"]]("g'q"))
+    command(env[["vim.GlobalEnv.fun.args"]]("g'q")),
+    # The arguments and the columns whose names begin with the text that is
+    # being completed
+    command(env[["vim_complete_args"]]("13", "plainf", "b", firstobj = "d'f", ldf = TRUE))
 )
 writeLines(cmds, out, useBytes = TRUE)

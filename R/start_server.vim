@@ -138,7 +138,7 @@ def g:RInitExit(...args: list<any>)
             var shf = ['cd ' .. shellescape(g:rplugin.tmpdir),
                         'R CMD build ' .. shellescape(g:rplugin.home .. '/R/vimcom')]
             writefile(shf, g:rplugin.tmpdir .. '/buildpkg.sh')
-            var rout = system('sh ' .. shellescape(g:rplugin.tmpdir .. '/buildpkg.sh'))
+            system('sh ' .. shellescape(g:rplugin.tmpdir .. '/buildpkg.sh'))
             if v:shell_error == 0
                 g:CheckVimcomVersion()
                 cnv_again = 1

@@ -398,7 +398,9 @@ vim_complete_args <- function(id, rkeyword0, argkey, firstobj = "", lib = NULL, 
     if (ldf && exists(firstobj)) {
         dtfrm <- get(firstobj)
         if (is.data.frame(dtfrm)) {
-            for (n in names(dtfrm)) {
+            # Only the columns whose names begin with the text that is
+            # being completed
+            for (n in names(dtfrm)[startsWith(names(dtfrm), argkey)]) {
                 nlab <- attr(dtfrm[[n]], "label")
                 res <- append(res, paste0("{'word': ", vim.sq(n),
                                           ", 'menu': ", vim.sq(paste0("[", firstobj, "]")),

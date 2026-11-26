@@ -84,8 +84,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 19, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 19 - len(cmds))
+  g:AssertEqual(len(cmds), 20, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 20 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -198,6 +198,19 @@ if executable('Rscript')
   for [key, value] in saved_compl
     g:rplugin[key] = value
   endfor
+  # vim.args() took the text that is being completed and left it unused, so
+  # every argument and every column was in the menu. Vim shows each item that
+  # the completion function returns, whatever text the user has typed.
+  var keyed_head = '+A13;b;plainf;'
+  try
+    items = eval('[' .. strpart(cmds[19], len(keyed_head)) .. ']')
+  catch
+    items = v:exception
+  endtry
+  g:AssertEqual([strpart(cmds[19], 0, len(keyed_head)), items], [keyed_head, [
+    {word: 'b = ', menu: '2'},
+    {word: 'b', menu: "[d'f]", user_data: extend({word: "d'f$b"}, column)}]],
+    'vimcom: the menu holds the arguments and the columns that begin with the text being completed')
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer

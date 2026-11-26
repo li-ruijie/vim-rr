@@ -242,7 +242,6 @@ enddef
 # See http://www.stats.uwo.ca/faculty/murdoch/9864/Sweave.pdf page 25
 def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     var texidx = 0
-    var rnwidx = 0
     var ntexln = len(readfile(basenm .. ".tex"))
     var lstexln = range(1, ntexln)
     # An empty name and line 0 mark the TeX lines that the concordance does
@@ -253,7 +252,6 @@ def g:SyncTeX_readconc(basenm: string): dict<list<any>>
     var idx = 0
     var maxidx = len(conc)
     while idx < maxidx && texidx < ntexln && conc[idx] =~ "Sconcordance"
-        var texf = substitute(conc[idx], '\\Sconcordance{concordance:\(.\{-}\):.*', '\1', "g")
         var rnwf = substitute(conc[idx], '\\Sconcordance{concordance:.\{-}:\(.\{-}\):.*', '\1', "g")
         idx += 1
         var concnum = ""

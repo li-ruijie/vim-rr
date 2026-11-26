@@ -78,8 +78,6 @@ def g:CreateNewFloat(...args: list<any>)
         return
     endif
 
-    var wrd = g:rplugin.compl_event['completed_item']['word']
-
     # Get the required height for a standard float preview window
     var flines = g:FormatInfo(60, 1)
     if len(flines) == 0
@@ -108,7 +106,6 @@ def g:CreateNewFloat(...args: list<any>)
     var freebelow = (mr == (line('.') - line('w0')) ? &lines - mr - mh : &lines - mr) - 3
     var freeright = dspwd - mw - mc - sbw
     var freeleft = mc - 1
-    var freetop = mr - 1
 
     # If there is enough vertical space, open the window beside the menu
     if freebelow > reqh && (freeright > 30 || freeleft > 30)
@@ -362,17 +359,13 @@ enddef
 
 def g:FindStartRObj(): number
     var line = getline(".")
-    var lnum = line(".")
     var cpos = getpos(".")
-    var idx = cpos[2] - 2
     var idx2 = cpos[2] - 2
     if idx2 < 0
-        g:rplugin.compl_argkey = ''
         return 0
     endif
     if strpart(line, idx2, 1) == ' ' || strpart(line, idx2, 1) == ',' || strpart(line, idx2, 1) == '('
         idx2 = cpos[2]
-        g:rplugin.compl_argkey = ''
     else
         var idx1 = idx2
         while strpart(line, idx1, 1) =~ '\w' || strpart(line, idx1, 1) == '.' || strpart(line, idx1, 1) == '_' ||
@@ -383,7 +376,6 @@ def g:FindStartRObj(): number
         idx1 += 1
         var argkey = strpart(line, idx1, idx2 - idx1 + 1)
         idx2 = cpos[2] - strlen(argkey)
-        g:rplugin.compl_argkey = argkey
     endif
     return idx2 - 1
 enddef

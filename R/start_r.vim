@@ -1221,7 +1221,6 @@ enddef
 
 # Function called by vimcom
 def g:ShowRDoc(rkeyword: string, txt: string = '')
-    var rkeyw = rkeyword
     if rkeyword =~ "^MULTILIB"
         var topic = split(rkeyword)[1]
         var libs = split(txt)
@@ -1737,7 +1736,6 @@ def g:SendParagraphToR(e: string, m: string)
     endif
     var max = line("$")
     var j = i
-    var gotempty = 0
     while j < max
         var line = getline(j + 1)
         if line =~ '^\s*$' ||
@@ -1821,7 +1819,7 @@ def g:KnitChild(line: string, godown: string)
     var cfile = substitute(nline, nline[0], "", "")
     cfile = substitute(cfile, nline[0] .. '.*', "", "")
     if filereadable(cfile)
-        var ok = g:SendCmdToR("require(knitr); knit(" .. g:RString(cfile) .. ", output=" .. devnull .. ")")
+        g:SendCmdToR("require(knitr); knit(" .. g:RString(cfile) .. ", output=" .. devnull .. ")")
         if godown =~ "down"
             cursor(line(".") + 1, 1)
             g:GoDown()

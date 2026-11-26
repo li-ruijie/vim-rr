@@ -244,6 +244,10 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
     q <-if (vimsq) vim.sq else function(x) paste0("\x12", x, "\x12")
     res <- NULL
     for (field in names(frm)) {
+        # Only the arguments whose names begin with txt, the text that is
+        # being completed
+        if (!startsWith(field, txt))
+            next
         type <- typeof(frm[[field]])
         if (extrainfo) {
             # The items of the menu reach Vim as they are written here, so
@@ -302,16 +306,6 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
         # the columns of a data frame, so a function without arguments gives
         # no item. In the other form an empty list stands for the arguments.
         res <- if (extrainfo) "" else "[]"
-    } else {
-        if (is.null(pkg)) {
-            info <- pkgname
-            if (!is.na(funcmeth)) {
-                if (info != "")
-                    info <- paste0(info, ", ")
-                info <- paste0(info, "function:", funcmeth, "()")
-            }
-            # TODO: Add the method name to the completion menu if (info != "")
-        }
     }
 
     return(res)

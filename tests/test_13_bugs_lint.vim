@@ -855,3 +855,64 @@ g:Assert(len(atat_errors) == 0,
 g:Assert(len(execall_errors) == 0,
   'a call that :execute runs names a global function with g:'
   .. Err(execall_errors))
+
+# ========================================================================
+# Dead code: a local variable that is never read, a script-local function
+# that nothing calls
+# ========================================================================
+# Several functions kept a variable that they assigned and never read, and
+# bibtex.vim kept a function that nothing called. A variable counts as read
+# when its name occurs in the function other than where it is declared or
+# assigned. A script-local function can be called only from its own file.
+def CodeOf(line: string): string
+  return line =~ '^\s*#' ? '' : substitute(line, '\s#\s.*$', '', '')
+enddef
+def UnreadLocals(filepath: string): list<string>
+  var errors: list<string> = []
+  var lines = readfile(filepath)
+  var i = 0
+  while i < len(lines)
+    if lines[i] !~ '^\s*\%(export \)\=def\s'
+      i += 1
+      continue
+    endif
+    var start = i
+    var body: list<string> = []
+    i += 1
+    while i < len(lines) && lines[i] !~ '^\s*enddef\>'
+      add(body, CodeOf(lines[i]))
+      i += 1
+    endwhile
+    for k in range(len(body))
+      for name in matchlist(body[k], '\<var\s\+\(\h\w*\)')[1 : 1]
+        var pat = '\%(\<var\s\+\)\@<!\%([.:$&@]\)\@<!\<' .. name .. '\>\%(\s*\%([-+*/]\|\.\.\)\==[^=~]\)\@!'
+        if match(body, pat) < 0
+          add(errors, fnamemodify(filepath, ':t') .. ':' .. (start + k + 2) .. ' ' .. name)
+        endif
+      endfor
+    endfor
+  endwhile
+  return errors
+enddef
+def UncalledScriptFunctions(filepath: string): list<string>
+  var errors: list<string> = []
+  var code = readfile(filepath)->mapnew((_, l) => CodeOf(l))
+  for k in range(len(code))
+    var name = matchstr(code[k], '^\s*def\s\+\zs\h\w*\ze\s*(')
+    if name != '' && match(code, '\%(\<def\s\+\)\@<!\<' .. name .. '\>') < 0
+      add(errors, fnamemodify(filepath, ':t') .. ':' .. (k + 1) .. ' ' .. name)
+    endif
+  endfor
+  return errors
+enddef
+var unread_errors: list<string> = []
+var uncalled_errors: list<string> = []
+# IsVim9() takes no file that begins with "vim9script noclear"
+for f in vim_files->copy()->filter((_, v) => match(readfile(v, '', 10), '^\s*vim9script\>') >= 0)
+  unread_errors += UnreadLocals(f)
+  uncalled_errors += UncalledScriptFunctions(f)
+endfor
+g:Assert(len(unread_errors) == 0,
+  'a local variable of a def function is read somewhere' .. Err(unread_errors))
+g:Assert(len(uncalled_errors) == 0,
+  'a script-local function is called in its file' .. Err(uncalled_errors))

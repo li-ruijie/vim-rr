@@ -423,20 +423,6 @@ def ParseEntryFields(s: dict<any>): list<any>
   return fields
 enddef
 
-# Skip over a braced group (used for @comment)
-def SkipBracedContent(s: dict<any>)
-  var depth = 1
-  while s.pos < s.end && depth > 0
-    var ch = s.chars[s.pos]
-    if ch == '{'
-      depth += 1
-    elseif ch == '}'
-      depth -= 1
-    endif
-    s.pos += 1
-  endwhile
-enddef
-
 # ═══════════════════════════════════════════════════════════════════════
 # Text utilities
 # Matches pybtex.textutils.normalize_whitespace
