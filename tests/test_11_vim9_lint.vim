@@ -21,7 +21,7 @@ endfor
 def IsVim9(filepath: string): bool
   var lines = readfile(filepath, '', 10)
   for line in lines
-    if line =~ '^\s*vim9script\s*$'
+    if line =~ '^\s*vim9script\%(\s\+noclear\)\=\s*$'
       return true
     endif
   endfor
@@ -497,3 +497,8 @@ g:Assert(len(unguarded_errors) == 0,
   .. (len(unguarded_errors) > 0
       ? ' — found in: ' .. join(unguarded_errors, ', ')
       : ''))
+
+# IsVim9() took no file that begins with "vim9script noclear", so the checks
+# above left nine files of the plugin out
+g:AssertEqual(vim_files->copy()->filter((_, v) => match(readfile(v, '', 10), '^\s*vim9script\>') >= 0
+  && !IsVim9(v))->mapnew((_, v) => fnamemodify(v, ':t')), [], 'IsVim9() takes every Vim9 script')

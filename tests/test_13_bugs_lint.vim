@@ -34,7 +34,7 @@ enddef
 def IsVim9(filepath: string): bool
   var lines = readfile(filepath, '', 10)
   for line in lines
-    if line =~ '^\s*vim9script\s*$'
+    if line =~ '^\s*vim9script\%(\s\+noclear\)\=\s*$'
       return true
     endif
   endfor
@@ -907,8 +907,7 @@ def UncalledScriptFunctions(filepath: string): list<string>
 enddef
 var unread_errors: list<string> = []
 var uncalled_errors: list<string> = []
-# IsVim9() takes no file that begins with "vim9script noclear"
-for f in vim_files->copy()->filter((_, v) => match(readfile(v, '', 10), '^\s*vim9script\>') >= 0)
+for f in vim_files->copy()->filter((_, v) => IsVim9(v))
   unread_errors += UnreadLocals(f)
   uncalled_errors += UncalledScriptFunctions(f)
 endfor
@@ -916,3 +915,8 @@ g:Assert(len(unread_errors) == 0,
   'a local variable of a def function is read somewhere' .. Err(unread_errors))
 g:Assert(len(uncalled_errors) == 0,
   'a script-local function is called in its file' .. Err(uncalled_errors))
+
+# IsVim9() took no file that begins with "vim9script noclear", so the rules
+# above that look at Vim9 script left nine files of the plugin out
+g:AssertEqual(vim_files->copy()->filter((_, v) => match(readfile(v, '', 10), '^\s*vim9script\>') >= 0
+  && !IsVim9(v))->mapnew((_, v) => fnamemodify(v, ':t')), [], 'IsVim9() takes every Vim9 script')
