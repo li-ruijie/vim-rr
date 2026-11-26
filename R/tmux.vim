@@ -3,7 +3,7 @@ vim9script
 # Check whether Tmux is OK
 if !executable('tmux')
     g:R_external_term = 0
-    execute 'call RWarningMsg("tmux executable not found")'
+    g:RWarningMsg("tmux executable not found")
     finish
 endif
 
@@ -18,7 +18,7 @@ else
         tmuxversion = "1.0"
     endif
     if tmuxversion < "3.0"
-        execute 'call RWarningMsg("Vim-R requires Tmux >= 3.0")'
+        g:RWarningMsg("Vim-R requires Tmux >= 3.0")
         g:rplugin.failed = 1
         finish
     endif

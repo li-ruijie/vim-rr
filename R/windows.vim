@@ -163,7 +163,7 @@ def g:SendCmdToR_Windows(...args: list<any>): number
     return 1
 enddef
 
-execute 'call AddForDeletion(g:rplugin.tmpdir .. "/run_cmd.bat")'
+g:AddForDeletion(g:rplugin.tmpdir .. "/run_cmd.bat")
 
 # 2020-05-19
 if exists('g:Rtools_path')

@@ -64,7 +64,7 @@ def DoSyncView(input_file: string, line_nr: number)
         s_pending_line  = line_nr
         s_has_pending   = true
         dbus.FindDocument(px, true)
-        execute 'call Evince_Again()'
+        g:Evince_Again()
     endif
 enddef
 

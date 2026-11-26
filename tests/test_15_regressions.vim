@@ -663,3 +663,47 @@ err = Caught(() => {
 })
 g:AssertEqual(err, '', 'PrintListTree: the table of jobs takes a job after the test')
 g:rplugin.jobs['Server'] = saved_tree_jobs['Server']
+
+# ========================================================================
+# tmux.vim: the warnings for a missing tmux and for an old one
+# ========================================================================
+# The script called RWarningMsg() without g: in a command for :execute. Vim
+# found the global function only through a fallback that vim9.txt does not
+# describe. The script runs with a PATH where tmux is missing, and with one
+# where a stand-in reports version 2.9. Vim has not entered its main loop in
+# the tests, so the warnings are kept for later.
+var tmux_dir = tempname()
+mkdir(tmux_dir .. '/none', 'p')
+if has('win32')
+  writefile(['@echo tmux 2.9'], tmux_dir .. '/tmux.cmd')
+else
+  writefile(['#!/bin/sh', 'echo "tmux 2.9"'], tmux_dir .. '/tmux')
+  setfperm(tmux_dir .. '/tmux', 'rwx------')
+endif
+var saved_tmux = [$PATH, get(g:, 'R_external_term', v:none), get(g:rplugin, 'failed', v:none),
+  get(g:rplugin, 'start_msg', v:none)]
+g:rplugin.start_msg = []
+var tmux_errs: list<string> = []
+for dir in [tmux_dir .. '/none', tmux_dir]
+  $PATH = dir
+  add(tmux_errs, Caught(() => {
+    execute 'source ' .. fnameescape(plugin_root .. '/R/tmux.vim')
+  }))
+endfor
+$PATH = saved_tmux[0]
+g:AssertEqual([tmux_errs, g:rplugin.start_msg, g:R_external_term, get(g:rplugin, 'failed', 0)],
+  [['', ''], ['tmux executable not found', 'Vim-R requires Tmux >= 3.0'], 0, 1],
+  'tmux.vim: a missing tmux and tmux 2.9 give their warnings and no error')
+for [scope, key, value] in [[g:, 'R_external_term', saved_tmux[1]], [g:rplugin, 'failed', saved_tmux[2]],
+    [g:rplugin, 'start_msg', saved_tmux[3]]]
+  if type(value) != v:t_none
+    scope[key] = value
+  elseif has_key(scope, key)
+    remove(scope, key)
+  endif
+endfor
+if has('win32')
+  delete(tmux_dir .. '/tmux.cmd')
+  delete(tmux_dir .. '/none', 'd')
+  delete(tmux_dir, 'd')
+endif

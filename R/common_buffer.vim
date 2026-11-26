@@ -21,7 +21,7 @@ endif
 
 if index(g:R_set_omnifunc, &filetype) > -1
     execute 'source ' .. fnameescape(g:rplugin.home .. '/R/complete.vim')
-    execute 'call RComplAutCmds()'
+    g:RComplAutCmds()
 endif
 
 if !exists('b:did_unrll_au')

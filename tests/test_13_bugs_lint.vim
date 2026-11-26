@@ -708,6 +708,30 @@ def AtAtInDefBlocks(): list<string>
 enddef
 
 # ========================================================================
+# A call that :execute runs names a global function with g:
+# ========================================================================
+# vim9.txt says that Vim looks for a function without a prefix in the
+# function, in the blocks, and in the script. The global function of the
+# name was found only because Vim tries the global scope as well, which the
+# help does not promise.
+def ExecuteCallWithoutG(): list<string>
+  var errors: list<string> = []
+  for filepath in vim_files
+    if !IsVim9(filepath)
+      continue
+    endif
+    var lnum = 0
+    for line in readfile(filepath)
+      lnum += 1
+      if line =~ '^\s*exe\%[cute]\s\+[''"]call\s\+[A-Z]'
+        add(errors, fnamemodify(filepath, ':~:.') .. ':' .. lnum)
+      endif
+    endfor
+  endfor
+  return errors
+enddef
+
+# ========================================================================
 # Run all checks
 # ========================================================================
 
@@ -746,6 +770,7 @@ var jobstdin_errors = JobStdinAllSitesGuarded()
 var undo_errors = UndoFtpluginVars()
 var sprintf_errors = CSprintfEbuf()
 var atat_errors = AtAtInDefBlocks()
+var execall_errors = ExecuteCallWithoutG()
 
 # Helper for error suffix
 def Err(errors: list<string>): string
@@ -826,3 +851,7 @@ g:Assert(len(sprintf_errors) == 0,
 g:Assert(len(atat_errors) == 0,
   '@@ is invalid in def blocks (E354) — use @" instead'
   .. Err(atat_errors))
+
+g:Assert(len(execall_errors) == 0,
+  'a call that :execute runs names a global function with g:'
+  .. Err(execall_errors))
