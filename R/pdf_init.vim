@@ -65,14 +65,14 @@ enddef
 def g:RRaiseWindow(wttl: string): number
     if g:rplugin.has_wmctrl
         system("wmctrl -a " .. shellescape(wttl))
-        return v:shell_error ? 0 : 1
+        return v:shell_error != 0 ? 0 : 1
     elseif $WAYLAND_DISPLAY != ""
         if $GNOME_SHELL_SESSION_MODE != "" && g:rplugin.has_awbt
             var sout = system("busctl --user call org.gnome.Shell "
                 .. "/de/lucaswerkmeister/ActivateWindowByTitle "
                 .. "de.lucaswerkmeister.ActivateWindowByTitle "
                 .. "activateBySubstring s " .. shellescape(wttl))
-            if v:shell_error
+            if v:shell_error != 0
                 g:RWarningMsg('Error running Gnome Shell Extension'
                     .. ' "Activate Window By Title": '
                     .. substitute(sout, "\n", " ", "g"))
@@ -81,7 +81,7 @@ def g:RRaiseWindow(wttl: string): number
             return sout =~ 'false' ? 0 : 1
         elseif $XDG_CURRENT_DESKTOP == "sway"
             var sout = system("swaymsg -t get_tree")
-            if v:shell_error
+            if v:shell_error != 0
                 g:RWarningMsg('Error running swaymsg: '
                     .. substitute(sout, "\n", " ", "g"))
                 return 0

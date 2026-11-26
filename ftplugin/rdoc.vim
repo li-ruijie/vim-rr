@@ -35,7 +35,7 @@ if !exists("g:did_vimr_rdoc_functions")
 
         # Mark the end of Examples
         var exline = search("^Examples:$", "nw")
-        if exline
+        if exline > 0
             if getline("$") !~ "^###$"
                 setline(line("$") + 1, '###')
             endif
@@ -43,7 +43,7 @@ if !exists("g:did_vimr_rdoc_functions")
 
         # Add a tab character at the end of the Arguments section to mark its end.
         var argline = search("^Arguments:$", "nw")
-        if argline
+        if argline > 0
             # A space after 'Arguments:' is necessary for correct syntax highlight
             # of the first argument
             setline(argline, "Arguments: ")
@@ -64,7 +64,7 @@ if !exists("g:did_vimr_rdoc_functions")
 
         # Add a tab character at the end of the Usage section to mark its end.
         var usageline = search("^Usage:$", "nw")
-        if usageline
+        if usageline > 0
             var doclength = line("$")
             var cur = usageline + 2
             var lin = getline(cur)

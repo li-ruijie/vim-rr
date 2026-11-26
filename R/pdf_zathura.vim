@@ -109,7 +109,7 @@ def g:SyncTeX_forward2(tpath: string, ppath: string, texln: number, tryagain: nu
 
     var result = system("zathura --synctex-forward=" .. texln .. ":1:" .. texname
         .. " --synctex-pid=" .. g:rplugin.zathura_pid[ppath] .. " " .. pdfname)
-    if v:shell_error
+    if v:shell_error != 0
         g:rplugin.zathura_pid[ppath] = 0
         if tryagain
             RStartZathura(ppath)

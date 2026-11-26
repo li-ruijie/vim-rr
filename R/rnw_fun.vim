@@ -210,7 +210,7 @@ def g:SyncTeX_GetMaster(): string
     endif
 
     var ischild = search('% *!Rnw *root *=', 'bwn')
-    if ischild
+    if ischild > 0
         var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
         var mdir: string
         if mfile =~ "/"
@@ -383,7 +383,7 @@ def g:SyncTeX_forward(...args: list<any>)
         lnum = line(".")
     else
         var ischild = search('% *!Rnw *root *=', 'bwn')
-        if ischild
+        if ischild > 0
             var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
             basenm = substitute(mfile, '\....$', '', '')
             if filereadable(expand("%:p:h") .. "/" .. basenm .. "-concordance.tex")
