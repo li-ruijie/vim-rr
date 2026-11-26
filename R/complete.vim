@@ -388,84 +388,84 @@ def g:FindStartRObj(): number
     return idx2 - 1
 enddef
 
-def g:NeedRArguments(line: string, cpos: list<number>): list<any>
-    # Check if we need function arguments
-    var ln = line
-    var lnum = line(".")
-    var cp = cpos
-    var idx = cp[2] - 2
-    if idx < 0
-        return []
-    endif
+# Find the opening parenthesis that the text up to the byte idx of the line
+# lnum leaves open, whose text is ln. The search looks up to 10 lines above,
+# and the result is the number of the line and the byte of the parenthesis,
+# or an empty list.
+def g:RFindOpenParen(ln: string, lnum: number, idx: number): list<number>
+    var text = ln
+    var l = lnum
+    var i = idx
     var np = 1
     var nl = 0
-    # Look up to 10 lines above for an opening parenthesis
-    while nl < 10
-        if strpart(ln, idx, 1) == '('
+    while true
+        if i < 0
+            l -= 1
+            nl += 1
+            if l == 0 || nl == 10
+                return []
+            endif
+            text = getline(l)
+            i = strlen(text) - 1
+            continue
+        endif
+        var c = strpart(text, i, 1)
+        if c == '('
             np -= 1
-        elseif strpart(ln, idx, 1) == ')'
+            if np == 0
+                return [l, i]
+            endif
+        elseif c == ')'
             np += 1
         endif
-        if np == 0
-            # The opening parenthesis was found
-            var rkeyword0 = g:RGetKeyword(lnum, idx)
-            var firstobj = ""
-            var ispiped = v:false
-            var listdf: any = 0
-            var pkg: string
-            if rkeyword0 =~ "::"
-                pkg = '"' .. substitute(rkeyword0, "::.*", "", "") .. '"'
-                rkeyword0 = substitute(rkeyword0, ".*::", "", "")
-            else
-                var rkeyword1 = rkeyword0
-                if string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
-                    for fnm in g:R_fun_data_1
-                        if fnm == rkeyword0
-                            listdf = 1
-                            break
-                        endif
-                    endfor
-                    for key in keys(g:R_fun_data_2)
-                        if g:R_fun_data_2[key][0] == '*' || index(g:R_fun_data_2[key], rkeyword0) > -1
-                            listdf = 2
-                            rkeyword1 = key
-                            break
-                        endif
-                    endfor
-                    if listdf == 2
-                        # Get first object of nesting function, if any
-                        if ln =~ rkeyword1 .. '\s*('
-                            idx = stridx(ln, rkeyword1)
-                        else
-                            ln = getline(lnum - 1)
-                            if ln =~ rkeyword1 .. '\s*('
-                                idx = stridx(ln, rkeyword1)
-                            else
-                                rkeyword1 = rkeyword0
-                                listdf = 0
-                            endif
-                        endif
-                    endif
-                    var ro = g:RGetFirstObj(rkeyword1, ln, idx, listdf)
-                    firstobj = ro[0]
-                    ispiped = ro[1]
-                endif
-                pkg = ""
-            endif
-            return [rkeyword0, listdf, firstobj, ispiped, pkg, lnum, cp]
-        endif
-        idx -= 1
-        if idx <= 0
-            lnum -= 1
-            if lnum == 0
-                break
-            endif
-            ln = getline(lnum)
-            idx = strlen(ln)
-            nl += 1
-        endif
+        i -= 1
     endwhile
     return []
+enddef
+
+def g:NeedRArguments(line: string, cpos: list<number>): list<any>
+    # Check if we need function arguments
+    var cp = cpos
+    if cp[2] - 2 < 0
+        return []
+    endif
+    var paren = g:RFindOpenParen(line, line("."), cp[2] - 2)
+    if len(paren) == 0
+        return []
+    endif
+    var [lnum, idx] = paren
+    var rkeyword0 = g:RGetKeyword(lnum, idx)
+    var firstobj = ""
+    var ispiped = v:false
+    var listdf: any = 0
+    var pkg = ""
+    if rkeyword0 =~ "::"
+        pkg = '"' .. substitute(rkeyword0, "::.*", "", "") .. '"'
+        rkeyword0 = substitute(rkeyword0, ".*::", "", "")
+    elseif string(g:SendCmdToR) != "function('g:SendCmdToR_fake')"
+        # The first object is that of the function itself, or that of the
+        # function that holds the call for R_fun_data_2
+        var fnm = rkeyword0
+        var fnlnum = lnum
+        var fnidx = idx
+        if index(g:R_fun_data_1, rkeyword0) > -1
+            listdf = 1
+        elseif rkeyword0 != ''
+            var pline = getline(lnum)
+            var kstart = strridx(strpart(pline, 0, idx), rkeyword0)
+            var outer = kstart >= 0 ? g:RFindOpenParen(pline, lnum, kstart - 1) : []
+            if len(outer) > 0
+                var parent = substitute(g:RGetKeyword(outer[0], outer[1]), '.*::', '', '')
+                var nested = get(g:R_fun_data_2, parent, [])
+                if index(nested, '*') > -1 || index(nested, rkeyword0) > -1
+                    listdf = 2
+                    [fnm, fnlnum, fnidx] = [parent, outer[0], outer[1]]
+                endif
+            endif
+        endif
+        [firstobj, ispiped] = g:RGetFirstObj(fnm, fnlnum, fnidx)
+    endif
+    return [rkeyword0, listdf, firstobj, ispiped, pkg, lnum, cp]
 enddef
 
 # The answer names the request that it is for. One that comes after

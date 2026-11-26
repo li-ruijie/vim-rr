@@ -259,21 +259,12 @@ def g:RGetKeyword(...args: list<any>): string
 enddef
 
 # Get the name of the first object after the opening parenthesis. Useful to
-# call a specific print, summary, ..., method instead of the generic one.
-def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
+# call a specific print, summary, ..., method instead of the generic one. The
+# call of rkeyword is looked for before the byte begin of the line flnum.
+def g:RGetFirstObj(rkeyword: string, flnum: number = line("."), fbegin: number = col(".")): list<any>
     var firstobj = ""
-    var line: string
-    var begin: number
-    var listdf: any
-    if len(args) == 3
-        line = substitute(args[0], '#.*', '', "")
-        begin = args[1]
-        listdf = args[2]
-    else
-        line = substitute(getline("."), '#.*', '', "")
-        begin = col(".")
-        listdf = v:false
-    endif
+    var line = substitute(getline(flnum), '#.*', '', "")
+    var begin = fbegin
     if strlen(line) > begin
         var piece = strpart(line, begin)
         while piece !~ '^' .. rkeyword && begin >= 0
@@ -289,7 +280,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
                 return [pipeobj, v:true]
             endif
         endif
-        var pline = substitute(getline(line('.') - 1), '#.*$', '', '')
+        var pline = substitute(getline(flnum - 1), '#.*$', '', '')
         if pline =~ '\k\+\s*\(|>\|%>%\)\s*$'
             var pipeobj = substitute(pline, '.\{-}\(\k\+\)\s*\(|>\|%>%\)\s*$', '\1', '')
             return [pipeobj, v:true]
@@ -315,7 +306,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
             idx += 1
             var nparen = 1
             var len = strlen(line)
-            var lnum = line(".")
+            var lnum = flnum
             while nparen != 0
                 if idx == len
                     lnum += 1
@@ -346,7 +337,7 @@ def g:RGetFirstObj(rkeyword: string, ...args: list<any>): list<any>
             idx += 1
             var nparen = 1
             var len = strlen(line)
-            var lnum = line(".")
+            var lnum = flnum
             while nparen != 0
                 if idx == len
                     lnum += 1

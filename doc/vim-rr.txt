@@ -2326,9 +2326,10 @@ argument of the parent function. For example, if you were typing
 <
 and, then, trigger omni completion, the column names of `my_data_frame` would
 be included in the completion menu. By default, only the function `aes` (if
-passed as argument for `ggplot`) and the functions `lm`, `glm` or `lmer` (if
-passed as argument for `with`) will have column names of the first argument of
-the parent function included in the completion menu. You have to set the value
+passed as argument for `ggplot`) and any function (if passed as argument for
+`with`) will have column names of the first argument of the parent function
+included in the completion menu. A function listed in `R_fun_data_1` takes the
+columns of its own first argument instead. You have to set the value
 of `R_fun_data_2` in your |vimrc| to include more functions. `R_fun_data_2` is a
 dictionary with parent functions as keys. The value of each key is a list of
 functions that are expected to be nested in the parent function. If the name

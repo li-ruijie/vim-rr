@@ -331,6 +331,82 @@ err = Caught(() => {
 g:AssertEqual([err, g:rplugin.compl_usage], ['', 'usage of an earlier item'],
   'OnCompleteDone: an answer that arrives after the menu was left changes nothing')
 
+# ========================================================================
+# NeedRArguments: the data frame whose columns join the menu of arguments
+# ========================================================================
+# With the default R_fun_data_2, which names every function for "with", each
+# call was taken for one nested in "with". A function of R_fun_data_1 then got
+# no columns outside a call of "with", and the first object was read from the
+# line above the call. Each case is buffer text with the cursor after its
+# last character, and the result is the function, the kind of data frame (1
+# for R_fun_data_1, 2 for R_fun_data_2), the first object, and whether that
+# object is piped.
+def g:RrTestDataSend(...args: list<any>): number
+  return 1
+enddef
+var SavedDataSend = g:SendCmdToR
+g:SendCmdToR = function('g:RrTestDataSend')
+var saved_fun_data = [g:R_fun_data_1, g:R_fun_data_2]
+def NeedArgs(lines: list<string>): list<any>
+  deletebufline('%', 1, '$')
+  setline(1, lines)
+  cursor(len(lines), 1)
+  return g:NeedRArguments(getline('.'), [0, len(lines), strlen(lines[-1]) + 1, 0])[0 : 3]
+enddef
+var data_cases = [
+  [['filter(dat, '], ['filter', 1, 'dat', false], 'R_fun_data_1 on one line'],
+  [['filter(dat,', '       '], ['filter', 1, 'dat', false], 'R_fun_data_1 across lines'],
+  [['dat %>%', '  filter(', '    x > 1, '], ['filter', 1, 'dat', true],
+    'R_fun_data_1 with the object piped on the line above the call'],
+  [['with(dat, lm(y ~ '], ['lm', 2, 'dat', false], 'R_fun_data_2 with "*" on one line'],
+  [['with(dat,', 'lm(y ~ '], ['lm', 2, 'dat', false], 'R_fun_data_2 with "*" across lines'],
+  [['ggplot(dat, aes(x = '], ['aes', 2, 'dat', false], 'R_fun_data_2 with a name on one line'],
+  [['ggplot2::ggplot(dat,', '  aes(x = '], ['aes', 2, 'dat', false],
+    'R_fun_data_2 with a name across lines, the parent named with its package'],
+  [['dat |> with(lm(y ~ '], ['lm', 2, 'dat', true], 'R_fun_data_2 with the object piped'],
+  [['ggplot(dat, geom_point('], ['geom_point', 0, '', false], 'R_fun_data_2: a function not listed'],
+  [['with(a, b); lm(dat, '], ['lm', 0, 'dat', false], 'R_fun_data_2: a call after "with" is not nested'],
+  [['print(other)', 'summary(dat, '], ['summary', 0, 'dat', false],
+    'no data frame: the first object is read from the line of the call'],
+]
+# Each option alone and both together
+var option_cases = [
+  [['summary'], {}, ['summary(dat, '], ['summary', 1, 'dat', false], 'R_fun_data_1 alone'],
+  [['summary'], {}, ['with(dat, lm('], ['lm', 0, '', false], 'R_fun_data_1 alone: no "with"'],
+  [[], {with: ['lm']}, ['with(dat, lm('], ['lm', 2, 'dat', false], 'R_fun_data_2 alone'],
+  [[], {with: ['lm']}, ['with(dat,', '  glm('], ['glm', 0, '', false],
+    'R_fun_data_2 alone: a function not listed'],
+  [[], {with: ['lm']}, ['filter(dat, '], ['filter', 0, 'dat', false], 'R_fun_data_2 alone: no "filter"'],
+  [['filter'], {with: ['*']}, ['with(dat, filter(d2, '], ['filter', 1, 'd2', false],
+    'both: R_fun_data_1 comes first'],
+  [['filter'], {with: ['*']}, ['with(dat,', '  lm('], ['lm', 2, 'dat', false], 'both: R_fun_data_2'],
+]
+var data_got: list<any> = []
+err = Caught(() => {
+  # The defaults of the two options
+  g:R_fun_data_1 = ['select', 'rename', 'mutate', 'filter']
+  g:R_fun_data_2 = {ggplot: ['aes'], with: ['*']}
+  data_got = data_cases->mapnew((_, c) => NeedArgs(c[0]))
+  for c in option_cases
+    [g:R_fun_data_1, g:R_fun_data_2] = [c[0], c[1]]
+    add(data_got, NeedArgs(c[2]))
+  endfor
+})
+g:AssertEqual(err, '', 'NeedRArguments: no error for the data frames of the menu of arguments')
+for i in range(len(data_cases))
+  g:AssertEqual(get(data_got, i, 'no result'), data_cases[i][1], 'NeedRArguments: ' .. data_cases[i][2])
+endfor
+for i in range(len(option_cases))
+  g:AssertEqual(get(data_got, len(data_cases) + i, 'no result'), option_cases[i][3],
+    'NeedRArguments: ' .. option_cases[i][4])
+endfor
+[g:R_fun_data_1, g:R_fun_data_2] = saved_fun_data
+g:SendCmdToR = SavedDataSend
+delfunction g:RrTestDataSend
+deletebufline('%', 1, '$')
+setline(1, ['x <- 1'])
+setlocal nomodified
+
 g:rplugin.compl_event = saved_event
 g:rplugin.compl_usage = saved_usage
 g:rplugin.compl_asked = saved_asked
