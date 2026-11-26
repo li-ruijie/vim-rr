@@ -909,7 +909,7 @@ static void vimcom_globalenv_list(void) {
         needs_glbenv_msg = 1;
 
     double tmdiff = 1000 * ((double)clock() - tm) / CLOCKS_PER_SEC;
-    if (tmdiff > timelimit || strlen(glbnvbuf1) > sizelimit) {
+    if (tmdiff > timelimit || strlen(glbnvbuf1) > (size_t)sizelimit) {
         maxdepth = curdepth - 1;
         if (verbose)
             REprintf(
