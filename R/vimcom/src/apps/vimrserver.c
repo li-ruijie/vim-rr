@@ -2701,60 +2701,6 @@ char *parse_omnils(const char *s, const char *base, const char *pkg, char *p) {
     return p;
 }
 
-char *complete_args(char *p, char *funcnm) {
-    // Check if function is "pkg::fun"
-    char *pkg = NULL;
-    if (strstr(funcnm, "::")) {
-        pkg = funcnm;
-        funcnm = strstr(funcnm, "::");
-        *funcnm = 0;
-        funcnm++;
-        funcnm++;
-    }
-
-    PkgData *pd = pkgList;
-    char *s;
-    unsigned long nsz;
-    while (pd) {
-        if (pd->omnils &&
-            (pkg == NULL || (pkg && strcmp(pd->name, pkg) == 0))) {
-            s = pd->omnils;
-            while (*s != 0) {
-                if (strcmp(s, funcnm) == 0) {
-                    int i = 4;
-                    while (i) {
-                        s++;
-                        if (*s == 0)
-                            i--;
-                    }
-                    s++;
-
-                    // Avoid buffer overflow if the arguments are bigger than
-                    // compl_buffer.
-                    nsz = strlen(pd->name) + strlen(funcnm) + strlen(s) + 1024 +
-                          (p - compl_buffer);
-                    if (compl_buffer_size < nsz)
-                        p = grow_buffer(&compl_buffer, &compl_buffer_size,
-                                        nsz - compl_buffer_size);
-
-                    p = str_cat(p, "{'pkg': '");
-                    p = str_cat(p, pd->name);
-                    p = str_cat(p, "', 'fnm': '");
-                    p = str_cat(p, funcnm);
-                    p = str_cat(p, "', 'args': [");
-                    p = str_cat(p, s);
-                    p = str_cat(p, "]},");
-                    break;
-                } else {
-                    s = next_line(s);
-                }
-            }
-        }
-        pd = pd->next;
-    }
-    return p;
-}
-
 void complete(const char *id, char *base, char *funcnm, char *args) {
     if (args && strlen(args) >= 4)
         Log("complete(%s, %s, %s, [%c%c%c%c...])", id, base, funcnm, args[0],
@@ -2780,19 +2726,14 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
             unlock_stdout();
             return;
         } else {
-            // Normal completion of arguments. A request of Vim brings no
-            // arguments, and they are then taken from the loaded libraries.
-            // The items that vimcom:::vim_complete_args() sends are quoted
-            // for Vim already, and a byte 0x12 in them is part of a name or
-            // of a value, so they are passed on as they are.
-            if (r_conn == 0 || !args) {
-                p = complete_args(p, funcnm);
-            } else {
-                if ((strlen(args) + 1024) > compl_buffer_size)
-                    p = grow_buffer(&compl_buffer, &compl_buffer_size,
-                                    strlen(args) + 1024 - compl_buffer_size);
-                p = str_cat(p, args);
-            }
+            // Completion of arguments, which vimcom:::vim_complete_args()
+            // sends. The items are quoted for Vim already, and a byte 0x12 in
+            // them is part of a name or of a value, so they are passed on as
+            // they are.
+            if ((strlen(args) + 1024) > compl_buffer_size)
+                p = grow_buffer(&compl_buffer, &compl_buffer_size,
+                                strlen(args) + 1024 - compl_buffer_size);
+            p = str_cat(p, args);
         }
         if (base[0] == 0) {
             // base will be empty if completing only function arguments
@@ -2968,18 +2909,6 @@ void stdin_loop() {
             if (*msg == '\004') {
                 msg++;
                 complete(id, msg, "\004", NULL);
-            } else if (*msg == '\005') {
-                msg++;
-                char *base = msg;
-                while (*msg != '\005' && *msg)
-                    msg++;
-                if (*msg == 0) {
-                    unlock_state();
-                    break;
-                }
-                *msg = 0;
-                msg++;
-                complete(id, base, msg, NULL);
             } else {
                 complete(id, msg, NULL, NULL);
             }
