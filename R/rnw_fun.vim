@@ -200,6 +200,12 @@ def g:RnwSendChunkToR(e: string, m: string)
     endif
 enddef
 
+# The name that a line "% !Rnw root = name" gives. The spaces and the carriage
+# return that end the line are left out, and a space inside the name stays.
+def RootName(line: string): string
+    return matchstr(line, '.*% *!Rnw *root *= *\zs.*')->trim(" \t\r", 2)
+enddef
+
 # The file that the line "% !Rnw root =" of the current buffer names, with
 # its directory. A relative name is taken in the directory of the buffer,
 # where SyncTeX_forward() looks for the concordance of the master. The
@@ -221,7 +227,7 @@ def g:SyncTeX_GetMaster(): string
 
     var ischild = search('% *!Rnw *root *=', 'bwn')
     if ischild > 0
-        var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
+        var mfile = RootName(getline(ischild))
         return substitute(RootFile(mfile), '\....$', '', '')
     endif
 
@@ -381,7 +387,7 @@ def g:SyncTeX_forward(...args: list<any>)
     else
         var ischild = search('% *!Rnw *root *=', 'bwn')
         if ischild > 0
-            var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
+            var mfile = RootName(getline(ischild))
             basenm = substitute(mfile, '\....$', '', '')
             var mpath = RootFile(mfile)
             if filereadable(substitute(mpath, '\....$', '', '') .. "-concordance.tex")

@@ -1150,6 +1150,54 @@ g:AssertEqual(root_found, root_cases->mapnew((_, c) => ['', work .. '/' .. c[2] 
   work .. '/' .. c[2] .. '/main.tex', 2]),
   'SyncTeX: the root, the PDF directory, and the TeX file of a child or of a root in another directory')
 
+# The name of the root kept the spaces that end its line, and a carriage
+# return, which a line of a file with mixed line endings holds in Vim. A
+# space inside the name stays.
+chdir(work)
+g:R_latexcmd = ['pdflatex', '-synctex=1']
+var trail_cases = [['D', 'm n/main.Rnw   ', 'D/m n'], ['E', "main.Rnw\r", 'E'],
+  ['F', "m n/main.Rnw \t\r", 'F/m n']]
+var trail_found: list<any> = []
+for [kdir, root, rdir] in trail_cases
+  mkdir(work .. '/' .. rdir, 'p')
+  writefile(['\documentclass{article}', "<<child='kid.Rnw'>>=", '@'], work .. '/' .. rdir .. '/main.Rnw')
+  writefile(['line 1', 'line 2', 'line 3', 'line 4'], work .. '/' .. rdir .. '/main.tex')
+  writefile(['\Sconcordance{concordance:main.tex:main.Rnw:%', '1 3 1}'],
+    work .. '/' .. rdir .. '/main-concordance.tex')
+  writefile(['pdf'], work .. '/' .. rdir .. '/main.pdf')
+  writefile(['% !Rnw root = ' .. root, 'text'], work .. '/' .. kdir .. '/kid.Rnw')
+  var kid_buf = bufadd(work .. '/' .. kdir .. '/kid.Rnw')
+  execute 'buffer ' .. kid_buf
+  var found: list<any> = [getline(1) =~ "\r$" || root !~ "\r"]
+  g:rplugin.start_msg = []
+  err = Caught(() => {
+    add(found, g:SyncTeX_GetMaster())
+    g:SetPDFdir()
+    add(found, b:rplugin_pdfdir)
+    g:SyncTeX_forward()
+    g:SyncTeX_forward(1)
+  })
+  add(trail_found, [err] + found
+    + [g:rplugin.start_msg, substitute(expand('%:p'), '\\', '/', 'g'), line('.')])
+  silent! tabonly
+  execute 'buffer ' .. rbuf
+  execute 'bwipeout! ' .. kid_buf
+  if bufexists(work .. '/' .. rdir .. '/main.tex')
+    execute 'bwipeout! ' .. bufadd(work .. '/' .. rdir .. '/main.tex')
+  endif
+  extend(made_files, [rdir .. '/main.Rnw', rdir .. '/main.tex', rdir .. '/main-concordance.tex',
+    rdir .. '/main.pdf', kdir .. '/kid.Rnw'])
+endfor
+extend(made_dirs, ['D/m n', 'D', 'E', 'F/m n', 'F'])
+chdir(sync_cwd)
+g:R_latexcmd = saved_latexcmd
+g:rplugin.start_msg = []
+g:AssertEqual(trail_found, trail_cases->mapnew((_, c) => ['', true, work .. '/' .. c[2] .. '/main',
+  work .. '/' .. c[2], ['SyncTeX forward cannot be done because the file "' .. work .. '/' .. c[2]
+    .. '/main.synctex.gz" is missing.'],
+  work .. '/' .. c[2] .. '/main.tex', 2]),
+  'SyncTeX: the name of the root ends before the spaces and the carriage return that end its line')
+
 # The name of a child is matched as it is. SyncTeX_forward() looked for the
 # line of the master that includes the child, and for the lines of the
 # concordance that belong to a file, with the names as patterns, and
