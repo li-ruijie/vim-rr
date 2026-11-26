@@ -633,7 +633,11 @@ g:AssertEqual(start_r_defined->copy()->filter((_, n) => start_r_listed !~ "'" ..
 # ========================================================================
 # vimrserver writes the list tree into its temporary directory. The function
 # that asks for it tells where the file is and registers it for deletion.
-var saved_tree_jobs = g:rplugin.jobs->copy()
+# A variable takes the type of its first value, and the table holds only
+# strings while no job runs. The copy is put back at the end, so it is
+# declared for any value. Without that, Vim 9.2.1398 refuses a job in the
+# table from then on, which Vim 9.1.1244 does not.
+var saved_tree_jobs: dict<any> = g:rplugin.jobs->copy()
 var saved_tree_del = g:rplugin.del_list->copy()
 if !exists('*g:PrintListTree')
   execute 'source ' .. fnameescape(plugin_root .. '/ftplugin/rbrowser.vim')
@@ -652,3 +656,10 @@ g:Assert(index(g:rplugin.del_list, tree_file) >= 0, 'PrintListTree: the file is 
 job_stop(tree_job)
 g:rplugin.jobs = saved_tree_jobs
 g:rplugin.del_list = saved_tree_del
+# The table that was put back must take a job again, as the plugin stores
+# the server and R in it
+err = Caught(() => {
+  g:rplugin.jobs['Server'] = tree_job
+})
+g:AssertEqual(err, '', 'PrintListTree: the table of jobs takes a job after the test')
+g:rplugin.jobs['Server'] = saved_tree_jobs['Server']
