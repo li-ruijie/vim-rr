@@ -49,7 +49,7 @@ def RStartZathura(fullpath: string)
         system('kill ' .. g:rplugin.zathura_pid[fullpath])
     elseif g:rplugin.has_wmctrl && has_dbus_send && filereadable("/proc/sys/kernel/pid_max")
         var info = split(system("wmctrl -xpl"), "\n")
-            ->filter((_, v) => v =~ 'Zathura.*' .. fname)
+            ->filter((_, v) => v =~ 'Zathura.*\V' .. escape(fname, '\'))
         if len(info) > 0
             var pid = str2nr(split(info[0])[2])
             var max_pid = str2nr(readfile("/proc/sys/kernel/pid_max")[0])

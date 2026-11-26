@@ -335,6 +335,44 @@ endif
 g:rplugin.rscript_name = saved_rscript
 execute 'buffer ' .. rbuf
 
+# ========================================================================
+# Zathura: the title of a window is compared with the name as text
+# ========================================================================
+# Before it opens a PDF, the plugin closes the Zathura that shows the same
+# file, which it finds by the title in the list of wmctrl. The file name went
+# into the pattern as it was, so a bracket in it matched other text than
+# itself and a tilde raised E33. The stand-in for wmctrl lists one window that
+# belongs to a sleeping process, which the plugin must end.
+if has('unix') && filereadable('/proc/sys/kernel/pid_max')
+  var zbin = work .. '/zbin'
+  mkdir(zbin, 'p')
+  writefile(['#!/bin/sh', 'sleep 1'], zbin .. '/zathura')
+  writefile(['#!/bin/sh', 'echo "0x04000003  0 $RR_TEST_PID zathura.Zathura  host $RR_TEST_TITLE"'],
+    zbin .. '/wmctrl')
+  writefile(['#!/bin/sh', 'exit 0'], zbin .. '/dbus-send')
+  for prog in ['zathura', 'wmctrl', 'dbus-send']
+    setfperm(zbin .. '/' .. prog, 'rwx------')
+  endfor
+  var old_zathura = job_start(['sleep', '30'])
+  var zjob = job_start([v:progpath, '-N', '-u', 'NONE', '-i', 'NONE', '-es', '-S',
+    plugin_root .. '/tests/data/zathura_window.vim'], {in_io: 'null', out_io: 'null', err_io: 'null',
+    env: {PATH: zbin .. ':' .. $PATH, RR_TEST_PID: string(job_info(old_zathura).process),
+      RR_TEST_TITLE: 'my[1]~.pdf', RR_TEST_ROOT: plugin_root, RR_TEST_PDF: work .. '/my[1]~.pdf',
+      RR_TEST_OUT: work .. '/zathura.out'}})
+  for _ in range(300)
+    if job_status(zjob) !=# 'run'
+      break
+    endif
+    sleep 100m
+  endfor
+  sleep 100m
+  g:AssertEqual([filereadable(work .. '/zathura.out') ? readfile(work .. '/zathura.out') : ['no report'],
+    job_status(old_zathura)], [[''], 'dead'],
+    'Zathura: the window that shows "my[1]~.pdf" is found and its process is ended')
+  job_stop(old_zathura, 'kill')
+  job_stop(zjob, 'kill')
+endif
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim
