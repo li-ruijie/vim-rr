@@ -306,6 +306,10 @@ if !exists("g:did_vimr_rbrowser_functions")
     def g:PrintListTree()
         if g:IsJobRunning("Server")
             g:JobStdin(g:rplugin.jobs["Server"], "37\n")
+            # The server writes the file into its temporary directory
+            var fname = g:rplugin.localtmpdir .. "/listTree_" .. $VIMR_ID
+            g:AddForDeletion(fname)
+            echo 'The list tree is written to "' .. fname .. '"'
         endif
     enddef
 endif

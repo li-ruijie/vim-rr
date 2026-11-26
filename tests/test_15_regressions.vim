@@ -627,3 +627,28 @@ var start_r_list_last = match(start_r_lines, "^\\s*execute 'silent! delfunc g:'"
 var start_r_listed = start_r_lines[start_r_list_first : start_r_list_last]->join(' ')
 g:AssertEqual(start_r_defined->copy()->filter((_, n) => start_r_listed !~ "'" .. n .. "'"), [],
   'start_r.vim: every global function is in the list that a second sourcing deletes')
+
+# ========================================================================
+# PrintListTree: the file of the server is named and removed with the others
+# ========================================================================
+# vimrserver writes the list tree into its temporary directory. The function
+# that asks for it tells where the file is and registers it for deletion.
+var saved_tree_jobs = g:rplugin.jobs->copy()
+var saved_tree_del = g:rplugin.del_list->copy()
+if !exists('*g:PrintListTree')
+  execute 'source ' .. fnameescape(plugin_root .. '/ftplugin/rbrowser.vim')
+  bwipeout!
+endif
+var tree_job = job_start(has('win32') ? ['cmd', '/c', 'more'] : ['cat'])
+g:rplugin.jobs['Server'] = tree_job
+var tree_said = ''
+err = Caught(() => {
+  tree_said = execute('g:PrintListTree()')
+})
+var tree_file = g:rplugin.localtmpdir .. '/listTree_' .. $VIMR_ID
+g:AssertEqual(err, '', 'PrintListTree: no error')
+g:Assert(stridx(tree_said, tree_file) >= 0, 'PrintListTree: the message names the file')
+g:Assert(index(g:rplugin.del_list, tree_file) >= 0, 'PrintListTree: the file is removed with the other files')
+job_stop(tree_job)
+g:rplugin.jobs = saved_tree_jobs
+g:rplugin.del_list = saved_tree_del
