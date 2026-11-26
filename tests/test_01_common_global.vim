@@ -179,33 +179,49 @@ g:AssertEqual(g:R_indent_commented, 1, 'R_indent_commented default is 1')
 # ========================================================================
 g:SetSuite('IMP-01: tmpdir validation')
 
-def ValidateTmpdir(dir: string): bool
-    if resolve(dir) != dir
-        return false
-    endif
-    if !has('win32') && !has('win32unix')
-        var perms = getfperm(dir)
-        if perms != 'rwx------'
-            return false
-        endif
-    endif
-    if getftype(dir) != 'dir'
-        return false
-    endif
-    return true
+# The function itself is tested. common_global.vim is not sourced here, so
+# the lines of the function are taken from the file and sourced alone. Its
+# warnings go to a function that keeps them. Both functions are deleted at
+# the end, since a later test sources the file that defines them.
+var imp01_warned: list<string> = []
+def g:RWarningMsg(wmsg: string)
+  add(imp01_warned, wmsg)
 enddef
+var imp01_src = readfile(expand('<sfile>:p:h:h') .. '/R/common_global.vim')
+var imp01_from = match(imp01_src, '^def g:ValidateTmpdir(')
+var imp01_to = match(imp01_src, '^enddef$', imp01_from)
+g:Assert(imp01_from >= 0 && imp01_to > imp01_from, 'ValidateTmpdir() is found in common_global.vim')
+if imp01_from >= 0 && imp01_to > imp01_from
+  var imp01_script = tempname() .. '_imp01.vim'
+  writefile(['vim9script'] + imp01_src[imp01_from : imp01_to], imp01_script)
+  execute 'source ' .. fnameescape(imp01_script)
+  delete(imp01_script)
 
-# Test: valid directory
-var tdir_imp01 = tempname() .. '_imp01'
-mkdir(tdir_imp01, 'p', 0o700)
-g:Assert(ValidateTmpdir(tdir_imp01), 'valid directory passes')
-delete(tdir_imp01, 'd')
+  # Test: valid directory
+  var tdir_imp01 = tempname() .. '_imp01'
+  mkdir(tdir_imp01, 'p', 0o700)
+  g:Assert(g:ValidateTmpdir(tdir_imp01), 'valid directory passes')
+  g:AssertEqual(imp01_warned, [], 'valid directory gives no warning')
+  delete(tdir_imp01, 'd')
 
-# Test: non-existent directory
-g:Assert(!ValidateTmpdir(tempname() .. '_nonexistent'), 'nonexistent rejected')
+  # Test: non-existent directory. On Unix the permissions are looked at
+  # first, and a name that does not exist has none.
+  var tnone_imp01 = tempname() .. '_nonexistent'
+  g:Assert(!g:ValidateTmpdir(tnone_imp01), 'nonexistent rejected')
+  g:AssertEqual(imp01_warned, [has('win32') || has('win32unix')
+    ? 'Tmpdir is not a directory: ' .. tnone_imp01 : 'Tmpdir has unsafe permissions: '],
+    'nonexistent rejected with one warning')
 
-# Test: file instead of directory
-var tfile_imp01 = tempname()
-writefile(['x'], tfile_imp01)
-g:Assert(!ValidateTmpdir(tfile_imp01), 'file rejected')
-delete(tfile_imp01)
+  # Test: file instead of directory, with the permissions that a directory
+  # must have, so that it is rejected for being a file
+  var tfile_imp01 = tempname()
+  writefile(['x'], tfile_imp01)
+  setfperm(tfile_imp01, 'rwx------')
+  g:Assert(!g:ValidateTmpdir(tfile_imp01), 'file rejected')
+  g:AssertEqual(imp01_warned[1 :], ['Tmpdir is not a directory: ' .. tfile_imp01],
+    'file rejected with the warning that it is no directory')
+  delete(tfile_imp01)
+
+  delfunction g:ValidateTmpdir
+endif
+delfunction g:RWarningMsg
