@@ -910,7 +910,7 @@ static void vimcom_globalenv_list(void) {
         needs_glbenv_msg = 1;
 
     double tmdiff = 1000 * ((double)clock() - tm) / CLOCKS_PER_SEC;
-    if (tmdiff > timelimit || strlen(glbnvbuf1) > (size_t)sizelimit) {
+    if (tmdiff > timelimit || len2 > (size_t)sizelimit) {
         maxdepth = curdepth - 1;
         if (verbose)
             REprintf(
@@ -918,7 +918,7 @@ static void vimcom_globalenv_list(void) {
                 "    Time to buiild list of objects: %g ms (max_time = %g ms)\n"
                 "    List size: %zu bytes (max_size = %d bytes)\n"
                 "    New max_depth: %d\n",
-                tmdiff, timelimit, strlen(glbnvbuf1), sizelimit, maxdepth);
+                tmdiff, timelimit, len2, sizelimit, maxdepth);
     }
 }
 
