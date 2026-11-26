@@ -2864,11 +2864,21 @@ void stdin_loop() {
                 else
                     lib2ob();
                 break;
-            case '7':
-                f = fopen("/tmp/listTree", "w");
-                print_listTree(listTree, f);
-                fclose(f);
+            case '7': { // Write the status of the lists, for debugging
+                char fname[1032];
+                snprintf(fname, 1031, "%s/listTree_%s", localtmpdir,
+                         getenv("VIMR_ID"));
+                f = fopen(fname, "w");
+                if (f) {
+                    print_listTree(listTree, f);
+                    fclose(f);
+                } else {
+                    fprintf(stderr, "Error opening \"%s\" for writing\n",
+                            fname);
+                    fflush(stderr);
+                }
                 break;
+            }
             }
             unlock_state();
             break;
