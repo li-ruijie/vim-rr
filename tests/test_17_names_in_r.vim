@@ -483,6 +483,25 @@ if executable('gcc')
   g:AssertEqual([ServerReplies('SetComplMenu(13,')->mapnew((_, r) => ServerPassed(r)),
     len(ServerReplies('''zz''})$'))], [[[13, []]], 1],
     'vimrserver: a menu of arguments without its items is answered, and the server goes on')
+  # The server read the header of a message with one call of recv(), which
+  # may return a part of it, since TCP keeps no message boundaries. It then
+  # took the connection for lost and stopped reading from R. The header
+  # arrives in two pieces here, with a pause between them that lets the
+  # server read the first piece alone.
+  var split_msg = '+A14;;qf;'
+  var split_head = secret2 .. printf('%09d', strlen(split_msg))
+  if ch_status(rch2) ==# 'open'
+    ch_sendraw(rch2, split_head[: 9])
+    sleep 300m
+  endif
+  # A server that took the connection for lost has closed it
+  if ch_status(rch2) ==# 'open'
+    ch_sendraw(rch2, split_head[10 :] .. split_msg .. "\x11")
+  endif
+  ServerReplies('SetComplMenu(14,')
+  g:AssertEqual([ServerReplies('SetComplMenu(14,')->mapnew((_, r) => ServerPassed(r)),
+    ServerReplies('OnVimcomDisconnect')], [[[14, []]], []],
+    'vimrserver: a header that arrives in two pieces is read as one')
   for request in ['33', '34', '6zy']
     ToRunning(sjob2, request .. "\n")
   endfor

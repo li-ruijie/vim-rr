@@ -569,12 +569,14 @@ static void *receive_msg() // Thread function to receive messages on Unix
 {
     size_t blen = VimSecretLen + 9;
     char b[256];
-    size_t rlen;
+    int rlen;
 
     for (;;) {
         bzero(b, blen);
-        rlen = recv(connfd, b, blen, 0);
-        if (rlen == blen) {
+        // TCP keeps no message boundaries, so the header may arrive in more
+        // than one piece
+        rlen = recv_exact_vrs(connfd, b, (int)blen);
+        if (rlen == (int)blen) {
             Log("TCP in [%" PRI_SIZET " bytes] (message header): %s", blen, b);
             get_whole_msg(b);
         } else {
@@ -595,15 +597,6 @@ static void *receive_msg() // Thread function to receive messages on Unix
             printf("g:OnVimcomDisconnect()\n");
             fflush(stdout);
             unlock_stdout();
-            if (rlen != -1 && rlen != 0) {
-                fprintf(stderr, "TCP socket -1: restarting...\n");
-                fprintf(stderr,
-                        "Wrong TCP data length: %" PRI_SIZET " x %" PRI_SIZET
-                        "\n",
-                        blen, rlen);
-                fflush(stderr);
-                break;
-            }
             init_listening();
         }
     }
