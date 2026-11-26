@@ -36,6 +36,8 @@ Sys.setenv(VIMR_TMPDIR = work, VIMR_ID = "1")
 options(browser = "my 'browser'", vimcom.delim = "\t")
 assign("it's", data.frame(a = 1), envir = .GlobalEnv)
 assign("it's \"f\"\\", function(x, y = 1) NULL, envir = .GlobalEnv)
+assign("plainf", function(a, b = 2) NULL, envir = .GlobalEnv)
+assign("d'f", structure(data.frame(1, 2), names = c("it's", "b")), envir = .GlobalEnv)
 writeLines("1 + 1", file.path(work, "code.R"))
 
 cmds <- c(
@@ -52,6 +54,8 @@ cmds <- c(
     command(env[["vim.help"]]("it's", 80L)),
     # A line break, which the text of an R error holds as well
     command(env[["vim_viewobj"]]("no\nsuch")),
-    command(env[["vim.GlobalEnv.fun.args"]]("it's \"f\"\\"))
+    command(env[["vim.GlobalEnv.fun.args"]]("it's \"f\"\\")),
+    # A message for the server, which puts the items into a command for Vim
+    command(env[["vim_complete_args"]]("7", "plainf", "", firstobj = "d'f", ldf = TRUE))
 )
 writeLines(cmds, out, useBytes = TRUE)

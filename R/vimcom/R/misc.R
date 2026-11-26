@@ -396,9 +396,10 @@ vim_complete_args <- function(id, rkeyword0, argkey, firstobj = "", lib = NULL, 
         if (is.data.frame(dtfrm)) {
             for (n in names(dtfrm)) {
                 nlab <- attr(dtfrm[[n]], "label")
-                res <- append(res, paste0("{'word': '", n, "', 'menu': '[", firstobj,
-                                          "]', 'user_data': {'word': '", firstobj, "$", n,
-                                          "', 'env': '", ifelse(is.null(lib), ".GlobalEnv", lib),
+                res <- append(res, paste0("{'word': ", vim.sq(n),
+                                          ", 'menu': ", vim.sq(paste0("[", firstobj, "]")),
+                                          ", 'user_data': {'word': ", vim.sq(paste0(firstobj, "$", n)),
+                                          ", 'env': '", ifelse(is.null(lib), ".GlobalEnv", lib),
                                           "', 'cls': 'v', 'descr': '",
                                           ifelse(is.null(nlab), "", vim.fix.string(nlab)),
                                           "'}},"))
