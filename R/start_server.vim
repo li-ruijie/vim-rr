@@ -20,7 +20,7 @@ def g:CheckVimcomVersion()
     endif
 
     var libs = g:ListRLibsFromBuffer()
-    flines += ['vim_r_home <- "' .. g:rplugin.home .. '"',
+    flines += ['vim_r_home <- ' .. g:RString(g:rplugin.home),
                 'libs <- c(' .. libs .. ')']
     flines += readfile(g:rplugin.home .. "/R/before_nrs.R")
     var scrptnm = g:rplugin.tmpdir .. "/before_nrs.R"
@@ -342,14 +342,14 @@ def BuildAllArgs(_t: number = 0)
     for afile in flist
         if filereadable(afile) == 0
             var pkg = substitute(substitute(afile, ".*/args_", "", ""), "_.*", "", "")
-            rscrpt += ['vimcom:::vim.buildargs("' .. afile .. '", "' .. pkg .. '")']
+            rscrpt += ['vimcom:::vim.buildargs(' .. g:RString(afile) .. ', ' .. g:RString(pkg) .. ')']
         endif
     endfor
     if len(rscrpt) == 1
         return
     endif
     writefile([""], cdir .. '/args_lock')
-    rscrpt += ['unlink("' .. cdir .. '/args_lock")']
+    rscrpt += ['unlink(' .. g:RString(cdir .. '/args_lock') .. ')']
 
     var scrptnm = g:rplugin.tmpdir .. "/build_args.R"
     g:AddForDeletion(scrptnm)

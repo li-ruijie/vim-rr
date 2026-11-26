@@ -134,9 +134,7 @@ def g:RWeave(bibtex: string, knit: number, pdf: number)
     if has("win32")
         rnwdir = substitute(rnwdir, '\\', '/', 'g')
     endif
-    var safe_fname = substitute(expand("%:t"), '"', '\\"', 'g')
-    var safe_rnwdir = substitute(rnwdir, '"', '\\"', 'g')
-    var pdfcmd = 'vim.interlace.rnoweb("' .. safe_fname .. '", rnwdir = "' .. safe_rnwdir .. '"'
+    var pdfcmd = 'vim.interlace.rnoweb(' .. g:RString(expand("%:t")) .. ', rnwdir = ' .. g:RString(rnwdir)
 
     if knit == 0
         pdfcmd = pdfcmd .. ', knit = FALSE'
@@ -172,7 +170,7 @@ def g:RWeave(bibtex: string, knit: number, pdf: number)
     endif
 
     if exists('g:R_latex_build_dir')
-        pdfcmd ..= ', builddir="' .. g:R_latex_build_dir .. '"'
+        pdfcmd ..= ', builddir=' .. g:RString(g:R_latex_build_dir)
     endif
 
     if knit == 0 && exists("g:R_sweaveargs")

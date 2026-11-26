@@ -14,10 +14,10 @@ if !exists("g:did_vimr_quarto_functions")
     def g:RQuarto(what: string)
         if what == "render"
             update
-            g:SendCmdToR('quarto::quarto_render("' .. substitute(expand('%'), '\\', '/', 'g') .. '"' .. g:R_quarto_render_args .. ')')
+            g:SendCmdToR('quarto::quarto_render(' .. g:RString(substitute(expand('%'), '\\', '/', 'g')) .. g:R_quarto_render_args .. ')')
         elseif what == "preview"
             update
-            g:SendCmdToR('quarto::quarto_preview("' .. substitute(expand('%'), '\\', '/', 'g') .. '"' .. g:R_quarto_preview_args .. ')')
+            g:SendCmdToR('quarto::quarto_preview(' .. g:RString(substitute(expand('%'), '\\', '/', 'g')) .. g:R_quarto_preview_args .. ')')
         else
             g:SendCmdToR('quarto::quarto_preview_stop()')
         endif

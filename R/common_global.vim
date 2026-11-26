@@ -99,6 +99,13 @@ def g:WarnAfterVimEnter2(...args: list<any>)
     endfor
 enddef
 
+# Write a string as an R string between double quotes, for code that is sent
+# to R. A backslash and a double quote are escaped and a line break is written
+# as \n, so that a file name stays what it is.
+def g:RString(str: string): string
+    return '"' .. escape(str, '\"')->substitute("\n", '\\n', 'g') .. '"'
+enddef
+
 def g:RWarningMsg(wmsg: string)
     if v:vim_did_enter == 0
         if !exists('g:rplugin.start_msg')

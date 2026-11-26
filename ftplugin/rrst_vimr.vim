@@ -73,17 +73,17 @@ if !exists("g:did_vimr_rrst_functions")
         if g:R_strict_rst
             rcmd = rcmd .. '; render_rst(strict=TRUE)'
         endif
-        rcmd = rcmd .. '; knit("' .. expand("%:t") .. '")'
+        rcmd = rcmd .. '; knit(' .. g:RString(expand("%:t")) .. ')'
 
         # The two file names are written as R strings, and R quotes them for
         # the shell that it runs the converter with.
-        var base = escape(expand("%:r:t"), '\"')
+        var base = expand("%:r:t")
         var ext = t == "odt" ? "odt" : "html"
-        rcmd = rcmd .. '; system2("rst2' .. ext .. '", shQuote(c("' .. base .. '.rst", "'
-            .. base .. '.' .. ext .. '")))'
+        rcmd = rcmd .. '; system2("rst2' .. ext .. '", shQuote(c(' .. g:RString(base .. '.rst') .. ', '
+            .. g:RString(base .. '.' .. ext) .. ')))'
 
         if g:R_openhtml && t == "html"
-            rcmd = rcmd .. '; browseURL("' .. expand("%:r:t") .. '.html")'
+            rcmd = rcmd .. '; browseURL(' .. g:RString(base .. '.html') .. ')'
         endif
         g:SendCmdToR(rcmd)
     enddef
@@ -110,7 +110,7 @@ if !exists("g:did_vimr_rrst_functions")
         if has("win32")
             rrstdir = substitute(rrstdir, '\\', '/', 'g')
         endif
-        var pdfcmd = 'vim.interlace.rrst("' .. expand("%:t") .. '", rrstdir = "' .. rrstdir .. '"'
+        var pdfcmd = 'vim.interlace.rrst(' .. g:RString(expand("%:t")) .. ', rrstdir = ' .. g:RString(rrstdir)
         if exists("g:R_rrstcompiler")
             pdfcmd = pdfcmd .. ", compiler='" .. g:R_rrstcompiler .. "'"
         endif
@@ -118,7 +118,7 @@ if !exists("g:did_vimr_rrst_functions")
             pdfcmd = pdfcmd .. ", " .. g:R_knitargs
         endif
         if exists("g:R_rst2pdfpath")
-            pdfcmd = pdfcmd .. ", rst2pdfpath='" .. g:R_rst2pdfpath .. "'"
+            pdfcmd = pdfcmd .. ", rst2pdfpath=" .. g:RString(g:R_rst2pdfpath)
         endif
         if exists("g:R_rst2pdfargs")
             pdfcmd = pdfcmd .. ", " .. g:R_rst2pdfargs

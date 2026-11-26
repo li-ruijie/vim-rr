@@ -120,6 +120,146 @@ endif
 delfunction g:RrTestTake
 unlet! g:rr_test_taken
 
+# ========================================================================
+# R code: a file name is an R string, whatever it holds
+# ========================================================================
+# Vim put a file name between double quotes into the R code that it sends, so
+# a double quote in the name ended the R string, and R read a backslash as the
+# start of an escape. Windows allows neither character in a file name, so
+# there the names are plain and only the options carry the two characters.
+if !exists('*g:RDebugJump')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/start_r.vim')
+endif
+def g:RrTestSend(...args: list<any>): number
+  add(g:rr_test_sent, args[0])
+  return 1
+enddef
+g:rr_test_sent = []
+var SavedSend = g:SendCmdToR
+g:SendCmdToR = function('g:RrTestSend')
+# The R code that a block sent last, or the error that it raised
+def Sent(Fn: func()): string
+  g:rr_test_sent = []
+  var caught = Caught(Fn)
+  return caught != '' ? caught : get(g:rr_test_sent, -1, 'nothing sent')
+enddef
+# Whether a text starts with another one, compared character by character
+def StartsWith(text: string, start: string): bool
+  return strpart(text, 0, len(start)) ==# start
+enddef
+
+# The name of a file, and the same name as the inside of an R string
+var odd = has('win32') ? 'a b' : 'a"b\c'
+var odd_r = has('win32') ? 'a b' : 'a\"b\\c'
+var saved_cwd = getcwd()
+var saved_viewer = get(g:rplugin, 'pdfviewer', v:none)
+g:rplugin.pdfviewer = 'none'
+
+if executable('Rscript')
+  # R itself reads the string back and writes its bytes into a file
+  var text = "a\"b\\c\nd 'e'"
+  writefile(['writeBin(charToRaw(' .. g:RString(text) .. '), ' .. g:RString(work .. '/rstring.out') .. ')'],
+    work .. '/rstring.R')
+  var sjob = job_start(['Rscript', '--vanilla', work .. '/rstring.R'], {out_io: 'null', err_io: 'null'})
+  for _ in range(600)
+    if job_status(sjob) !=# 'run'
+      break
+    endif
+    sleep 100m
+  endfor
+  g:AssertEqual(filereadable(work .. '/rstring.out') ? readfile(work .. '/rstring.out', 'b') : [],
+    ['a"b\c', "d 'e'"], 'RString: R reads the string back unchanged')
+  extend(made_files, ['rstring.R', 'rstring.out'])
+endif
+
+writefile(['text'], work .. '/' .. odd .. '.Rmd')
+execute 'edit ' .. fnameescape(work .. '/' .. odd .. '.Rmd')
+g:AssertEqual(Sent(() => {
+  g:RSetWD()
+}), 'setwd("' .. work .. '")', 'RSetWD: the directory is an R string')
+g:AssertEqual(Sent(() => {
+  g:RKnit()
+}), 'require(knitr); .vim_oldwd <- getwd(); setwd("' .. work .. '"); knit("' .. odd_r
+  .. '.Rmd"); setwd(.vim_oldwd); rm(.vim_oldwd)', 'RKnit: the file name is an R string')
+var rmd_sent = Sent(() => {
+  g:RMakeRmd('default')
+})
+g:Assert(StartsWith(rmd_sent,
+  'vim.interlace.rmd("' .. odd_r .. '.Rmd", rmddir = "' .. work .. '", envir = '),
+  'RMakeRmd: the file name is an R string (' .. rmd_sent .. ')')
+var file_sent = Sent(() => {
+  g:SendFileToR('silent')
+})
+g:Assert(StartsWith(file_sent, 'vimcom:::source.and.clean("' .. work .. '/' .. odd_r .. '.Rmd.tmp.R"'),
+  'SendFileToR: the name of the copy is an R string (' .. file_sent .. ')')
+extend(made_files, [odd .. '.Rmd', odd .. '.Rmd.tmp.R'])
+
+g:AssertEqual(Sent(() => {
+  g:RSourceDirectory('d"1\x')
+}), has('win32') ? 'vim.srcdir("d\"1/x")' : 'vim.srcdir("d\"1\\x")',
+  'RSourceDirectory: the directory is an R string')
+
+# The name of a child document stands between quotes in the chunk header
+execute 'cd ' .. fnameescape(work)
+var kid = has('win32') ? 'kid 1.Rnw' : 'kid"1\k.Rnw'
+writefile(['text'], work .. '/' .. kid)
+add(made_files, kid)
+var kid_sent = Sent(() => {
+  g:KnitChild("<<child='" .. kid .. "'>>=", 'stay')
+})
+g:Assert(StartsWith(kid_sent, 'require(knitr); knit("' .. (has('win32') ? 'kid 1.Rnw' : 'kid\"1\\k.Rnw')
+  .. '", output='), 'KnitChild: the file name is an R string (' .. kid_sent .. ')')
+execute 'cd ' .. fnameescape(saved_cwd)
+
+writefile(['x <- 1'], work .. '/' .. odd .. '.R')
+add(made_files, odd .. '.R')
+execute 'edit ' .. fnameescape(work .. '/' .. odd .. '.R')
+g:AssertEqual(Sent(() => {
+  g:RSpin()
+}), 'require(knitr); .vim_oldwd <- getwd(); setwd("' .. work .. '"); spin("' .. odd_r
+  .. '.R"); setwd(.vim_oldwd); rm(.vim_oldwd)', 'RSpin: the file name is an R string')
+
+writefile(['Title', '=====', '', 'text'], work .. '/' .. odd .. '.Rrst')
+add(made_files, odd .. '.Rrst')
+execute 'edit ' .. fnameescape(work .. '/' .. odd .. '.Rrst')
+var saved_rst2pdf = g:rplugin.rrst_has_rst2pdf
+var saved_openhtml = g:R_openhtml
+var saved_rst2pdfpath = get(g:, 'R_rst2pdfpath', v:none)
+g:rplugin.rrst_has_rst2pdf = 1
+g:R_openhtml = 1
+var html_sent = Sent(() => {
+  g:RMakeHTMLrrst('html')
+})
+g:Assert(stridx(html_sent, '; knit("' .. odd_r .. '.Rrst"); system2(') > 0,
+  'RMakeHTMLrrst: the file that is knitted is an R string (' .. html_sent .. ')')
+g:Assert(html_sent =~# '\V; browseURL("\.\{-}' .. escape(odd_r, '\') .. '.html")\$',
+  'RMakeHTMLrrst: the file for the browser is an R string (' .. html_sent .. ')')
+g:R_rst2pdfpath = 'C:\tools\rst "2" pdf'
+var pdf_sent = Sent(() => {
+  g:RMakePDFrrst()
+})
+g:Assert(StartsWith(pdf_sent, 'vim.interlace.rrst("' .. odd_r .. '.Rrst", rrstdir = "' .. work .. '"'),
+  'RMakePDFrrst: the file name is an R string (' .. pdf_sent .. ')')
+g:Assert(stridx(pdf_sent, ', rst2pdfpath="C:\\tools\\rst \"2\" pdf"') > 0,
+  'RMakePDFrrst: the path of rst2pdf is an R string (' .. pdf_sent .. ')')
+if type(saved_rst2pdfpath) == v:t_none
+  unlet g:R_rst2pdfpath
+else
+  g:R_rst2pdfpath = saved_rst2pdfpath
+endif
+g:R_openhtml = saved_openhtml
+g:rplugin.rrst_has_rst2pdf = saved_rst2pdf
+
+if type(saved_viewer) == v:t_none
+  remove(g:rplugin, 'pdfviewer')
+else
+  g:rplugin.pdfviewer = saved_viewer
+endif
+g:SendCmdToR = SavedSend
+delfunction g:RrTestSend
+unlet g:rr_test_sent
+execute 'buffer ' .. rbuf
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim

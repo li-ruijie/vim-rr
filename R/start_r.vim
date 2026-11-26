@@ -219,7 +219,7 @@ def g:ReallyStartR(whatr: string)
     else
         start_options += ['options(vimcom.delim = "\t")']
     endif
-    start_options += ['options(vimcom.source.path = "' .. Rsource_read .. '")']
+    start_options += ['options(vimcom.source.path = ' .. g:RString(Rsource_read) .. ')']
 
     var rwd = ""
     if g:R_vim_wd == 0
@@ -235,7 +235,7 @@ def g:ReallyStartR(whatr: string)
         # `rwd` will not be a real directory if editing a file on the internet
         # with netrw plugin
         if isdirectory(rwd)
-            start_options += ['setwd("' .. rwd .. '")']
+            start_options += ['setwd(' .. g:RString(rwd) .. ')']
         endif
     endif
 
@@ -1334,7 +1334,7 @@ def g:RSourceLines(...args: list<any>): number
 
     if len(args) == 3 && args[2] == "NewtabInsert"
         writefile(lines, Rsource_write)
-        g:SendToVimcom("E", 'vimcom:::vim_capture_source_output("' .. Rsource_read .. '", "NewtabInsert")')
+        g:SendToVimcom("E", 'vimcom:::vim_capture_source_output(' .. g:RString(Rsource_read) .. ', "NewtabInsert")')
         return 1
     endif
 
@@ -1354,7 +1354,7 @@ def g:RSourceLines(...args: list<any>): number
     endif
 
     if len(args) == 3 && args[2] == "PythonCode"
-        rcmd = 'reticulate::py_run_file("' .. Rsource_read .. '")'
+        rcmd = 'reticulate::py_run_file(' .. g:RString(Rsource_read) .. ')'
     endif
 
     var ok = g:SendCmdToR(rcmd)
@@ -1440,7 +1440,7 @@ def g:SendFileToR(e: string)
     writefile(getline(1, "$"), fpath)
     g:AddForDeletion(fpath)
     var sargs = g:GetSourceArgs(e)
-    var ok = g:SendCmdToR('vimcom:::source.and.clean("' .. fpath ..  '"' .. sargs .. ')')
+    var ok = g:SendCmdToR('vimcom:::source.and.clean(' .. g:RString(fpath) .. sargs .. ')')
     if !ok
         delete(fpath)
     endif
@@ -1787,7 +1787,7 @@ def g:KnitChild(line: string, godown: string)
     var cfile = substitute(nline, nline[0], "", "")
     cfile = substitute(cfile, nline[0] .. '.*', "", "")
     if filereadable(cfile)
-        var ok = g:SendCmdToR("require(knitr); knit('" .. cfile .. "', output=" .. devnull .. ")")
+        var ok = g:SendCmdToR("require(knitr); knit(" .. g:RString(cfile) .. ", output=" .. devnull .. ")")
         if godown =~ "down"
             cursor(line(".") + 1, 1)
             g:GoDown()
@@ -2020,18 +2020,14 @@ enddef
 
 # Set working directory to the path of current buffer
 def g:RSetWD()
-    var wdcmd = 'setwd("' .. RGetBufDir() .. '")'
-    if has("win32")
-        wdcmd = substitute(wdcmd, "\\", "/", "g")
-    endif
-    g:SendCmdToR(wdcmd)
+    g:SendCmdToR('setwd(' .. g:RString(RGetBufDir()) .. ')')
     sleep 100m
 enddef
 
 # knit the current buffer content
 def g:RKnit()
     update
-    g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' .. RGetBufDir() .. '"); knit("' .. expand("%:t") .. '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
+    g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd(' .. g:RString(RGetBufDir()) .. '); knit(' .. g:RString(expand("%:t")) .. '); setwd(.vim_oldwd); rm(.vim_oldwd)')
 enddef
 
 def g:StartTxtBrowser(brwsr: string, url: string)
@@ -2048,7 +2044,7 @@ def g:RSourceDirectory(...args: list<any>)
     if dir == ""
         g:SendCmdToR("vim.srcdir()")
     else
-        g:SendCmdToR("vim.srcdir('" .. dir .. "')")
+        g:SendCmdToR("vim.srcdir(" .. g:RString(dir) .. ")")
     endif
 enddef
 
@@ -2258,9 +2254,9 @@ def g:RMakeRmd(t: string)
     var rmddir = RGetBufDir()
     var rcmd: string
     if t == "default"
-        rcmd = 'vim.interlace.rmd("' .. expand("%:t") .. '", rmddir = "' .. rmddir .. '"'
+        rcmd = 'vim.interlace.rmd(' .. g:RString(expand("%:t")) .. ', rmddir = ' .. g:RString(rmddir)
     else
-        rcmd = 'vim.interlace.rmd("' .. expand("%:t") .. '", outform = "' .. t .. '", rmddir = "' .. rmddir .. '"'
+        rcmd = 'vim.interlace.rmd(' .. g:RString(expand("%:t")) .. ', outform = "' .. t .. '", rmddir = ' .. g:RString(rmddir)
     endif
 
     if g:R_rmarkdown_args == ''

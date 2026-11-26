@@ -51,9 +51,7 @@ if !exists("g:did_vimr_r_functions")
         if has("win32")
             dir = substitute(dir, '\\', '/', 'g')
         endif
-        dir = substitute(dir, '"', '\\"', 'g')
-        var fname = substitute(expand("%:t"), '"', '\\"', 'g')
-        g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd("' .. dir .. '"); spin("' .. fname .. '"); setwd(.vim_oldwd); rm(.vim_oldwd)')
+        g:SendCmdToR('require(knitr); .vim_oldwd <- getwd(); setwd(' .. g:RString(dir) .. '); spin(' .. g:RString(expand("%:t")) .. '); setwd(.vim_oldwd); rm(.vim_oldwd)')
     enddef
 
     # Default IsInRCode function when the plugin is used as a global plugin
