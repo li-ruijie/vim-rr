@@ -76,8 +76,8 @@ if !exists("g:did_vimr_rbrowser_functions")
             g:rplugin.ob_upobcnt = 0
             return "Error reading OB file: " .. v:exception
         endtry
-        var curnr = bufnr()
-        if curnr != obnr
+        var curwin = win_getid()
+        if bufnr() != obnr
             savesb = &switchbuf
             set switchbuf=useopen,usetab
             exe 'sil noautocmd sb ' .. obnr
@@ -96,7 +96,7 @@ if !exists("g:did_vimr_rbrowser_functions")
             setlocal nomodifiable
         endif
         if rplugin_switchedbuf
-            exe "sil noautocmd sb " .. curnr
+            noautocmd win_gotoid(curwin)
             exe "set switchbuf=" .. savesb
         endif
         g:rplugin.ob_upobcnt = 0

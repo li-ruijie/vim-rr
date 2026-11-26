@@ -810,6 +810,21 @@ g:AssertEqual([err, ob_said, bufnr()], ['', '', ob_noname],
 execute 'bwipeout ' .. ob_noname
 win_gotoid(ob_edwin)
 
+# UpdateOB() went back to the buffer with :sbuffer, which takes the first
+# window that shows the buffer, so the cursor left the window of the user
+# when a window above it showed the same script
+split
+var ob_upper = win_getid()
+win_gotoid(ob_edwin)
+ob_said = 'not called'
+err = Caught(() => {
+  ob_said = g:UpdateOB('GlobalEnv')
+})
+g:AssertEqual([err, ob_said, win_getid()], ['', '', ob_edwin],
+  'UpdateOB: goes back to the window that was current')
+win_execute(ob_upper, 'close')
+win_gotoid(ob_edwin)
+
 err = Caught(() => {
   g:StartObjBrowser()
 })
