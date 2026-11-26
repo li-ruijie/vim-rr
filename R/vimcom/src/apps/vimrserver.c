@@ -2713,8 +2713,9 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
             unlock_stdout();
             return;
         } else {
-            // Normal completion of arguments
-            if (r_conn == 0) {
+            // Normal completion of arguments. A request of Vim brings no
+            // arguments, and they are then taken from the loaded libraries.
+            if (r_conn == 0 || !args) {
                 p = complete_args(p, funcnm);
             } else {
                 if ((strlen(args) + 1024) > compl_buffer_size)
