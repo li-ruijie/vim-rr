@@ -2573,8 +2573,14 @@ and |:execute| the command. Example:
 You may also include "%s" in `R_csv_app` to indicate the position of the tsv
 file name in the command to be executed. Example:
 >vim
-   let g:R_csv_app = ':TermExec cmd="vd %s"'
+   let g:R_csv_app = ':botright vsplit %s'
 <
+In a command that begins with ":" the name is written as a file name argument
+of an Ex command (with |fnameescape()|, and on Windows as a backtick
+expression), so "%s" has to stand where the command takes a file name, not
+inside a quoted string. For a program that takes the name in its own command
+line, use the "terminal:" form or a shell command, where the name is quoted
+for that program.
 You may also try to see the table in a graphical viewer such as LibreOffice
 Calc:
 >vim
