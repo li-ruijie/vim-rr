@@ -864,6 +864,24 @@ endfor
 g:AssertEqual(df_shown, df_names->mapnew((i, n) => ['', n, ["x\tn", "a\t1"], 'nofile', false, i % 2 == 0 ? 2 : 7,
   0]), 'RViewDF: the buffer of a data frame has the name of the object, whatever it holds')
 execute 'buffer ' .. rbuf
+# A window that still shows the table of an object keeps its buffer, and a
+# second view of the object reused it. setline() replaced the first lines
+# only, so the lines of a longer table stayed below a shorter one.
+var df_nbufs = len(getbufinfo())
+var df_views: list<any> = []
+for rows in [["x\tn", "a\t1", "b\t2", "c\t3"], ["x\tn", "z\t9"]]
+  err = Caught(() => {
+    g:RViewDF('d[1:2, ]', 'tabnew', join(rows, "\x14"))
+  })
+  add(df_views, [err, bufnr('%'), getline(1, '$'), &buftype, &swapfile, &bufhidden, &filetype, &modified])
+endfor
+var df_twice = [df_views[0][1] == df_views[1][1], tabpagebuflist(2) == [df_views[0][1]]]
+silent! tabonly
+execute 'buffer ' .. rbuf
+g:AssertEqual([df_views->mapnew((_, v) => v[0 : 0] + v[2 :]), df_twice, len(getbufinfo()) - df_nbufs],
+  [[['', ["x\tn", "a\t1", "b\t2", "c\t3"], 'nofile', false, 'wipe', 'csv', false],
+    ['', ["x\tn", "z\t9"], 'nofile', false, 'wipe', 'csv', false]], [true, true], 0],
+  'RViewDF: a shorter table replaces all lines of the buffer that a window still shows')
 
 # ========================================================================
 # SyncTeX_forward: the directory of the master file is no wildcard

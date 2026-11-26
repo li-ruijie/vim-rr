@@ -1097,8 +1097,10 @@ def g:RViewDF(oname: string, howto: string, txt: string)
     setbufvar(nr, '&swapfile', false)
     setbufvar(nr, '&bufhidden', 'wipe')
     silent g:RShowBuf(howto, nr)
-    # silent 1,$d
-    setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
+    # The buffer still holds the last table of the object when a window
+    # shows it, and the new table may be shorter, so its lines replace all
+    deletebufline(nr, 1, '$')
+    setbufline(nr, 1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal filetype=csv
     setlocal nomodified
     redraw
