@@ -1208,6 +1208,12 @@ by R, you will want to put in your |vimrc|:
 >vim
    let g:R_set_home_env = 0
 <
+With `$HOME` on that folder R looks for `.Rprofile` and `.Renviron` there, so
+startup files that are kept in another directory are not read by an R that
+the plugin starts. Apart from `R_set_home_env`, the environment variables
+`R_PROFILE_USER` and `R_ENVIRON_USER` name the two files themselves, and R
+reads them whatever its home directory is.
+
 By default, vim-rr uses the 64-bit version of R if available. If you want to
 force the use of the 32-bit version, put in your |vimrc|:
 >vim
