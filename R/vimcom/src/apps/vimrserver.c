@@ -2657,6 +2657,7 @@ char *complete_args(char *p, char *funcnm) {
 
     PkgData *pd = pkgList;
     char *s;
+    unsigned long nsz;
     while (pd) {
         if (pd->omnils &&
             (pkg == NULL || (pkg && strcmp(pd->name, pkg) == 0))) {
@@ -2670,6 +2671,15 @@ char *complete_args(char *p, char *funcnm) {
                             i--;
                     }
                     s++;
+
+                    // Avoid buffer overflow if the arguments are bigger than
+                    // compl_buffer.
+                    nsz = strlen(pd->name) + strlen(funcnm) + strlen(s) + 1024 +
+                          (p - compl_buffer);
+                    if (compl_buffer_size < nsz)
+                        p = grow_buffer(&compl_buffer, &compl_buffer_size,
+                                        nsz - compl_buffer_size);
+
                     p = str_cat(p, "{'pkg': '");
                     p = str_cat(p, pd->name);
                     p = str_cat(p, "', 'fnm': '");
