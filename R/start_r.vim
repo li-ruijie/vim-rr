@@ -1049,39 +1049,41 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         writefile(split(substitute(txt, "\x13", "'", "g"), "\x14"), tsvnm)
         g:AddForDeletion(tsvnm)
 
-        var cmd: string
-        if g:R_csv_app =~ '%s'
-            cmd = printf(g:R_csv_app, tsvnm)
-        elseif g:R_csv_app =~# '^:'
+        # The name of the file goes into a command line, where it is quoted
+        # for the program that reads the line. It takes the place of "%s" in
+        # R_csv_app, or else it is appended.
+        var app = substitute(g:R_csv_app, '^terminal:', '', '')
+        var Cmd = (name: string): string => app =~ '%s' ? printf(app, name) : app .. ' ' .. name
+
+        if g:R_csv_app =~# '^:'
             # On Windows fnameescape() leaves a bracket and "$" alone, and the
             # command would take the name for a wildcard and replace "$NAME"
             # with the value of an environment variable. There the name is
             # given as a backtick expression, whose result the command takes as
             # it is.
-            cmd = g:R_csv_app .. ' ' .. (has('win32')
-                ? '`=' .. string(tsvnm) .. '`' : fnameescape(tsvnm))
-        elseif g:R_csv_app =~# '^terminal:'
-            cmd = g:R_csv_app .. ' ' .. tsvnm
-        else
-            cmd = g:R_csv_app .. ' ' .. shellescape(tsvnm)
-        endif
-
-        if g:R_csv_app =~# '^:'
-            exe cmd
+            exe Cmd(has('win32') ? '`=' .. string(tsvnm) .. '`' : fnameescape(tsvnm))
             return
         elseif g:R_csv_app =~# '^terminal:'
-            cmd = substitute(cmd, '^terminal:', '', '')
+            # :terminal replaced "%" and "#" with the names of the current and
+            # the alternate file, and it split the command at each space.
+            # term_start() splits a command at the spaces outside double
+            # quotes, and on Unix a backslash takes the next character as it
+            # is. A name on Windows holds no double quote.
             tabnew
-            exe 'terminal ' .. cmd
+            term_start(Cmd(has('win32') ? '"' .. tsvnm .. '"' : '"' .. escape(tsvnm, '"\') .. '"'))
             startinsert
             return
         endif
 
         normal! :<Esc>
         if has("win32")
-            silent exe '!start "' .. g:R_csv_app .. '" "' .. tsvnm .. '"'
+            # Vim replaces "%", "#", and "!" in a "!start" command unless a
+            # backslash precedes them. The program takes the name between
+            # double quotes. R_csv_app without "%s" names the program alone.
+            var qname = '"' .. escape(tsvnm, '%#!') .. '"'
+            silent exe '!start ' .. (app =~ '%s' ? printf(app, qname) : '"' .. app .. '" ' .. qname)
         else
-            system(cmd .. ' >' .. devnull .. ' 2>' .. devnull .. ' &')
+            system(Cmd(shellescape(tsvnm)) .. ' >' .. devnull .. ' 2>' .. devnull .. ' &')
         endif
         return
     endif

@@ -121,6 +121,16 @@ g:AssertEqual([err, bufloaded(work .. '/t%d/df.tsv')], ['', 1],
   'RViewDF: an Ex command gets the escaped path')
 only
 execute 'buffer ' .. rbuf
+# In the place of "%s" the path went into the Ex command as it was, and "%"
+# in it was replaced with the name of the current file
+g:R_csv_app = ':split %s'
+err = Caught(() => {
+  g:RViewDF('df2', '', "a\x14b")
+})
+g:AssertEqual([err, bufloaded(work .. '/t%d/df2.tsv')], ['', 1],
+  'RViewDF: an Ex command with "%s" gets the escaped path')
+only
+execute 'buffer ' .. rbuf
 
 # ========================================================================
 # Shell commands on Unix: a path is one word for the shell
@@ -197,6 +207,27 @@ if has('unix')
     'RViewDF: a program gets the path as one argument')
   g:Assert(!filereadable(work .. '/INJECTED'), 'shell commands: no part of a path is run as a command')
 
+  # The path went bare into the shell command of "%s", and into :terminal,
+  # which split it at each space, replaced "%" and "#" with the names of the
+  # current and the alternate file, and dropped double quotes and backslashes
+  var odd2 = work .. '/it''s a "%b" #c $HOME [1] !x \ dir'
+  mkdir(odd2, 'p')
+  g:rplugin.tmpdir = odd2
+  for [app, expected] in [
+      ['myviewer %s --flag', [odd2 .. '/df.tsv', '--flag', 'end']],
+      ['terminal:myviewer --flag', ['--flag', odd2 .. '/df.tsv', 'end']],
+      ['terminal:myviewer %s --flag', [odd2 .. '/df.tsv', '--flag', 'end']]]
+    g:R_csv_app = app
+    err = Caught(() => {
+      g:RViewDF('df', '', "a\x14b")
+    })
+    stopinsert
+    g:AssertEqual([err, Logged(shlog)], ['', expected], 'RViewDF: "' .. app .. '" gets the path as one argument')
+    silent! tabonly
+    silent! only
+    execute 'buffer ' .. rbuf
+  endfor
+
   # ShowRout() gave :bunload a bare name, so a space or a bracket in the name
   # of a loaded Rout file stopped it before R ran. The stand-in for R writes
   # the Rout file, which is its last argument.
@@ -237,6 +268,55 @@ if has('unix')
   else
     g:R_pdfviewer = saved_viewer
   endif
+endif
+
+# ========================================================================
+# Programs on Windows: a path is one argument
+# ========================================================================
+# RViewDF() gave ":!start" the bare path, and Vim replaced "%", "#", and "!"
+# in it. It ignored "%s" in R_csv_app and took the whole value for the name
+# of the program. :terminal split the path at each space and replaced "%"
+# and "#" as well. Where a C compiler exists, a stand-in program is built
+# that appends its arguments to $RR_TEST_LOG. It is a program of the Windows
+# subsystem, so it opens no console window.
+if has('win32') && executable('gcc')
+  var wbin = work .. '/wbin'
+  var wodd = work .. "/it's a %b #c $HOME [1] !x dir"
+  mkdir(wbin, 'p')
+  mkdir(wodd, 'p')
+  writefile(['#include <stdio.h>', '#include <stdlib.h>', 'int main(int argc, char **argv) {',
+    '    FILE *f = fopen(getenv("RR_TEST_LOG"), "a");', '    if (!f)', '        return 1;',
+    '    for (int i = 1; i < argc; i++)', '        fprintf(f, "%s\n", argv[i]);', '    fprintf(f, "end\n");',
+    '    fclose(f);', '    return 0;', '}'], wbin .. '/argv.c')
+  var exe = wbin .. '/argv.exe'
+  var cc = job_start(['gcc', '-mwindows', wbin .. '/argv.c', '-o', exe],
+    {in_io: 'null', out_io: 'null', err_io: 'null'})
+  for _ in range(600)
+    if job_status(cc) !=# 'run'
+      break
+    endif
+    sleep 100m
+  endfor
+  $RR_TEST_LOG = work .. '/win.log'
+  g:rplugin.tmpdir = wodd
+  var tsv = wodd .. '/df.tsv'
+  for [app, expected] in [
+      [exe, [tsv, 'end']],
+      ['"' .. exe .. '" --flag %s', ['--flag', tsv, 'end']],
+      ['terminal:"' .. exe .. '" --flag', ['--flag', tsv, 'end']],
+      ['terminal:"' .. exe .. '" %s --flag', [tsv, '--flag', 'end']]]
+    g:R_csv_app = app
+    err = Caught(() => {
+      g:RViewDF('df', '', "a\x14b")
+    })
+    stopinsert
+    g:AssertEqual([err, Logged($RR_TEST_LOG)], ['', expected],
+      'RViewDF: "' .. substitute(app, '.*argv\.exe"\=', 'PROGRAM', '') .. '" gets the path as one argument')
+    silent! tabonly
+    silent! only
+    execute 'buffer ' .. rbuf
+  endfor
+  unlet $RR_TEST_LOG
 endif
 g:rplugin.tmpdir = saved_tmpdir
 if type(saved_csv_app) == v:t_none
@@ -329,10 +409,11 @@ silent! only
 if has('win32')
   silent! :%bwipeout!
   for name in ['main.Rnw', 'my file.tex', 'a%b.tex', 'a#b.tex', 'a[1].tex', 'main.R', 'a%b.Rout', 'a%b.R',
-      't%d/df.tsv', 'plain/run_cmd.bat', 'tmp dir/run_cmd.bat', "it's my file.Rrst"]
+      't%d/df.tsv', 't%d/df2.tsv', 'plain/run_cmd.bat', 'tmp dir/run_cmd.bat', "it's my file.Rrst",
+      'wbin/argv.c', 'wbin/argv.exe', "it's a %b #c $HOME [1] !x dir/df.tsv"]
     delete(work .. '/' .. name)
   endfor
-  for dir in ['/t%d', '/plain', '/tmp dir', '']
+  for dir in ['/t%d', '/plain', '/tmp dir', '/wbin', "/it's a %b #c $HOME [1] !x dir", '']
     delete(work .. dir, 'd')
   endfor
 endif
