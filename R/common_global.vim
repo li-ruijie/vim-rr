@@ -117,6 +117,23 @@ def g:RGoToFile(how: string, fname: string)
     exe how .. ' ' .. nr
 enddef
 
+# Show a buffer by its number in the window that an Ex command such as
+# "tabnew" or "above 7split" opens. The command gets no name, since it would
+# read some characters of the name as its own, and even in the name that it
+# puts in the place of "#" and a number, Vim replaces "$NAME" with the value
+# of that environment variable. The empty buffer that "tabnew", "new", or
+# "vnew" makes is wiped once the buffer has taken its place. The command may
+# carry a count, which Vim9 script rejects without a colon, so it runs as
+# legacy script.
+def g:RShowBuf(howto: string, nr: number)
+    var before = bufnr()
+    exe 'legacy ' .. howto
+    if bufnr() != before
+        setlocal bufhidden=wipe
+    endif
+    exe 'buffer ' .. nr
+enddef
+
 # Write the name of a file that exists for an Ex command that takes the name
 # as a pattern, such as :source. fnameescape() guards the other characters,
 # but on Windows it leaves a bracket alone, and the command then takes

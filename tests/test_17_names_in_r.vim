@@ -740,6 +740,32 @@ else
   g:R_csv_app = saved_csv_app
 endif
 
+# Without R_csv_app, RViewDF() opened a buffer with the Ex command of howto
+# and the name of the object as it was. A selection such as d[d$x > 1, ] made
+# Vim refuse the command (E172), and a percent sign, a number sign, or a bar
+# was read as the current file, the alternate file, or the end of the
+# command. The buffer holds no file, and it goes when its window closes.
+var df_names = ['d[d$x > 1, ]', 'a%b #1', 'p|q', 'v$HOME']
+var df_shown: list<any> = []
+for [df_name, df_howto] in df_names->mapnew((i, n) => [n, i % 2 == 0 ? 'tabnew' : 'above 7split'])
+  var nbufs = len(getbufinfo())
+  err = Caught(() => {
+    g:RViewDF(df_name, df_howto, "x\tn\x14a\t1")
+  })
+  add(df_shown, [err, bufname('%'), getline(1, '$'), &buftype, &swapfile, df_howto == 'tabnew'
+    ? tabpagenr('$') : winheight(0)])
+  # The window of the data frame is closed, where the call opened one
+  if tabpagenr('$') > 1
+    tabclose
+  elseif winnr('$') > 1
+    close
+  endif
+  add(df_shown[-1], len(getbufinfo()) - nbufs)
+endfor
+g:AssertEqual(df_shown, df_names->mapnew((i, n) => ['', n, ["x\tn", "a\t1"], 'nofile', false, i % 2 == 0 ? 2 : 7,
+  0]), 'RViewDF: the buffer of a data frame has the name of the object, whatever it holds')
+execute 'buffer ' .. rbuf
+
 # ========================================================================
 # Ex commands: names from R and the temporary directory are taken as they are
 # ========================================================================

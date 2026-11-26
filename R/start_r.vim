@@ -1086,17 +1086,19 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         return
     endif
 
-    var location = howto
-    # howto may carry a count ("above 7split"), which Vim9 script rejects
-    # without a colon, so the command runs as legacy script.
-    silent exe 'legacy ' .. location .. ' ' .. oname
+    # The name is R code, such as d[d$x > 1, ], which an Ex command would
+    # take for a file name, so the buffer is shown by its number. It holds no
+    # file, so its options are set before it is loaded, and Vim neither reads
+    # a file of that name nor makes a swap file for it.
+    var nr = bufadd(oname)
+    setbufvar(nr, '&buftype', 'nofile')
+    setbufvar(nr, '&swapfile', false)
+    setbufvar(nr, '&bufhidden', 'wipe')
+    silent g:RShowBuf(howto, nr)
     # silent 1,$d
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal filetype=csv
     setlocal nomodified
-    setlocal bufhidden=wipe
-    setlocal noswapfile
-    setlocal buftype=nofile
     redraw
 enddef
 
