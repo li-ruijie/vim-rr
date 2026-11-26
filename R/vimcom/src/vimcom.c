@@ -1823,6 +1823,15 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         free(glbnvbuf2);
         free(send_ge_buf);
         glbnvbuf1 = glbnvbuf2 = send_ge_buf = NULL;
+#ifndef WIN32
+        // The next start makes a new pipe and would lose this one.
+        if (ih) {
+            removeInputHandler(&R_InputHandlers, ih);
+            ih = NULL;
+            close(ifd);
+            close(ofd);
+        }
+#endif
     }
 
     SEXP ans;
