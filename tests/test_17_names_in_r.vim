@@ -224,9 +224,13 @@ if executable('gcc')
   mkdir(srv .. '/tmp', 'p', 0o700)
   writefile(['Package: its', "Title: It's a title", "Description: It's a package."],
     srv .. "/lib/it's/DESCRIPTION")
-  # An object of the package, with its seven fields
-  writefile([["it's", '{', "my'cls", 'qpkg', '', 'A number', 'Text']->join("\x06") .. "\x06"],
-    srv .. '/compl/omnils_qpkg_1.0')
+  # Objects of the package, with their seven fields. vimcom writes the byte
+  # 0x12 for each quote of the list of arguments of a function, and a name, a
+  # class, or a title may hold that byte itself.
+  writefile([["it's", '{', "my'cls", 'qpkg', '', 'A number', 'Text'],
+    ["zq\x12x", '{', "c\x12l", 'qpkg', '', "T\x12t", 'Text'],
+    ['zqf', "\x03", '', 'qpkg', "[\x12a\x12], [\x12b\x12, \x122\x12]", 'Title', 'Text']]
+    ->mapnew((_, l) => l->join("\x06") .. "\x06"), srv .. '/compl/omnils_qpkg_1.0')
   writefile([], srv .. '/compl/fun_qpkg_1.0')
   writefile(['qpkg_1.0'], srv .. '/tmp/libnames_rrtest')
   writefile([srv .. '/lib'], srv .. '/tmp/libPaths')
@@ -257,6 +261,20 @@ if executable('gcc')
   ch_sendraw(sjob, "6no'pe\x02qpkg\n")
   g:AssertEqual(ServerReplies('no\%x13pe')->mapnew((_, r) => ServerPassed(r)), [[{word: "no\x13pe"}]],
     'vimrserver: the answer of nothing found names the word')
+  # The server wrote a single quote in the place of every byte 0x12, so a name
+  # that held one ended its string, and Vim refused the whole list
+  for request in ["53\x03zq", "6zq\x12x\x02qpkg", "6zqf\x02qpkg"]
+    ch_sendraw(sjob, request .. "\n")
+  endfor
+  ServerReplies('SetComplInfo(.*zqf')
+  g:AssertEqual([ServerReplies('SetComplMenu(3,'), ServerReplies('SetComplInfo(.*zq\%x12x'),
+    ServerReplies('SetComplInfo(.*zqf')]
+    ->mapnew((_, l) => l->mapnew((_, r) => ServerPassed(r))), [
+    [[3, [{word: "zq\x12x", menu: "c\x12l [qpkg]", user_data: {cls: '{', pkg: 'qpkg'}},
+      {word: 'zqf', menu: 'func [qpkg]', user_data: {cls: 'f', pkg: 'qpkg'}}]]],
+    [[{cls: '{', word: "zq\x12x", pkg: 'qpkg', usage: [], ttl: "T\x12t", descr: 'Text'}]],
+    [[{cls: 'f', word: 'zqf', pkg: 'qpkg', usage: [['a'], ['b', '2']], ttl: 'Title', descr: 'Text'}]]],
+    'vimrserver: a byte 0x12 of a name, a class, or a title reaches Vim, and the arguments are a list')
   ch_sendraw(sjob, "9\n")
   JobEnded(sjob, 30)
   job_stop(sjob, 'kill')

@@ -969,17 +969,27 @@ void *check_omils_buffer(char *buffer, int *size) {
     if (!buffer)
         return NULL;
 
-    if (buffer) {
-        char *p = buffer;
-        while (*p) {
-            if (*p == '\006')
-                *p = 0;
-            if (*p == '\'')
-                *p = '\x13';
-            if (*p == '\x12')
-                *p = '\'';
-            p++;
+    // The fields of a line go between single quotes in what is sent to Vim,
+    // so a single quote of a field is written as the byte 0x13, which Vim
+    // turns back into a quote. vimcom writes the byte 0x12 for each quote
+    // that delimits a string in the fifth field, which holds the arguments
+    // of a function as a list for Vim. A byte 0x12 of any other field is
+    // part of a name or of a text, and Vim takes it as it is between single
+    // quotes, so it stays.
+    int field = 0;
+    char *p = buffer;
+    while (*p) {
+        if (*p == '\006') {
+            *p = 0;
+            field++;
+        } else if (*p == '\n') {
+            field = 0;
+        } else if (*p == '\'') {
+            *p = '\x13';
+        } else if (*p == '\x12' && field == 4) {
+            *p = '\'';
         }
+        p++;
     }
     return buffer;
 }
