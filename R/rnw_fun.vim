@@ -436,45 +436,38 @@ def g:SyncTeX_forward(...args: list<any>)
         g:RWarningMsg("Error: did not find LaTeX line.")
         return
     endif
+    # The master file may lie in another directory, which basenm names
+    # relative to the working directory. The relative names below are taken
+    # in that directory, as if Vim had changed into it. Vim does not change
+    # into it, since :cd and chdir() put the value of an environment variable
+    # in the place of "$NAME" in the name of a directory, and on Windows :cd
+    # takes a bracket for a wildcard.
     var basedir = ''
-    var olddir = ''
     if basenm =~ '/'
         basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
         basenm = substitute(basenm, '.*/', '', '')
-        olddir = getcwd()
-        execute "cd " .. fnameescape(basedir)
     endif
+    var InBase = (p: string): string => basedir == '' || p =~ '^\(/\|\a:[/\\]\)' ? p : basedir .. '/' .. p
 
     if len(args) > 0 && args[0]
         g:GoToBuf(basenm .. ".tex", basenm .. ".tex", basedir, texln)
-        if olddir != ''
-            execute "cd " .. fnameescape(olddir)
-        endif
         return
     endif
 
-    if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".pdf")
-        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.pdf" is missing.')
-        if olddir != ''
-            execute "cd " .. fnameescape(olddir)
-        endif
+    var pdfbase = InBase(b:rplugin_pdfdir) .. "/" .. basenm
+    if !filereadable(pdfbase .. ".pdf")
+        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. pdfbase .. '.pdf" is missing.')
         return
     endif
-    if !filereadable(b:rplugin_pdfdir .. "/" .. basenm .. ".synctex.gz")
-        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. b:rplugin_pdfdir .. "/" .. basenm .. '.synctex.gz" is missing.')
+    if !filereadable(pdfbase .. ".synctex.gz")
+        g:RWarningMsg('SyncTeX forward cannot be done because the file "' .. pdfbase .. '.synctex.gz" is missing.')
         if g:R_latexcmd[0] != "default" && join(g:R_latexcmd) !~ "synctex"
             g:RWarningMsg('Note: The string "-synctex=1" is not in your R_latexcmd. Please check your vimrc.')
         endif
-        if olddir != ''
-            execute "cd " .. fnameescape(olddir)
-        endif
         return
     endif
 
-    g:SyncTeX_forward2(g:SyncTeX_GetMaster() .. '.tex', b:rplugin_pdfdir .. "/" .. basenm .. ".pdf", texln, 1)
-    if olddir != ''
-        execute "cd " .. fnameescape(olddir)
-    endif
+    g:SyncTeX_forward2(InBase(g:SyncTeX_GetMaster() .. '.tex'), pdfbase .. ".pdf", texln, 1)
 enddef
 
 def g:SetPDFdir()

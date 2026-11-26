@@ -767,6 +767,51 @@ g:AssertEqual(df_shown, df_names->mapnew((i, n) => ['', n, ["x\tn", "a\t1"], 'no
 execute 'buffer ' .. rbuf
 
 # ========================================================================
+# SyncTeX_forward: the directory of the master file is no wildcard
+# ========================================================================
+# A child document names its master file, which may lie in another
+# directory. SyncTeX_forward() changed into that directory with ":cd" and
+# fnameescape(), which on Windows leaves a bracket alone, so ":cd r[1]" went
+# into "r1" when that directory existed, and the TeX file of "r1" was opened.
+# ":cd" and chdir() also replace "$HOME" in a directory name with its value.
+# The search from the child to the TeX file of its master runs for a master in
+# "r[1]", beside "r1", and in "r$HOME".
+var sync_cwd = getcwd()
+chdir(work)
+var sync_opened: list<any> = []
+mkdir(work .. '/r1', 'p')
+writefile(['twin'], work .. '/r1/main.tex')
+extend(made_files, ['r1/main.tex'])
+add(made_dirs, 'r1')
+for mdir in ['r[1]', 'r$HOME']
+  mkdir(work .. '/' .. mdir, 'p')
+  writefile(['\documentclass{article}', "<<child='kid.Rnw'>>=", '@'], work .. '/' .. mdir .. '/main.Rnw')
+  writefile(['line 1', 'line 2', 'line 3', 'line 4'], work .. '/' .. mdir .. '/main.tex')
+  writefile(['\Sconcordance{concordance:main.tex:main.Rnw:%', '1 3 1}'],
+    work .. '/' .. mdir .. '/main-concordance.tex')
+  writefile(['% !Rnw root = ' .. mdir .. '/main.Rnw', 'text'], work .. '/kid.Rnw')
+  execute 'edit ' .. fnameescape(work .. '/kid.Rnw')
+  var kid_buf = bufnr('%')
+  err = Caught(() => {
+    g:SyncTeX_forward(1)
+  })
+  add(sync_opened, [err, substitute(expand('%:p'), '\\', '/', 'g'), line('.'),
+    substitute(getcwd(), '\\', '/', 'g')])
+  silent! tabonly
+  execute 'buffer ' .. rbuf
+  execute 'bwipeout! ' .. kid_buf
+  if bufexists(work .. '/' .. mdir .. '/main.tex')
+    execute 'bwipeout! ' .. bufnr(work .. '/' .. mdir .. '/main.tex')
+  endif
+  extend(made_files, ['main.Rnw', 'main.tex', 'main-concordance.tex']->mapnew((_, f) => mdir .. '/' .. f))
+  add(made_dirs, mdir)
+endfor
+add(made_files, 'kid.Rnw')
+chdir(sync_cwd)
+g:AssertEqual(sync_opened, ['r[1]', 'r$HOME']->mapnew((_, d) => ['', work .. '/' .. d .. '/main.tex', 2,
+  substitute(work, '\\', '/', 'g')]), 'SyncTeX_forward: opens the TeX file of a master in "r[1]" and in "r$HOME"')
+
+# ========================================================================
 # Ex commands: names from R and the temporary directory are taken as they are
 # ========================================================================
 # GetROutput(), EditRObject(), ShowRObj(), and ShowRDoc() put a name into an
