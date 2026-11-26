@@ -326,6 +326,12 @@ def g:RGetFirstObj(rkeyword: string, flnum: number = line("."), fbegin: number =
         begin += 1
         line = strpart(line, begin)
         line = substitute(line, '^\s*', '', "")
+        # The first argument may begin on a line below the call
+        var next = flnum
+        while line == '' && next < line("$")
+            next += 1
+            line = substitute(getline(next), '#.*', '', "")->substitute('^\s*', '', "")
+        endwhile
         if (line =~ '^\k*\s*(' || line =~ '^\k*\s*=\s*\k*\s*(') && line !~ '[.*('
             var idx = 0
             while strpart(line, idx, 1) != '('
@@ -334,7 +340,7 @@ def g:RGetFirstObj(rkeyword: string, flnum: number = line("."), fbegin: number =
             idx += 1
             var nparen = 1
             var len = strlen(line)
-            var lnum = flnum
+            var lnum = next
             while nparen != 0
                 if idx == len
                     lnum += 1
@@ -365,7 +371,7 @@ def g:RGetFirstObj(rkeyword: string, flnum: number = line("."), fbegin: number =
             idx += 1
             var nparen = 1
             var len = strlen(line)
-            var lnum = flnum
+            var lnum = next
             while nparen != 0
                 if idx == len
                     lnum += 1

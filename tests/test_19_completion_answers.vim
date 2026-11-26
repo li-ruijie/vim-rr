@@ -400,6 +400,23 @@ for i in range(len(option_cases))
   g:AssertEqual(get(data_got, len(data_cases) + i, 'no result'), option_cases[i][3],
     'NeedRArguments: ' .. option_cases[i][4])
 endfor
+# The first argument on the line below the call. RGetFirstObj() looked for
+# it on the line of the call alone, and IsFirstRArg() looked at the line of
+# the cursor alone, so it took the first argument for a later one.
+var below_got: list<any> = []
+err = Caught(() => {
+  g:R_fun_data_1 = ['select', 'rename', 'mutate', 'filter']
+  g:R_fun_data_2 = {ggplot: ['aes'], with: ['*']}
+  add(below_got, NeedArgs(['filter(', '  dat, x > 1, ']))
+  add(below_got, NeedArgs(['summary(', '', '  dat, ']))
+  for lines in [['filter(', '  da'], ['filter(dat,', '  x'], ['filter(da']]
+    deletebufline('%', 1, '$')
+    setline(1, lines)
+    add(below_got, g:IsFirstRArg(lines[-1], [0, len(lines), strlen(lines[-1]) + 1, 0]))
+  endfor
+})
+g:AssertEqual([err, below_got], ['', [['filter', 1, 'dat', false], ['summary', 0, 'dat', false], 1, 0, 1]],
+  'NeedRArguments and IsFirstRArg: the first argument on a line below the call')
 [g:R_fun_data_1, g:R_fun_data_2] = saved_fun_data
 g:SendCmdToR = SavedDataSend
 delfunction g:RrTestDataSend

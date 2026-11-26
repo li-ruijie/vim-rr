@@ -602,13 +602,29 @@ def g:CompleteQuartoCellOptions(base: string): list<any>
     return g:rplugin.cell_opt_list
 enddef
 
+# Whether the cursor is in the first argument of the call that it is in. The
+# search goes back to the opening parenthesis or a comma, up to 10 lines
+# above, since the first argument may be on a line below the call.
 def g:IsFirstRArg(line: string, cpos: list<number>): number
+    var text = line
+    var lnum = cpos[1]
     var ii = cpos[2] - 2
-    while ii > 0
-        if strpart(line, ii, 1) == '('
+    var nl = 0
+    while true
+        if ii < 0
+            lnum -= 1
+            nl += 1
+            if lnum < 1 || nl == 10
+                return 0
+            endif
+            text = getline(lnum)
+            ii = strlen(text) - 1
+            continue
+        endif
+        if strpart(text, ii, 1) == '('
             return 1
         endif
-        if strpart(line, ii, 1) == ','
+        if strpart(text, ii, 1) == ','
             return 0
         endif
         ii -= 1
