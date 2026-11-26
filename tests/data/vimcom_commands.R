@@ -44,6 +44,11 @@ formals(qf) <- setNames(alist(x = , y = "x\x12y"), c("it's", "a\x12b"))
 assign("qf", qf, envir = .GlobalEnv)
 assign("dq", structure(data.frame(1), names = "c\x12l"), envir = .GlobalEnv)
 assign("nf", function() NULL, envir = .GlobalEnv)
+# A function of the global environment whose name and whose arguments hold a
+# quote or the byte 0x12
+gq <- function() NULL
+formals(gq) <- setNames(alist(x = , y = "x\x12'y", z = 1), c("it's", "a\x12b", "c"))
+assign("g'q", gq, envir = .GlobalEnv)
 writeLines("1 + 1", file.path(work, "code.R"))
 
 cmds <- c(
@@ -69,6 +74,8 @@ cmds <- c(
     command(env[["vim_complete_args"]]("8", "qf", "", firstobj = "dq", ldf = TRUE)),
     # The items of a function without arguments, alone and with the columns
     command(env[["vim_complete_args"]]("11", "nf", "")),
-    command(env[["vim_complete_args"]]("12", "nf", "", firstobj = "d'f", ldf = TRUE))
+    command(env[["vim_complete_args"]]("12", "nf", "", firstobj = "d'f", ldf = TRUE)),
+    # The arguments of that function for the usage line
+    command(env[["vim.GlobalEnv.fun.args"]]("g'q"))
 )
 writeLines(cmds, out, useBytes = TRUE)

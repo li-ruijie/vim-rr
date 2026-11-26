@@ -276,18 +276,15 @@ def g:AskForComplInfo()
     endif
 enddef
 
-def g:FinishGlbEnvFunArgs(fnm: string, txt: string)
+# R sends the arguments as a list that holds a name, or a name and its default
+# value, for each argument. A default value holds the byte 0x13 in the place
+# of each single quote.
+def g:FinishGlbEnvFunArgs(fnm: string, args: list<any>)
     if !g:IsComplAnswerForSelected(fnm)
         return
     endif
-    var usage = substitute(txt, "\x14", "\n", "g")
-    usage = substitute(usage, "\x13", "''", "g")
-    usage = substitute(usage, "\005", '\\"', "g")
-    usage = substitute(usage, "\x12", "'", "g")
-    usage = '[' .. usage .. ']'
-    var usagelist = eval(usage)
-    map(usagelist, 'join(v:val, " = ")')
-    var usagestr = join(usagelist, ", ")
+    var usagestr = args->mapnew((_, a) => a->mapnew((i, v) => i == 0 ? v : substitute(v, "\x13", "'", 'g'))
+        ->join(' = '))->join(', ')
     g:rplugin.compl_usage = fnm .. '(' .. usagestr .. ')'
     g:rplugin.compl_event['completed_item']['user_data']['descr'] = ''
     g:CreateNewFloat()

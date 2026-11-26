@@ -260,11 +260,11 @@ vim_insert <- function(cmd, howto = "tabnew") {
 #' menu.
 #' @param funcname Name of function selected in the completion menu.
 vim.GlobalEnv.fun.args <- function(funcname) {
-    txt <- vim.args(funcname)
-    txt <- gsub('\\\\\\"', '\005', txt)
-    txt <- gsub('"', '\\\\"', txt)
+    # The arguments reach Vim as a list, whose strings vim.args() quotes for
+    # Vim, so that a quote or a byte 0x12 in a name stays what it is
+    txt <- vim.args(funcname, vimsq = TRUE)
     .C("vimcom_msg_to_vim",
-       paste0('call g:FinishGlbEnvFunArgs(', vim.sq(funcname), ', "', txt, '")'), PACKAGE = "vimcom")
+       paste0("call g:FinishGlbEnvFunArgs(", vim.sq(funcname), ", [", txt, "])"), PACKAGE = "vimcom")
     return(invisible(NULL))
 }
 

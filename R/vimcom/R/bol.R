@@ -157,7 +157,10 @@ vim.fix.string <- function(x, edq = TRUE) {
 #' @param objclass Class of first argument of the function.
 #' @param extrainfo Whether to include additional information for completion.
 #' @param edq Whether double quotes should be escaped.
-vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE, edq = TRUE) {
+#' @param vimsq Whether each string of an item is quoted for Vim by vim.sq(),
+#' instead of between two bytes 0x12, when `extrainfo` is FALSE.
+vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE, edq = TRUE,
+                     vimsq = FALSE) {
     # Adapted from: https://stat.ethz.ch/pipermail/ess-help/2011-March/006791.html
     if (!exists(funcname))
         return("")
@@ -235,6 +238,10 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
         arglist <- lapply(arglist, vim.fix.string, edq)
     }
 
+    # In the lists of objects each string of an item stands between two
+    # bytes 0x12, which the server turns into quotes. The arguments of a
+    # function of the global environment go from R to Vim, quoted by vim.sq().
+    q <-if (vimsq) vim.sq else function(x) paste0("\x12", x, "\x12")
     res <- NULL
     for (field in names(frm)) {
         type <- typeof(frm[[field]])
@@ -267,19 +274,19 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
             }
         } else {
             if (type == "symbol") {
-                res <- append(res, paste0("[\x12", field, "\x12], "))
+                res <- append(res, paste0("[", q(field), "], "))
             } else if (type == "character") {
-                res <- append(res, paste0("[\x12", field, "\x12, \x12\"",
-                                          vim.fix.string(frm[[field]]), "\"\x12], "))
+                res <- append(res, paste0("[", q(field), ", ",
+                                          q(paste0("\"", vim.fix.string(frm[[field]]), "\"")), "], "))
             } else if (type == "logical" || type == "double" || type == "integer") {
-                res <- append(res, paste0("[\x12", field, "\x12, \x12", as.character(frm[[field]]), "\x12], "))
+                res <- append(res, paste0("[", q(field), ", ", q(as.character(frm[[field]])), "], "))
             } else if (type == "NULL") {
-                res <- append(res, paste0("[\x12", field, "\x12, \x12NULL\x12], "))
+                res <- append(res, paste0("[", q(field), ", ", q("NULL"), "], "))
             } else if (type == "language") {
-                res <- append(res, paste0("[\x12", field, "\x12, \x12",
-                                          vim.fix.string(deparse(frm[[field]]), FALSE), "\x12], "))
+                res <- append(res, paste0("[", q(field), ", ",
+                                          q(vim.fix.string(deparse(frm[[field]]), FALSE)), "], "))
             } else {
-                res <- append(res, paste0("[\x12", field, "\x12], "))
+                res <- append(res, paste0("[", q(field), "], "))
                 warning(paste0("vim.args: ", funcname, " [", field, "]", " (typeof = ", type, ")"))
             }
         }

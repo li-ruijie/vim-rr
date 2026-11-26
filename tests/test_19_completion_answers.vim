@@ -61,7 +61,7 @@ enddef
 # ========================================================================
 # FinishGlbEnvFunArgs: the arguments of a function, which R sends
 # ========================================================================
-var fun_args = "[\x12a\x12], [\x12b\x12, \x122\x12], "
+var fun_args = [['a'], ['b', '2']]
 Select('plainf', {cls: 'f', pkg: '.GlobalEnv', descr: 'text'}, 'plainf')
 err = Caught(() => {
   g:FinishGlbEnvFunArgs('plainf', fun_args)

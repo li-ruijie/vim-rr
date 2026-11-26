@@ -84,8 +84,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 18, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 18 - len(cmds))
+  g:AssertEqual(len(cmds), 19, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 19 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -121,7 +121,7 @@ if executable('Rscript')
     'vimcom: a line break in a warning becomes a space')
   # The arguments of a function of the global environment, for completion
   g:AssertEqual(Taken(cmds[12]),
-    ['g:FinishGlbEnvFunArgs', ['it''s "f"\', "[\x12x\x12], [\x12y\x12, \x121\x12], "]],
+    ['g:FinishGlbEnvFunArgs', ['it''s "f"\', [['x'], ['y', '1']]]],
     'vimcom: the name of a function reaches FinishGlbEnvFunArgs() with its quotes and its backslash')
   # The arguments of a function and the columns of the data frame that is
   # its first argument go to the server as the items of a list. The server
@@ -175,6 +175,29 @@ if executable('Rscript')
   endfor
   g:AssertEqual(noargs_items, [['+A11;;nf;', []], ['+A12;;nf;', noargs_columns]],
     'vimcom: a function without arguments gives no item, and the columns of a data frame stay a list')
+  # The arguments of a function of the global environment reached
+  # FinishGlbEnvFunArgs() as a string, with the byte 0x12 for each quote of
+  # its items, which Vim turned into quotes before it evaluated the string. A
+  # name with a quote ended its string, and so did a byte 0x12 in a name.
+  # The command runs here as Vim runs it, with the function selected in the
+  # menu.
+  if !exists('*g:FinishGlbEnvFunArgs')
+    execute 'source ' .. fnameescape(plugin_root .. '/R/complete.vim')
+  endif
+  var saved_compl = ['compl_event', 'compl_asked', 'compl_usage']->mapnew((_, k) => [k, g:rplugin[k]])
+  g:rplugin.compl_event = {completed_item: {word: "g'q",
+    user_data: {cls: 'f', pkg: '.GlobalEnv', descr: ''}},
+    col: 1.0, row: 1.0, width: 10.0, height: 2.0, scrollbar: false}
+  g:rplugin.compl_asked = "g'q"
+  g:rplugin.compl_usage = ''
+  err = Caught(() => {
+    execute cmds[18]
+  })
+  g:AssertEqual([err, g:rplugin.compl_usage], ['', "g'q(it's, a\x12b = \"x\x12'y\", c = 1)"],
+    'vimcom: names with a quote or the byte 0x12 reach the usage line of a global function')
+  for [key, value] in saved_compl
+    g:rplugin[key] = value
+  endfor
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer
