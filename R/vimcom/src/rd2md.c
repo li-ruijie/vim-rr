@@ -515,7 +515,7 @@ SEXP get_section(SEXP rtxt, SEXP rsec) {
 
     const char *str = CHAR(STRING_ELT(rtxt, 0));
     const char *sec = CHAR(STRING_ELT(rsec, 0));
-    char *a = calloc(sizeof(char), (strlen(str) + 1));
+    char *a = calloc(strlen(str) + 1, sizeof(char));
     char *b = malloc(sizeof(char) * (strlen(str) + 1));
     if (!a || !b) {
         REprintf("vimcom: malloc failed in get_section\n");

@@ -1373,8 +1373,8 @@ static void SrcrefInfo(void) {
 #endif
             if (isString(filename) && length(filename)) {
                 size_t slen = strlen(CHAR(STRING_ELT(filename, 0)));
-                char *buf = calloc(sizeof(char), (2 * slen + 32));
-                char *buf2 = calloc(sizeof(char), (2 * slen + 32));
+                char *buf = calloc(2 * slen + 32, sizeof(char));
+                char *buf2 = calloc(2 * slen + 32, sizeof(char));
                 if (!buf || !buf2) {
                     REprintf("vimcom: calloc failed in SrcrefInfo\n");
                     free(buf);
