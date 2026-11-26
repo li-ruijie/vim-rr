@@ -733,6 +733,17 @@ g:AssertEqual([err, expand('%:t'), getline(1)], ['', 'a[1].tsv', 'bracket'],
   'RViewDF: an Ex command opens "a[1].tsv" and not "a1.tsv" beside it')
 silent! only
 execute 'buffer ' .. rbuf
+# On Windows fnameescape() leaves "$" alone, and Vim replaced "$HOME" in the
+# name with the value of that variable. The name also holds braces, which a
+# command that takes the name for a wildcard reads as a set of alternatives.
+err = Caught(() => {
+  g:RViewDF('v$HOME {1}', '', "dollar\x141")
+})
+g:AssertEqual([err, expand('%:t'), getline(1)], ['', 'v$HOME {1}.tsv', 'dollar'],
+  'RViewDF: an Ex command opens "v$HOME {1}.tsv"')
+extend(made_files, ['v$HOME {1}.tsv'])
+silent! only
+execute 'buffer ' .. rbuf
 g:rplugin.tmpdir = saved_tmpdir
 if type(saved_csv_app) == v:t_none
   unlet g:R_csv_app
@@ -819,26 +830,28 @@ g:AssertEqual(sync_opened, ['r[1]', 'r$HOME']->mapnew((_, d) => ['', work .. '/'
 # name was replaced with the name of the current file. On Windows
 # fnameescape() leaves a bracket alone, and ShowRObj() then opened a file of
 # another directory that the name matches as a wildcard, which a directory
-# beside the temporary one provides.
+# beside the temporary one provides. ShowRObj() then gave the command "#" and
+# the number of the buffer, and Vim replaced "$HOME" in the name that it put
+# in its place with the value of that variable.
 var saved_env = [$VIMR_TMPDIR, $VIMR_ID]
 saved_tmpdir = g:rplugin.tmpdir
-var tdir = 't%d #1 [1]'
+var tdir = 't%d #1 [1] $HOME'
 mkdir(work .. '/' .. tdir, 'p')
-mkdir(work .. '/t%d #1 1', 'p')
-writefile(['other'], work .. '/t%d #1 1/x')
-extend(made_files, ['t%d #1 1/x'])
-extend(made_dirs, [tdir, 't%d #1 1'])
+mkdir(work .. '/t%d #1 1 $HOME', 'p')
+writefile(['other'], work .. '/t%d #1 1 $HOME/x')
+extend(made_files, ['t%d #1 1 $HOME/x'])
+extend(made_dirs, [tdir, 't%d #1 1 $HOME'])
 g:rplugin.tmpdir = work .. '/' .. tdir
 $VIMR_TMPDIR = work .. '/' .. tdir
 $VIMR_ID = '7'
 
 err = Caught(() => {
-  g:GetROutput('out%1 #2', "a\x14b")
+  g:GetROutput('out%1 #2 $HOME', "a\x14b")
 })
-g:AssertEqual([err, bufexists('out%1 #2') ? getbufline('out%1 #2', 1, '$') : []], ['', ['a', 'b']],
+g:AssertEqual([err, bufexists('out%1 #2 $HOME') ? getbufline('out%1 #2 $HOME', 1, '$') : []], ['', ['a', 'b']],
   'GetROutput: the buffer has the name that R gave')
-if bufexists('out%1 #2')
-  execute 'bwipeout! ' .. bufnr('out%1 #2')
+if bufexists('out%1 #2 $HOME')
+  execute 'bwipeout! ' .. bufnr('out%1 #2 $HOME')
 endif
 silent! tabonly!
 
@@ -930,6 +943,47 @@ endif
 execute 'buffer ' .. rbuf
 
 # ========================================================================
+# SourceRFunList: the cache directory is taken as it is
+# ========================================================================
+# The names of the functions of a package, for their highlighting, lie in a
+# file of the cache directory, which SourceRFunList() gave to :source. Vim
+# replaces "$HOME" in every name that :source receives with the value of that
+# variable, so nothing was highlighted for a cache directory that holds it.
+if !exists('*g:SourceRFunList')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/functions_def.vim')
+endif
+var saved_compldir = g:rplugin.compldir
+var saved_hi_opts = ['R_hi_fun', 'R_hi_fun_paren']->mapnew((_, o) => [o, get(g:, o, v:none)])
+var cdir = 'c$HOME'
+mkdir(work .. '/' .. cdir, 'p')
+writefile(['" A comment line', 'syn keyword rFunction rrtestfun'], work .. '/' .. cdir .. '/fun_rrtest')
+extend(made_files, [cdir .. '/fun_rrtest'])
+add(made_dirs, cdir)
+g:rplugin.compldir = work .. '/' .. cdir
+g:R_hi_fun = 1
+var fun_listed: list<any> = []
+for paren in [0, 1]
+  g:R_hi_fun_paren = paren
+  enew
+  err = Caught(() => {
+    g:SourceRFunList('rrtest')
+  })
+  add(fun_listed, [err, execute('syntax list')->split("\n")->filter((_, l) => l =~ 'rrtestfun')->len() > 0])
+  bwipeout!
+endfor
+execute 'buffer ' .. rbuf
+g:rplugin.compldir = saved_compldir
+for [name, value] in saved_hi_opts
+  if type(value) != v:t_none
+    extend(g:, {[name]: value})
+  elseif has_key(g:, name)
+    remove(g:, name)
+  endif
+endfor
+g:AssertEqual(fun_listed, [['', true], ['', true]],
+  'SourceRFunList: the functions in a cache directory "c$HOME" are highlighted, with and without parentheses')
+
+# ========================================================================
 # :source: the directory of the plugin is taken as it is
 # ========================================================================
 # The files of the plugin source each other with ":source DIR/R/NAME.vim",
@@ -939,9 +993,14 @@ execute 'buffer ' .. rbuf
 # took another file that the name matches as a wildcard. The Vim files are
 # copied into such a directory, and into a directory beside it that the name
 # matches, and a Vim of its own loads every file type from the first one and
-# from the real directory. Both must source the same scripts.
-var odd_root = work .. (has('win32') ? '/p%l #1 [1]' : '/p%l #1|x [1]')
-var odd_twin = work .. (has('win32') ? '/p%l #1 1' : '/p%l #1|x 1')
+# from the real directory. Both must source the same scripts. The name ends
+# with "$", which is taken as it is. A "$" that is followed by a name is not
+# used. Vim itself replaces it with the value of that environment variable
+# in an entry of 'runtimepath' and in every name that :source receives, so no
+# plugin can be loaded from such a directory when the variable is set, and
+# on Unix not even when it is unset.
+var odd_root = work .. (has('win32') ? '/p%l #1 [1] x$' : '/p%l #1|x [1] x$')
+var odd_twin = work .. (has('win32') ? '/p%l #1 1 x$' : '/p%l #1|x 1 x$')
 var copied: list<string> = []
 for sub in ['R', 'ftplugin', 'ftdetect', 'syntax']
   mkdir(odd_root .. '/' .. sub, 'p')

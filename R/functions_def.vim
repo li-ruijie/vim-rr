@@ -21,11 +21,18 @@ def g:SourceRFunList(lib: string)
         g:UpdateLocalFunctions(g:rplugin.localfun)
     endif
 
-    # Highlight R functions
+    # Highlight R functions. The lines of the file are run one by one, since
+    # :source would replace "$NAME" in the name of the directory with the
+    # value of an environment variable.
+    var lines = readfile(fnm)
     if !exists('g:R_hi_fun_paren') || g:R_hi_fun_paren == 0
-        execute 'source ' .. g:RExFile(fnm)
+        for line in lines
+            if line !~ '^syn keyword rFunction '
+                continue
+            endif
+            execute line
+        endfor
     else
-        var lines = readfile(fnm)
         for line in lines
             if line !~ '^syn keyword rFunction '
                 continue

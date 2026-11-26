@@ -665,13 +665,11 @@ enddef
 def g:ShowRObj(howto: string, bname: string, ftype: string, txt: string)
     var bfnm = substitute(bname, '[ [:punct:]]', '_', 'g')
     g:AddForDeletion(g:rplugin.tmpdir .. "/" .. bfnm)
-    # The command gets the buffer as "#" and its number, and Vim takes the
-    # name of that buffer as it is. fnameescape() leaves a bracket of the
-    # temporary directory alone on Windows, where the command would take it
-    # for a wildcard. howto may carry a count ("above 7split"), which Vim9
-    # script rejects without a colon, and there "#" would start a comment, so
-    # the command runs as legacy script.
-    silent exe 'legacy ' .. howto .. ' #' .. bufadd(g:rplugin.tmpdir .. '/' .. bfnm)
+    # The buffer is shown by its number, so the name of the temporary
+    # directory is taken as it is, with a bracket on Windows and with "$NAME",
+    # which Vim would replace with the value of an environment variable even
+    # in the name that it puts in the place of "#" and a number
+    silent g:RShowBuf(howto, bufadd(g:rplugin.tmpdir .. '/' .. bfnm))
     silent exe 'setlocal ft=' .. ftype
     setline(1, split(substitute(txt, "\x13", "'", "g"), "\x14"))
     setlocal nomodified
@@ -1055,11 +1053,13 @@ def g:RViewDF(oname: string, howto: string, txt: string)
         if g:R_csv_app =~ '%s'
             cmd = printf(g:R_csv_app, tsvnm)
         elseif g:R_csv_app =~# '^:'
-            # On Windows fnameescape() leaves a bracket alone, and the command
-            # would take the name for a wildcard. The file exists, so there a
-            # bracket is written as a set that holds nothing but itself.
+            # On Windows fnameescape() leaves a bracket and "$" alone, and the
+            # command would take the name for a wildcard and replace "$NAME"
+            # with the value of an environment variable. There the name is
+            # given as a backtick expression, whose result the command takes as
+            # it is.
             cmd = g:R_csv_app .. ' ' .. (has('win32')
-                ? substitute(fnameescape(tsvnm), '\[', '[[]', 'g') : fnameescape(tsvnm))
+                ? '`=' .. string(tsvnm) .. '`' : fnameescape(tsvnm))
         elseif g:R_csv_app =~# '^terminal:'
             cmd = g:R_csv_app .. ' ' .. tsvnm
         else
