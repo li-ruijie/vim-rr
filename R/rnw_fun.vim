@@ -200,6 +200,16 @@ def g:RnwSendChunkToR(e: string, m: string)
     endif
 enddef
 
+# The file that the line "% !Rnw root =" of the current buffer names, with
+# its directory. A relative name is taken in the directory of the buffer,
+# where SyncTeX_forward() looks for the concordance of the master. The
+# directory is joined to the name as text, and simplify() expands nothing,
+# so a bracket or "$" in a name stays as it is.
+def RootFile(root: string): string
+    var path = root =~ '^\(/\|\a:[/\\]\)' ? root : expand("%:p:h") .. "/" .. root
+    return simplify(has("win32") ? substitute(path, '\\', '/', 'g') : path)
+enddef
+
 def g:SyncTeX_GetMaster(): string
     if filereadable(expand("%:p:r") .. "-concordance.tex")
         if has("win32")
@@ -212,22 +222,7 @@ def g:SyncTeX_GetMaster(): string
     var ischild = search('% *!Rnw *root *=', 'bwn')
     if ischild > 0
         var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
-        var mdir: string
-        if mfile =~ "/"
-            mdir = substitute(mfile, '\(.*\)/.*', '\1', '')
-            mfile = substitute(mfile, '.*/', '', '')
-            if mdir == '..'
-                mdir = expand("%:p:h:h")
-            endif
-        else
-            mdir = expand("%:p:h")
-        endif
-        var basenm = substitute(mfile, '\....$', '', '')
-        if has("win32")
-            return substitute(mdir, '\\', '/', 'g') .. "/" .. basenm
-        else
-            return mdir .. "/" .. basenm
-        endif
+        return substitute(RootFile(mfile), '\....$', '', '')
     endif
 
     # Maybe this buffer is a master Rnoweb not compiled yet.
@@ -386,8 +381,9 @@ def g:SyncTeX_forward(...args: list<any>)
         if ischild > 0
             var mfile = substitute(getline(ischild), '.*% *!Rnw *root *= *\(.*\) *', '\1', '')
             basenm = substitute(mfile, '\....$', '', '')
-            if filereadable(expand("%:p:h") .. "/" .. basenm .. "-concordance.tex")
-                var mlines = readfile(expand("%:p:h") .. "/" .. mfile)
+            var mpath = RootFile(mfile)
+            if filereadable(substitute(mpath, '\....$', '', '') .. "-concordance.tex")
+                var mlines = readfile(mpath)
                 for ii in range(len(mlines))
                     # Sweave has detailed child information
                     if mlines[ii] =~ 'SweaveInput.*' .. expand("%:t")
@@ -397,12 +393,12 @@ def g:SyncTeX_forward(...args: list<any>)
                     # Knitr does not include detailed child information
                     if mlines[ii] =~ '<<.*child *=.*' .. expand("%:t") .. '["' .. "']"
                         lnum = ii + 1
-                        rnwf = expand("%:p:h") .. "/" .. mfile
+                        rnwf = mpath
                         break
                     endif
                 endfor
                 if lnum == 0
-                    g:RWarningMsg('Could not find "child=' .. expand("%:t") .. '" in ' .. expand("%:p:h") .. "/" .. mfile .. '.')
+                    g:RWarningMsg('Could not find "child=' .. expand("%:t") .. '" in ' .. mpath .. '.')
                     return
                 endif
             else
@@ -415,11 +411,13 @@ def g:SyncTeX_forward(...args: list<any>)
         endif
     endif
 
-    if !filereadable(expand("%:p:h") .. "/" .. basenm .. ".tex")
-        g:RWarningMsg('"' .. expand("%:p:h") .. "/" .. basenm .. '.tex" not found.')
+    # The master file with its directory and without its extension
+    var master = g:SyncTeX_GetMaster()
+    if !filereadable(master .. ".tex")
+        g:RWarningMsg('"' .. master .. '.tex" not found.')
         return
     endif
-    var concdata = g:SyncTeX_readconc(expand("%:p:h") .. "/" .. basenm)
+    var concdata = g:SyncTeX_readconc(master)
     rnwf = substitute(rnwf, ".*/", "", "")
     var texlnum = concdata["texlnum"]
     var rnwfile = concdata["rnwfile"]
@@ -436,18 +434,14 @@ def g:SyncTeX_forward(...args: list<any>)
         g:RWarningMsg("Error: did not find LaTeX line.")
         return
     endif
-    # The master file may lie in another directory, which basenm names
-    # relative to the working directory. The relative names below are taken
-    # in that directory, as if Vim had changed into it. Vim does not change
-    # into it, since :cd and chdir() put the value of an environment variable
-    # in the place of "$NAME" in the name of a directory, and on Windows :cd
-    # takes a bracket for a wildcard.
-    var basedir = ''
-    if basenm =~ '/'
-        basedir = substitute(basenm, '\(.*\)/.*', '\1', '')
-        basenm = substitute(basenm, '.*/', '', '')
-    endif
-    var InBase = (p: string): string => basedir == '' || p =~ '^\(/\|\a:[/\\]\)' ? p : basedir .. '/' .. p
+    # The master file may lie in another directory. A relative PDF directory
+    # is taken in that directory, as if Vim had changed into it. Vim does not
+    # change into it, since :cd and chdir() put the value of an environment
+    # variable in the place of "$NAME" in the name of a directory, and on
+    # Windows :cd takes a bracket for a wildcard.
+    var basedir = substitute(master, '\(.*\)/.*', '\1', '')
+    basenm = substitute(master, '.*/', '', '')
+    var InBase = (p: string): string => p =~ '^\(/\|\a:[/\\]\)' ? p : basedir .. '/' .. p
 
     if len(args) > 0 && args[0]
         g:GoToBuf(basenm .. ".tex", basenm .. ".tex", basedir, texln)
@@ -467,7 +461,7 @@ def g:SyncTeX_forward(...args: list<any>)
         return
     endif
 
-    g:SyncTeX_forward2(InBase(g:SyncTeX_GetMaster() .. '.tex'), pdfbase .. ".pdf", texln, 1)
+    g:SyncTeX_forward2(master .. '.tex', pdfbase .. ".pdf", texln, 1)
 enddef
 
 def g:SetPDFdir()

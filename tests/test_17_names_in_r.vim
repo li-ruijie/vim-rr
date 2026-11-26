@@ -928,6 +928,61 @@ chdir(sync_cwd)
 g:AssertEqual(sync_opened, ['r[1]', 'r$HOME']->mapnew((_, d) => ['', work .. '/' .. d .. '/main.tex', 2,
   substitute(work, '\\', '/', 'g')]), 'SyncTeX_forward: opens the TeX file of a master in "r[1]" and in "r$HOME"')
 
+# A relative root is taken in the directory of the child that names it.
+# SyncTeX_GetMaster() returned such a root as it was written, unless it was
+# "../" and a name, and SetPDFdir() made the PDF directory of it. Taken in
+# the working directory, the root named another file, and SyncTeX_forward()
+# put the directory of the master in front of the PDF directory a second
+# time, which gave "sub/sub". The working directory is not that of any
+# child here. The PDF exists and its SyncTeX file does not, so the forward
+# search stops with a warning that names the file that it looked for. The
+# LaTeX command is set, so that no .latexmkrc of the home directory counts.
+chdir(work)
+var saved_latexcmd = g:R_latexcmd
+g:R_latexcmd = ['pdflatex', '-synctex=1']
+var root_cases = [['A', 's[1]/main.Rnw', 'A/s[1]'], ['B/k$HOME', '../main.Rnw', 'B'],
+  ['C/k[2]', '../m$HOME/main.Rnw', 'C/m$HOME']]
+var root_found: list<any> = []
+for [kdir, root, rdir] in root_cases
+  mkdir(work .. '/' .. kdir, 'p')
+  mkdir(work .. '/' .. rdir, 'p')
+  writefile(['\documentclass{article}', "<<child='kid.Rnw'>>=", '@'], work .. '/' .. rdir .. '/main.Rnw')
+  writefile(['line 1', 'line 2', 'line 3', 'line 4'], work .. '/' .. rdir .. '/main.tex')
+  writefile(['\Sconcordance{concordance:main.tex:main.Rnw:%', '1 3 1}'],
+    work .. '/' .. rdir .. '/main-concordance.tex')
+  writefile(['pdf'], work .. '/' .. rdir .. '/main.pdf')
+  writefile(['% !Rnw root = ' .. root, 'text'], work .. '/' .. kdir .. '/kid.Rnw')
+  # On Windows :edit would replace "$HOME" in the name
+  var kid_buf = bufadd(work .. '/' .. kdir .. '/kid.Rnw')
+  execute 'buffer ' .. kid_buf
+  var found: list<any> = []
+  g:rplugin.start_msg = []
+  err = Caught(() => {
+    add(found, g:SyncTeX_GetMaster())
+    g:SetPDFdir()
+    add(found, b:rplugin_pdfdir)
+    g:SyncTeX_forward()
+    g:SyncTeX_forward(1)
+  })
+  add(root_found, [err] + found + [g:rplugin.start_msg, substitute(expand('%:p'), '\\', '/', 'g'), line('.')])
+  silent! tabonly
+  execute 'buffer ' .. rbuf
+  execute 'bwipeout! ' .. kid_buf
+  if bufexists(work .. '/' .. rdir .. '/main.tex')
+    execute 'bwipeout! ' .. bufnr(work .. '/' .. rdir .. '/main.tex')
+  endif
+  extend(made_files, [rdir .. '/main.Rnw', rdir .. '/main.tex', rdir .. '/main-concordance.tex',
+    rdir .. '/main.pdf', kdir .. '/kid.Rnw'])
+endfor
+extend(made_dirs, ['A/s[1]', 'A', 'B/k$HOME', 'B', 'C/k[2]', 'C/m$HOME', 'C'])
+chdir(sync_cwd)
+g:R_latexcmd = saved_latexcmd
+g:rplugin.start_msg = []
+g:AssertEqual(root_found, root_cases->mapnew((_, c) => ['', work .. '/' .. c[2] .. '/main', work .. '/' .. c[2],
+  ['SyncTeX forward cannot be done because the file "' .. work .. '/' .. c[2] .. '/main.synctex.gz" is missing.'],
+  work .. '/' .. c[2] .. '/main.tex', 2]),
+  'SyncTeX: the root, the PDF directory, and the TeX file of a child or of a root in another directory')
+
 # ========================================================================
 # Ex commands: names from R and the temporary directory are taken as they are
 # ========================================================================
