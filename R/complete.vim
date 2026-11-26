@@ -17,6 +17,8 @@ g:did_vimr_complete = 1
 
 g:rplugin.compl_float_win = 0
 g:rplugin.compl_event = {}
+# The word that the server was asked about for the selected item of the menu
+g:rplugin.compl_asked = ''
 g:rplugin.compl_cls = ''
 g:rplugin.compl_usage = ''
 
@@ -222,7 +224,18 @@ def g:CloseFloatWin(...args: list<any>)
 enddef
 
 def g:OnCompleteDone()
+    g:rplugin.compl_asked = ''
     g:CloseFloatWin()
+enddef
+
+# The server and R answer a request later, when the user may have moved to
+# another item of the menu or may have left it. Each answer names its word,
+# and it belongs to the selected item only if that word is the one that was
+# asked about for this item. The function is global, since this script is
+# sourced again for each buffer, which clears what is local to it.
+def g:IsComplAnswerForSelected(word: string): bool
+    return word != '' && word ==# g:rplugin.compl_asked
+        && type(get(get(g:rplugin.compl_event, 'completed_item', {}), 'user_data', '')) == v:t_dict
 enddef
 
 def g:AskForComplInfo()
@@ -230,6 +243,8 @@ def g:AskForComplInfo()
         return
     endif
 
+    # Another item is selected, so an answer for the last one is out of date
+    g:rplugin.compl_asked = ''
     # Other plugins fill the 'user_data' dictionary
     if has_key(v:event, 'completed_item') && has_key(v:event['completed_item'], 'word')
         g:rplugin.compl_event = deepcopy(v:event)
@@ -238,12 +253,15 @@ def g:AskForComplInfo()
             if has_key(g:rplugin.compl_event['completed_item']['user_data'], 'pkg')
                 var pkg = g:rplugin.compl_event['completed_item']['user_data']['pkg']
                 var wrd = g:rplugin.compl_event['completed_item']['word']
-                # Request function description and usage
+                # Request function description and usage. The server takes
+                # what follows "::" as the word, and the answer names that.
+                g:rplugin.compl_asked = substitute(wrd, '^.\{-}::', '', '')
                 g:JobStdin(g:rplugin.jobs["Server"], "6" .. wrd .. "\002" .. pkg .. "\n")
             elseif has_key(g:rplugin.compl_event['completed_item']['user_data'], 'cls')
                 if g:rplugin.compl_event['completed_item']['user_data']['cls'] == 'v'
                     var pkg = g:rplugin.compl_event['completed_item']['user_data']['env']
                     var wrd = g:rplugin.compl_event['completed_item']['user_data']['word']
+                    g:rplugin.compl_asked = substitute(wrd, '^.\{-}::', '', '')
                     g:JobStdin(g:rplugin.jobs["Server"], "6" .. wrd .. "\002" .. pkg .. "\n")
                 else
                     # Can't open a float window from here directly:
@@ -259,6 +277,9 @@ def g:AskForComplInfo()
 enddef
 
 def g:FinishGlbEnvFunArgs(fnm: string, txt: string)
+    if !g:IsComplAnswerForSelected(fnm)
+        return
+    endif
     var usage = substitute(txt, "\x14", "\n", "g")
     usage = substitute(usage, "\x13", "''", "g")
     usage = substitute(usage, "\005", '\\"', "g")
@@ -272,13 +293,24 @@ def g:FinishGlbEnvFunArgs(fnm: string, txt: string)
     g:CreateNewFloat()
 enddef
 
-def g:FinishGetSummary(txt: string)
+def g:FinishGetSummary(txt: string, word: string)
+    if !g:IsComplAnswerForSelected(word)
+        return
+    endif
     var summary = split(substitute(txt, "\x13", "'", "g"), "\x14")
     g:rplugin.compl_event['completed_item']['user_data']['summary'] = summary
     g:CreateNewFloat()
 enddef
 
 def g:SetComplInfo(dctnr: dict<any>)
+    # The server found nothing for the word
+    if len(dctnr) == 0
+        g:CloseFloatWin()
+        return
+    endif
+    if !g:IsComplAnswerForSelected(get(dctnr, 'word', ''))
+        return
+    endif
     # Replace user_data with the complete version
     g:rplugin.compl_event['completed_item']['user_data'] = deepcopy(dctnr)
 
@@ -288,15 +320,13 @@ def g:SetComplInfo(dctnr: dict<any>)
         var usagestr = join(usage, ", ")
         g:rplugin.compl_usage = dctnr['word'] .. '(' .. usagestr .. ')'
     elseif has_key(dctnr, 'word') && dctnr['word'] =~ '\k\{-}\$\k\{-}'
-        g:SendToVimcom("E", 'vimcom:::vim.get.summary(' .. dctnr['word'] .. ', 59)')
+        # R sends the word back with the summary
+        g:SendToVimcom("E", 'vimcom:::vim.get.summary(' .. dctnr['word'] .. ', 59, '
+            .. g:RString(dctnr['word']) .. ')')
         return
     endif
 
-    if len(dctnr) > 0
-        g:CreateNewFloat()
-    else
-        g:CloseFloatWin()
-    endif
+    g:CreateNewFloat()
 enddef
 
 # We can't transfer this function to the vimrserver because

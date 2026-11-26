@@ -73,8 +73,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 14, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 14 - len(cmds))
+  g:AssertEqual(len(cmds), 15, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 15 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -130,6 +130,12 @@ if executable('Rscript')
     {word: "it's", menu: "[d'f]", user_data: extend({word: "d'f$it's"}, column)},
     {word: 'b', menu: "[d'f]", user_data: extend({word: "d'f$b"}, column)}]],
     'vimcom: the columns of a data frame reach Vim as a list, with the quotes of their names')
+  # The summary of an object comes back with the word that it was asked for,
+  # so that Vim can tell which item of the menu the answer belongs to
+  var summary_taken = Taken(cmds[14])
+  g:AssertEqual([summary_taken[0],
+    type(summary_taken[1]) == v:t_list ? summary_taken[1][1 :] : summary_taken[1]],
+    ['g:FinishGetSummary', ["d'f$it's"]], 'vimcom: the summary of an object names the word that it is for')
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer

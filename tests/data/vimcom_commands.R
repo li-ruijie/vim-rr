@@ -56,6 +56,8 @@ cmds <- c(
     command(env[["vim_viewobj"]]("no\nsuch")),
     command(env[["vim.GlobalEnv.fun.args"]]("it's \"f\"\\")),
     # A message for the server, which puts the items into a command for Vim
-    command(env[["vim_complete_args"]]("7", "plainf", "", firstobj = "d'f", ldf = TRUE))
+    command(env[["vim_complete_args"]]("7", "plainf", "", firstobj = "d'f", ldf = TRUE)),
+    # The summary of an object, with the word that Vim asked it for
+    command(env[["vim.get.summary"]](c(1.5, 2.5), 59, "d'f$it's"))
 )
 writeLines(cmds, out, useBytes = TRUE)

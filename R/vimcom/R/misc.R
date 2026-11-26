@@ -272,7 +272,10 @@ vim.GlobalEnv.fun.args <- function(funcname) {
 #' auto-completion.
 #' @param obj Object selected in the completion menu.
 #' @param wdth Maximum width of lines in the output.
-vim.get.summary <- function(obj, wdth) {
+#' @param word The word of the completion menu that the summary is for. Vim
+#' gets it back with the summary, since the user may have selected another
+#' item by then.
+vim.get.summary <- function(obj, wdth, word) {
     isnull <- try(is.null(obj), silent = TRUE)
     if (class(isnull)[1] != "logical")
         return(invisible(NULL))
@@ -289,7 +292,8 @@ vim.get.summary <- function(obj, wdth) {
     txt <- paste0(txt, collapse = "\n")
     txt <- gsub("'", "\x13", gsub("\n", "\x14", txt))
 
-    .C("vimcom_msg_to_vim", paste0("g:FinishGetSummary('", txt, "')"), PACKAGE = "vimcom")
+    .C("vimcom_msg_to_vim", paste0("g:FinishGetSummary('", txt, "', ", vim.sq(word), ")"),
+       PACKAGE = "vimcom")
     return(invisible(NULL))
 }
 
