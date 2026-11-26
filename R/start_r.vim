@@ -1045,7 +1045,16 @@ enddef
 
 def g:RViewDF(oname: string, howto: string, txt: string)
     if exists('g:R_csv_app')
-        var tsvnm = g:rplugin.tmpdir .. '/' .. oname .. '.tsv'
+        # The name of the object is R code, such as d[d$x > 1, ], and the
+        # file is named after it. Each character that Windows or Unix
+        # refuses in a file name becomes an underscore, and so does a control
+        # character. A name that Windows keeps for a device gets an
+        # underscore in front, and a long one is cut.
+        var stem = oname->substitute('[<>:"/\\|?*[:cntrl:]]', '_', 'g')->strcharpart(0, 100)
+        if stem =~? '^\%(con\|prn\|aux\|nul\|com\d\|lpt\d\)\%(\.\|$\)'
+            stem = '_' .. stem
+        endif
+        var tsvnm = g:rplugin.tmpdir .. '/' .. stem .. '.tsv'
         writefile(split(substitute(txt, "\x13", "'", "g"), "\x14"), tsvnm)
         g:AddForDeletion(tsvnm)
 

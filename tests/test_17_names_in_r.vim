@@ -885,6 +885,25 @@ g:AssertEqual([err, expand('%:t'), getline(1)], ['', 'v$HOME {1}.tsv', 'dollar']
 extend(made_files, ['v$HOME {1}.tsv'])
 silent! only
 execute 'buffer ' .. rbuf
+# The file was named after the R code as it was, so on Windows a character
+# such as ">", "|", or ":" made writefile() fail, and on both systems a slash
+# pointed into a directory that does not exist. A name that Windows keeps
+# for a device and a name that is too long for a file are covered as well.
+var tsv_cases = [["d[d$x >\t1, \"a|b\"] / 2 * ? : <y>", "d[d$x __1, _a_b_] _ 2 _ _ _ _y_.tsv"],
+  ['aux', '_aux.tsv'], ['Com1.x', '_Com1.x.tsv'], [repeat('n', 150), repeat('n', 100) .. '.tsv']]
+var tsv_shown: list<any> = []
+for [expr, tsv] in tsv_cases
+  err = Caught(() => {
+    g:RViewDF(expr, '', "x\tn\x14a\t1")
+  })
+  add(tsv_shown, [err, expand('%:t'), getline(1, '$')])
+  silent! only
+  execute 'buffer ' .. rbuf
+  add(made_files, tsv)
+endfor
+g:AssertEqual(tsv_shown, tsv_cases->mapnew((_, c) => ['', c[1], ["x\tn", "a\t1"]]),
+  'RViewDF: the file of an expression with characters that a file name cannot hold is written and opened')
+
 g:rplugin.tmpdir = saved_tmpdir
 if type(saved_csv_app) == v:t_none
   unlet g:R_csv_app
