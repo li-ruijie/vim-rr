@@ -126,6 +126,18 @@ delfunction g:RrTestTake
 unlet! g:rr_test_taken
 
 # ========================================================================
+# vimrserver: a name in R code for vimcom is an R string
+# ========================================================================
+# The server asks vimcom for the arguments of a function of the global
+# environment, and it put the name between double quotes as it was, so a
+# double quote or a backslash in the name gave R code that R refused. The
+# server is not built for these tests, so its source is read. No format of
+# the server may put a string between double quotes into a call of vimcom.
+var server_source = readfile(plugin_root .. '/R/vimcom/src/apps/vimrserver.c')
+g:AssertEqual(server_source->copy()->filter((_, l) => l =~ 'vimcom:::[^ ]*(\\"%s')
+  ->mapnew((_, l) => trim(l)), [], 'vimrserver: no name goes raw into an R string for vimcom')
+
+# ========================================================================
 # R code: a file name is an R string, whatever it holds
 # ========================================================================
 # Vim put a file name between double quotes into the R code that it sends, so

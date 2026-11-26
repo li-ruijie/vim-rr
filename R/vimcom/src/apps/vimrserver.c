@@ -2484,9 +2484,25 @@ void completion_info(const char *wrd, const char *pkg) {
                 s++;
 
             if (f[1][0] == '\003' && str_here(f[4], "[\x12not_checked\x12]")) {
-                snprintf(compl_buffer, 1024,
-                         "E%svimcom:::vim.GlobalEnv.fun.args(\"%s\")\n",
-                         getenv("VIMR_ID"), wrd);
+                // The name goes into an R string, so a backslash is put
+                // ahead of each backslash and each double quote of it. A
+                // name that would not fit into the buffer is not asked for,
+                // since a command that is cut is no R code.
+                int n = snprintf(compl_buffer, compl_buffer_size,
+                                 "E%svimcom:::vim.GlobalEnv.fun.args(\"",
+                                 getenv("VIMR_ID"));
+                if (n < 0 || (unsigned long)n + 2 * strlen(wrd) + 4 >
+                                 compl_buffer_size) {
+                    compl_buffer[0] = 0;
+                    return;
+                }
+                p = compl_buffer + n;
+                for (const char *w = wrd; *w != 0; w++) {
+                    if (*w == '\\' || *w == '"')
+                        *p++ = '\\';
+                    *p++ = *w;
+                }
+                strcpy(p, "\")\n");
                 send_to_vimcom(compl_buffer);
                 return;
             }
