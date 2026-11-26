@@ -241,9 +241,10 @@ SOCKET sfd = INVALID_SOCKET; // File descriptor of socket used in the TCP
                              // connection with the vimrserver.
 static HANDLE tid; // Identifier of thread running TCP connection loop.
 extern void Rconsolecmd(char *cmd); // Defined in R: src/gnuwin32/rui.c.
-// The connection was shut down after a failed send, and the socket stays open
-// until vimcom_Stop() closes it. Used by the main thread only.
-static int sfd_down;
+// The connection is over, and the socket stays open until vimcom_Stop()
+// closes it. The main thread sets the flag after a failed send, and the
+// receiving thread sets it when it ends.
+static volatile LONG sfd_down;
 #else
 static int sfd = -1;  // File descriptor of socket used in the TCP connection
                       // with the vimrserver.
@@ -1622,7 +1623,9 @@ static void *client_loop_thread(__attribute__((unused)) void *arg)
 #ifdef WIN32
     // The main thread may still send through the socket, so it stays open
     // until vimcom_Stop() closes it. Shutting the connection down tells
-    // vimrserver that it is over and makes every later send fail.
+    // vimrserver that it is over and makes every later send fail. The flag
+    // keeps the main thread from building a list for such a send.
+    sfd_down = 1;
     shutdown(sfd, SD_BOTH);
     return 0;
 #else
