@@ -2215,23 +2215,23 @@ def g:RAction(rcmd: string, ...args: list<any>)
     endif
 enddef
 
+# The command that opens an HTML file. On Windows cmd.exe reads the line, so
+# the path stands between double quotes, where an ampersand does not end the
+# command. A list would reach cmd.exe with quotes only around a path that
+# holds a space.
+def g:RHtmlCommand(fullpath: string, browser: string): any
+    if browser != ''
+        return split(browser) + [fullpath]
+    endif
+    return has('win32') ? 'cmd /c start "" "' .. fullpath .. '"' : ['xdg-open', fullpath]
+enddef
+
 def g:RLoadHTML(fullpath: string, browser: string)
     if g:R_openhtml == 0
         return
     endif
 
-    var cmd: list<string>
-    if browser == ''
-        if has('win32')
-            cmd = ['cmd', '/c', 'start', '', fullpath]
-        else
-            cmd = ['xdg-open', fullpath]
-        endif
-    else
-        cmd = split(browser) + [fullpath]
-    endif
-
-    job_start(cmd)
+    job_start(g:RHtmlCommand(fullpath, browser))
 enddef
 
 def g:ROpenDoc(fullpath: string, browser: string)

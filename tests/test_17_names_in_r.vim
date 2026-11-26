@@ -402,6 +402,41 @@ elseif has_key(g:rplugin, 'start_msg')
   remove(g:rplugin, 'start_msg')
 endif
 
+# ========================================================================
+# RLoadHTML: on Windows cmd.exe reads the command that opens the file
+# ========================================================================
+# The command was a list, which Vim joins with quotes only around an argument
+# that holds a space. A path with an ampersand and no space reached cmd.exe
+# bare, so cmd.exe cut it at the ampersand and ran the rest as a command.
+# Nothing is opened here. The line is given to cmd.exe with echo in the place
+# of start, which shows how cmd.exe divides it.
+g:AssertEqual(g:RHtmlCommand('a&b.html', 'my browser'), ['my', 'browser', 'a&b.html'],
+  'RLoadHTML: a browser gets the path as one argument')
+if has('win32')
+  var open_cmd = g:RHtmlCommand(work .. '/a&b.html', '')
+  var echo_cmd = type(open_cmd) == v:t_string
+    ? substitute(open_cmd, '^cmd /c start "" ', 'cmd /c echo ', '') : ''
+  g:Assert(echo_cmd =~# '^cmd /c echo ', 'RLoadHTML: the command for Windows is a line for cmd.exe')
+  if echo_cmd =~# '^cmd /c echo '
+    var echoed: list<string> = []
+    var ejob = job_start(echo_cmd, {in_io: 'null', err_io: 'out', out_cb: (_, msg) => {
+      add(echoed, substitute(msg, '\r$', '', ''))
+    }})
+    for _ in range(100)
+      if job_status(ejob) !=# 'run'
+        break
+      endif
+      sleep 50m
+    endfor
+    sleep 100m
+    g:AssertEqual(echoed, ['"' .. work .. '/a&b.html"'],
+      'RLoadHTML: cmd.exe takes a path with an ampersand as one argument')
+  endif
+else
+  g:AssertEqual(g:RHtmlCommand('a&b.html', ''), ['xdg-open', 'a&b.html'],
+    'RLoadHTML: xdg-open gets the path as one argument')
+endif
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim
