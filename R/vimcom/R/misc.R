@@ -264,7 +264,7 @@ vim.GlobalEnv.fun.args <- function(funcname) {
     txt <- gsub('\\\\\\"', '\005', txt)
     txt <- gsub('"', '\\\\"', txt)
     .C("vimcom_msg_to_vim",
-       paste0('call g:FinishGlbEnvFunArgs("', funcname, '", "', txt, '")'), PACKAGE = "vimcom")
+       paste0('call g:FinishGlbEnvFunArgs(', vim.sq(funcname), ', "', txt, '")'), PACKAGE = "vimcom")
     return(invisible(NULL))
 }
 

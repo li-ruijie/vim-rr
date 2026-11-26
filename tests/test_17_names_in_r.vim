@@ -48,9 +48,10 @@ def g:RrTestTake(...args: list<any>)
 enddef
 def Taken(cmd: string): list<any>
   g:rr_test_taken = ['not called']
-  var fn = matchstr(cmd, '^g:\w\+')
+  # One command of vimcom starts with "call"
+  var fn = matchstr(cmd, '^\%(call \)\=\zsg:\w\+')
   try
-    execute substitute(cmd, '^g:\w\+', 'g:RrTestTake', '')
+    execute substitute(cmd, '^\%(call \)\=g:\w\+', 'g:RrTestTake', '')
   catch
     return [fn, v:exception]
   endtry
@@ -72,8 +73,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 12, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 12 - len(cmds))
+  g:AssertEqual(len(cmds), 13, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 13 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -107,6 +108,10 @@ if executable('Rscript')
   # Vim receives a command as one line, so a line break in it would cut it
   g:AssertEqual(Taken(cmds[11]), ['g:RWarningMsg', ['"no such" not found in .GlobalEnv']],
     'vimcom: a line break in a warning becomes a space')
+  # The arguments of a function of the global environment, for completion
+  g:AssertEqual(Taken(cmds[12]),
+    ['g:FinishGlbEnvFunArgs', ['it''s "f"\', "[\x12x\x12], [\x12y\x12, \x121\x12], "]],
+    'vimcom: the name of a function reaches FinishGlbEnvFunArgs() with its quotes and its backslash')
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer

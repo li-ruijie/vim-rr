@@ -23,7 +23,7 @@ assign("::", function(pkg, name) {
 }, envir = env)
 assign("require", function(...) TRUE, envir = env)
 invisible(Map(function(f) sys.source(file.path(src, f), envir = env),
-              c("misc.R", "help.R", "interlace.R")))
+              c("misc.R", "help.R", "interlace.R", "bol.R")))
 
 command <- function(expr) {
     tryCatch({
@@ -35,6 +35,7 @@ command <- function(expr) {
 Sys.setenv(VIMR_TMPDIR = work, VIMR_ID = "1")
 options(browser = "my 'browser'", vimcom.delim = "\t")
 assign("it's", data.frame(a = 1), envir = .GlobalEnv)
+assign("it's \"f\"\\", function(x, y = 1) NULL, envir = .GlobalEnv)
 writeLines("1 + 1", file.path(work, "code.R"))
 
 cmds <- c(
@@ -50,6 +51,7 @@ cmds <- c(
     command(env[["vim.example"]]("it's")),
     command(env[["vim.help"]]("it's", 80L)),
     # A line break, which the text of an R error holds as well
-    command(env[["vim_viewobj"]]("no\nsuch"))
+    command(env[["vim_viewobj"]]("no\nsuch")),
+    command(env[["vim.GlobalEnv.fun.args"]]("it's \"f\"\\"))
 )
 writeLines(cmds, out, useBytes = TRUE)
