@@ -476,8 +476,9 @@ def g:RQuit(how: string)
             g:SignalToR('SIGKILL')
         endif
     else
-        if bufloaded('Object_Browser')
-            exe 'bunload! ' .. g:RBufNr('Object_Browser')
+        var obnr = g:RObjBrowserBufNr()
+        if obnr > 0
+            exe 'bunload! ' .. obnr
         endif
 
         quit_requested = true
@@ -694,10 +695,11 @@ def g:StartObjBrowser()
     # Either open or close the Object Browser
     var savesb = &switchbuf
     set switchbuf=useopen,usetab
-    if bufloaded('Object_Browser')
+    var obnr = g:RObjBrowserBufNr()
+    if obnr > 0
         var curwin = win_getid()
         var curtab = tabpagenr()
-        exe 'sb ' .. g:RBufNr('Object_Browser')
+        exe 'sb ' .. obnr
         var objbrtab = tabpagenr()
         quit
         win_gotoid(curwin)
@@ -741,6 +743,7 @@ def g:StartObjBrowser()
             sil exe 'resize ' .. g:R_objbr_h
         endif
         sil set filetype=rbrowser
+        g:rplugin.ob_bufnr = bufnr()
         g:rplugin.curview = "GlobalEnv"
         g:rplugin.ob_winnr = win_getid()
 
@@ -1306,7 +1309,6 @@ def g:ShowRDoc(rkeyword: string, txt: string = '')
     endif
 
     setlocal modifiable
-    g:rplugin.curbuf = bufname("%")
 
     var save_unnamed_reg = @"
     setlocal modifiable

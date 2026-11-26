@@ -707,3 +707,190 @@ if has('win32')
   delete(tmux_dir .. '/none', 'd')
   delete(tmux_dir, 'd')
 endif
+
+# ========================================================================
+# Object Browser: the buffer is known by its number and its filetype
+# ========================================================================
+# The plugin makes the buffer under the relative name Object_Browser, and
+# it used to look the buffer up by that name. Vim keeps the name of a buffer
+# whose 'buftype' is nofile as it was given, so after :cd the name still
+# finds the browser, unless a buffer of the user that is older than the
+# browser has that name in the new directory. The name then stood for the
+# buffer of the user. The toggle went to its window, the quit unloaded it
+# with its changes, and UpdateOB() wrote the list of objects into it.
+if !exists('*g:StartObjBrowser')
+  execute 'source ' .. fnameescape(plugin_root .. '/R/start_r.vim')
+endif
+var ob_root = tempname()
+var ob_dir_a = ob_root .. '/A'
+var ob_dir_b = ob_root .. '/B'
+mkdir(ob_dir_a, 'p')
+mkdir(ob_dir_b)
+var ob_cwd = getcwd()
+var ob_switchbuf = &switchbuf
+var ob_saved = [g:R_objbr_place, get(g:rplugin, 'curview', v:none), get(g:rplugin, 'ob_bufnr', v:none),
+  get(g:rplugin, 'ob_winnr', v:none), get(g:rplugin, 'start_msg', v:none),
+  get(g:rplugin, 'update_glbenv', v:none)]
+g:R_objbr_place = 'RIGHT'
+g:rplugin.start_msg = []
+# When its buffer is unloaded, the browser tells R through the server that
+# it is gone, unless the objects are kept up to date for the completion in
+# any case. Neither R nor the server runs here.
+g:rplugin.update_glbenv = 1
+var ob_globenv = g:rplugin.localtmpdir .. '/globenv_' .. $VIMR_ID
+var ob_globenv_saved = filereadable(ob_globenv) ? readfile(ob_globenv) : []
+var ob_list = ['.GlobalEnv | Libraries', '', "   {#x\t", "   ~#y\t"]
+writefile(ob_list, ob_globenv)
+
+# The loaded buffers whose filetype is rbrowser
+def OBBuffers(): list<number>
+  return getbufinfo({bufloaded: 1})->mapnew((_, b) => b.bufnr)
+    ->filter((_, nr) => getbufvar(nr, '&filetype') ==# 'rbrowser')
+enddef
+
+# Open the browser while directory A is current, and go back to the window
+# of the script, in directory B
+def OBOpenInA(edwin: number): number
+  execute 'cd ' .. fnameescape(ob_dir_a)
+  g:StartObjBrowser()
+  var nr = OBBuffers()->max()
+  win_gotoid(edwin)
+  execute 'cd ' .. fnameescape(ob_dir_b)
+  return nr
+enddef
+
+# The path of RQuit() that unloads the browser, with a stand-in for R
+def OBQuit(): string
+  g:rplugin.vimcom_connected = 1
+  g:rplugin.R_pid = 4242
+  g:SendCmdToR = function('g:TestSendCmdToR')
+  return Caught(() => {
+    g:RQuit('nosave')
+  })
+enddef
+
+# A buffer of the user named Object_Browser in directory B, with a change
+# that is not written, and the window of a script above it
+execute 'cd ' .. fnameescape(ob_dir_b)
+silent new Object_Browser
+var ob_user = bufnr()
+setline(1, ['notes of the user'])
+silent new script.txt
+var ob_ed = bufnr()
+var ob_edwin = win_getid()
+
+var ob_nr = OBOpenInA(ob_edwin)
+g:AssertEqual([getbufvar(ob_nr, '&filetype'), ob_nr != ob_user, g:RBufNr('Object_Browser')],
+  ['rbrowser', true, ob_user],
+  'Object Browser: after :cd its name stands for the buffer of the user')
+var ob_found = -2
+err = Caught(() => {
+  ob_found = g:RObjBrowserBufNr()
+})
+g:AssertEqual([err, ob_found], ['', ob_nr], 'Object Browser: found by its number after :cd')
+
+var ob_said = 'not called'
+err = Caught(() => {
+  ob_said = g:UpdateOB('GlobalEnv')
+})
+g:AssertEqual([err, ob_said, getbufline(ob_nr, 1, '$'), getbufline(ob_user, 1, '$'), bufnr(), win_getid()],
+  ['', '', ob_list, ['notes of the user'], ob_ed, ob_edwin],
+  'UpdateOB: fills the browser after :cd and goes back to the script')
+
+# The empty name of a buffer without a name stood for the browser once
+# UpdateOB() had switched to it, so the function stayed there
+new
+var ob_noname = bufnr()
+ob_said = 'not called'
+err = Caught(() => {
+  ob_said = g:UpdateOB('GlobalEnv')
+})
+g:AssertEqual([err, ob_said, bufnr()], ['', '', ob_noname],
+  'UpdateOB: goes back to a buffer without a name')
+execute 'bwipeout ' .. ob_noname
+win_gotoid(ob_edwin)
+
+err = Caught(() => {
+  g:StartObjBrowser()
+})
+g:AssertEqual([err, bufexists(ob_nr), OBBuffers(), bufwinid(ob_user) != -1, win_getid()],
+  ['', 0, [], true, ob_edwin],
+  'StartObjBrowser: the toggle closes the browser after :cd and leaves the buffer of the user')
+
+ob_nr = OBOpenInA(ob_edwin)
+err = OBQuit()
+g:AssertEqual([err, bufloaded(ob_nr), bufloaded(ob_user), getbufline(ob_user, 1, '$'),
+  getbufvar(ob_user, '&modified')], ['', 0, 1, ['notes of the user'], true],
+  'RQuit: unloads the browser after :cd and keeps the changes in the buffer of the user')
+
+# The user wiped the browser. The kept number belongs to no buffer, and the
+# buffer named Object_Browser in the current directory is not the browser.
+ob_nr = OBOpenInA(ob_edwin)
+if ob_nr > 0
+  execute 'bwipeout ' .. ob_nr
+endif
+ob_found = -2
+err = Caught(() => {
+  ob_found = g:RObjBrowserBufNr()
+})
+var ob_update_err = Caught(() => {
+  ob_said = g:UpdateOB('GlobalEnv')
+})
+g:AssertEqual([err, ob_found, ob_update_err, ob_said, getbufline(ob_user, 1, '$'), bufnr()],
+  ['', -1, '', 'Object_Browser not listed', ['notes of the user'], ob_ed],
+  'Object Browser: a wiped browser is not looked for by its name')
+err = OBQuit()
+g:AssertEqual([err, bufloaded(ob_user), getbufvar(ob_user, '&modified')], ['', 1, true],
+  'RQuit: the buffer of the user stays loaded when the browser was wiped')
+
+# A browser that the kept number does not name is found by its filetype
+new
+set filetype=rbrowser
+var ob_other = bufnr()
+win_gotoid(ob_edwin)
+ob_found = -2
+err = Caught(() => {
+  ob_found = g:RObjBrowserBufNr()
+})
+g:AssertEqual([err, ob_found], ['', ob_other],
+  'Object Browser: found by its filetype when the number is gone')
+execute 'bwipeout ' .. ob_other
+execute 'bwipeout! ' .. ob_user
+
+# No browser at all
+ob_found = -2
+err = Caught(() => {
+  ob_found = g:RObjBrowserBufNr()
+})
+ob_update_err = Caught(() => {
+  ob_said = g:UpdateOB('GlobalEnv')
+})
+var ob_quit_err = OBQuit()
+g:AssertEqual([err, ob_found, ob_update_err, ob_said, ob_quit_err, g:rplugin.start_msg],
+  ['', -1, '', 'Object_Browser not listed', '', []],
+  'Object Browser: no browser gives -1 and no error')
+
+execute 'bwipeout! ' .. ob_ed
+# A toggle that failed leaves a browser and the value of 'switchbuf' behind
+for ob_left in OBBuffers()
+  execute 'bwipeout ' .. ob_left
+endfor
+&switchbuf = ob_switchbuf
+execute 'cd ' .. fnameescape(ob_cwd)
+delete(ob_dir_a, 'd')
+delete(ob_dir_b, 'd')
+delete(ob_root, 'd')
+if empty(ob_globenv_saved)
+  delete(ob_globenv)
+else
+  writefile(ob_globenv_saved, ob_globenv)
+endif
+g:R_objbr_place = ob_saved[0]
+for [ob_key, ob_value] in [['curview', ob_saved[1]], ['ob_bufnr', ob_saved[2]], ['ob_winnr', ob_saved[3]],
+    ['start_msg', ob_saved[4]], ['update_glbenv', ob_saved[5]]]
+  if type(ob_value) != v:t_none
+    g:rplugin[ob_key] = ob_value
+  elseif has_key(g:rplugin, ob_key)
+    remove(g:rplugin, ob_key)
+  endif
+endfor

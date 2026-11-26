@@ -59,7 +59,7 @@ if !exists("g:did_vimr_rbrowser_functions")
 
         var rplugin_switchedbuf = 0
         var savesb: string
-        var obnr = g:RBufNr('Object_Browser')
+        var obnr = g:RObjBrowserBufNr()
         if obnr < 0 || !buflisted(obnr)
             g:rplugin.ob_upobcnt = 0
             return "Object_Browser not listed"
@@ -76,7 +76,8 @@ if !exists("g:did_vimr_rbrowser_functions")
             g:rplugin.ob_upobcnt = 0
             return "Error reading OB file: " .. v:exception
         endtry
-        if has_key(g:rplugin, "curbuf") && g:rplugin.curbuf != "Object_Browser"
+        var curnr = bufnr()
+        if curnr != obnr
             savesb = &switchbuf
             set switchbuf=useopen,usetab
             exe 'sil noautocmd sb ' .. obnr
@@ -95,7 +96,7 @@ if !exists("g:did_vimr_rbrowser_functions")
             setlocal nomodifiable
         endif
         if rplugin_switchedbuf
-            exe "sil noautocmd sb " .. g:RBufNr(g:rplugin.curbuf)
+            exe "sil noautocmd sb " .. curnr
             exe "set switchbuf=" .. savesb
         endif
         g:rplugin.ob_upobcnt = 0

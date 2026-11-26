@@ -356,7 +356,6 @@ def g:UnMakeRMenu()
 enddef
 
 def g:MakeRBrowserMenu()
-    g:rplugin.curbuf = bufname("%")
     if g:rplugin.hasmenu == 1
         return
     endif

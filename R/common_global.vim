@@ -145,6 +145,23 @@ def g:RBufNr(name: string): number
     return empty(found) ? -1 : found[0]
 enddef
 
+# The number of the buffer of the Object Browser, or -1 when there is none.
+# The buffer is named Object_Browser, a name that belongs to the directory
+# that was current when it was made. After :cd, or with 'autochdir', the
+# name may stand for a buffer of the user, so the buffer is known by the
+# number that StartObjBrowser() kept and by its filetype. When that buffer
+# is gone, for example after the user wiped it, a loaded buffer whose
+# filetype is rbrowser is taken.
+def g:RObjBrowserBufNr(): number
+    var IsOB = (nr: number): bool => bufloaded(nr) && getbufvar(nr, '&filetype') ==# 'rbrowser'
+    var kept = get(g:rplugin, 'ob_bufnr', -1)
+    if IsOB(kept)
+        return kept
+    endif
+    var found = getbufinfo({bufloaded: 1})->mapnew((_, b) => b.bufnr)->filter((_, nr) => IsOB(nr))
+    return empty(found) ? -1 : found[0]
+enddef
+
 # Show a buffer by its number in the window that an Ex command such as
 # "tabnew" or "above 7split" opens. The command gets no name, since it would
 # read some characters of the name as its own, and even in the name that it
@@ -656,7 +673,6 @@ def g:RCreateSendMaps()
 enddef
 
 def g:RBufEnter()
-    g:rplugin.curbuf = bufname("%")
     if has("gui_running")
         if &filetype != g:rplugin.lastft
             g:UnMakeRMenu()

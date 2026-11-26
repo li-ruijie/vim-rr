@@ -259,7 +259,7 @@ for rq2line in start_r_lines
     in_rquit2 = true
   elseif in_rquit2 && rq2line =~ '^\s*enddef\s*$'
     break
-  elseif in_rquit2 && rq2line =~ 'bunload.*Object_Browser'
+  elseif in_rquit2 && rq2line =~ 'bunload'
     saw_bunload = true
   elseif in_rquit2 && saw_bunload && rq2line =~ '^\s*sleep\b'
     sleep_after_bunload = true
