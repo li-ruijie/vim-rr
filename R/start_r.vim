@@ -889,6 +889,15 @@ def g:FindDebugFunc(srcref: string)
     endif
 enddef
 
+# Edit a file in the current window, with its name taken as it is. On Windows
+# fnameescape() leaves a bracket alone, and :edit would open another file that
+# the name matches as a wildcard.
+def OpenFile(fname: string)
+    var nr = bufadd(fname)
+    setbufvar(nr, '&buflisted', true)
+    exe 'buffer ' .. nr
+enddef
+
 def g:RDebugJump(fnm: string, lnum: number)
     var saved_so = &scrolloff
     if g:R_debug_center == 1
@@ -913,7 +922,10 @@ def g:RDebugJump(fnm: string, lnum: number)
         fname = g:rplugin.rscript_name
     else
         flnum = lnum
-        fname = expand(fnm)
+        # R gives the name as source() received it, so only a tilde at its
+        # start is expanded. expand() would also take brackets for a wildcard
+        # and, on Unix, run a command between backticks.
+        fname = fnm =~ '^\~' ? fnamemodify(fnm, ':p') : fnm
     endif
 
     var bname = bufname("%")
@@ -926,13 +938,13 @@ def g:RDebugJump(fnm: string, lnum: number)
             if &modified
                 split
             endif
-            exe 'edit ' .. fnameescape(fname)
-        elseif glob("*") =~ fname
+            OpenFile(fname)
+        elseif stridx(glob("*"), fname) >= 0
             exe 'sb ' .. bufnr(g:rplugin.rscript_name)
             if &modified
                 split
             endif
-            exe 'edit ' .. fnameescape(fname)
+            OpenFile(fname)
         else
             exe 'set so=' .. saved_so
             return
@@ -940,7 +952,7 @@ def g:RDebugJump(fnm: string, lnum: number)
     endif
 
     if bufloaded(fname)
-        if fname != expand("%")
+        if bufnr(fname) != bufnr("%")
             exe 'sb ' .. bufnr(fname)
         endif
         exe ':' .. flnum

@@ -283,6 +283,58 @@ silent! only
 g:rplugin.rscript_name = saved_rscript
 execute 'buffer ' .. rbuf
 
+# ========================================================================
+# RDebugJump: the file that R names is taken as it is
+# ========================================================================
+# The name went through expand(), which takes brackets for a wildcard and, on
+# Unix, runs a command between backticks. Then it was used as a pattern.
+writefile(['f <- function() {', '  1', '}'], work .. '/a1.R')
+writefile(['f <- function() {', '  1', '}'], work .. '/a[1].R')
+writefile(['f <- function() {', '  1', '}'], work .. '/home.R')
+extend(made_files, ['a1.R', 'a[1].R', 'home.R'])
+saved_rscript = g:rplugin.rscript_name
+g:rplugin.rscript_name = bufname('%')
+# The lines of the file that carry the sign of the debugger
+def SignLines(file: string): list<number>
+  return bufexists(file) ? sign_getplaced(bufnr(file))[0].signs->mapnew((_, v) => v.lnum) : []
+enddef
+
+err = Caught(() => {
+  g:RDebugJump(work .. '/a[1].R', 2)
+})
+g:AssertEqual([err, SignLines(work .. '/a[1].R'), bufloaded(work .. '/a1.R')], ['', [2], 0],
+  'RDebugJump: opens "a[1].R" and leaves "a1.R" alone')
+sign unplace 1
+silent! only
+
+# R gives the name as source() received it, so a tilde at its start is kept
+var saved_home = $HOME
+$HOME = work
+err = Caught(() => {
+  g:RDebugJump('~/home.R', 3)
+})
+$HOME = saved_home
+g:AssertEqual([err, SignLines(work .. '/home.R')], ['', [3]],
+  'RDebugJump: a tilde at the start is the home directory')
+sign unplace 1
+silent! only
+
+err = Caught(() => {
+  g:RDebugJump('no~such [1].R', 1)
+})
+g:AssertEqual(err, '', 'RDebugJump: a name that is no file is no pattern either')
+silent! only
+
+if has('unix')
+  err = Caught(() => {
+    g:RDebugJump(work .. '/x`touch ' .. work .. '/INJECTED`.R', 1)
+  })
+  g:AssertEqual([err, filereadable(work .. '/INJECTED')], ['', 0],
+    'RDebugJump: a command between backticks in the name is not run')
+endif
+g:rplugin.rscript_name = saved_rscript
+execute 'buffer ' .. rbuf
+
 silent! tabonly
 silent! only
 # On Unix the work directory lies in the temporary directory of Vim, which Vim
