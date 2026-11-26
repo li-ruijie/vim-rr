@@ -239,26 +239,31 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
     for (field in names(frm)) {
         type <- typeof(frm[[field]])
         if (extrainfo) {
-            str1 <- paste0("{\x12word\x12: \x12", field)
+            # The items of the menu reach Vim as they are written here, so
+            # each string is quoted for Vim by vim.sq(). A byte 0x12 of a name
+            # or of a default value stays what it is.
+            word <- paste0(field, " = ")
             if (type == "symbol") {
-                str2 <- paste0("\x12, \x12menu\x12: \x12 \x12")
+                word <- field
+                menu <- " "
             } else if (type == "character") {
-                str2 <- paste0(" = \x12, \x12menu\x12: \x12\"", vim.fix.string(frm[[field]]), "\"\x12")
+                menu <- paste0("\"", vim.fix.string(frm[[field]]), "\"")
             } else if (type == "logical" || type == "double" || type == "integer") {
-                str2 <- paste0(" = \x12, \x12menu\x12: \x12", as.character(frm[[field]]), "\x12")
+                menu <- as.character(frm[[field]])
             } else if (type == "NULL") {
-                str2 <- paste0(" = \x12, \x12menu\x12: \x12NULL\x12")
+                menu <- "NULL"
             } else if (type == "language") {
-                str2 <- paste0(" = \x12, \x12menu\x12: \x12",
-                               vim.fix.string(deparse(frm[[field]]), FALSE), "\x12")
+                menu <- vim.fix.string(deparse(frm[[field]]), FALSE)
             } else {
-                str2 <- paste0("\x12, \x12menu\x12: \x12 \x12")
+                word <- field
+                menu <- " "
             }
+            item <- paste0("{'word': ", vim.sq(word), ", 'menu': ", vim.sq(menu))
             if (pkgname != ".GlobalEnv" && extrainfo && length(frm) > 0) {
-                res <- append(res, paste0(str1, str2, ", \x12user_data\x12: {\x12cls\x12: \x12a\x12, \x12argument\x12: \x12",
-                                          arglist[[field]], "\x12}}, "))
+                res <- append(res, paste0(item, ", 'user_data': {'cls': 'a', 'argument': ",
+                                          vim.sq(arglist[[field]]), "}}, "))
             } else {
-                res <- append(res, paste0(str1, str2, "}, "))
+                res <- append(res, paste0(item, "}, "))
             }
         } else {
             if (type == "symbol") {

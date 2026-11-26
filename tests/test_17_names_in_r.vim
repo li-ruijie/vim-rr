@@ -57,6 +57,12 @@ def Taken(cmd: string): list<any>
   endtry
   return [fn, g:rr_test_taken]
 enddef
+# The message with the arguments of a function that R builds, which the test
+# of the server below sends to the server as well
+var r_args_msg = ''
+# The items of that message, in Vim
+var args_items = [{word: "it's", menu: ' '}, {word: "a\x12b = ", menu: "\"x\x12y\""},
+  {word: "c\x12l", menu: '[dq]', user_data: {word: "dq$c\x12l", env: '.GlobalEnv', cls: 'v', descr: ''}}]
 
 if executable('Rscript')
   var rtmp = work .. "/it's tmp"
@@ -73,8 +79,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 15, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 15 - len(cmds))
+  g:AssertEqual(len(cmds), 16, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 16 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -114,12 +120,11 @@ if executable('Rscript')
     'vimcom: the name of a function reaches FinishGlbEnvFunArgs() with its quotes and its backslash')
   # The arguments of a function and the columns of the data frame that is
   # its first argument go to the server as the items of a list. The server
-  # writes a single quote in the place of each byte 0x12 and hands the list
-  # to Vim, which is done here in its place.
+  # hands the list to Vim as it is, which is done here in its place.
   var items_head = '+A7;;plainf;'
   var items: any = 'no list'
   try
-    items = eval('[' .. substitute(strpart(cmds[13], len(items_head)), "\x12", "'", 'g') .. ']')
+    items = eval('[' .. strpart(cmds[13], len(items_head)) .. ']')
   catch
     items = v:exception
   endtry
@@ -136,6 +141,20 @@ if executable('Rscript')
   g:AssertEqual([summary_taken[0],
     type(summary_taken[1]) == v:t_list ? summary_taken[1][1 :] : summary_taken[1]],
     ['g:FinishGetSummary', ["d'f$it's"]], 'vimcom: the summary of an object names the word that it is for')
+  # vimcom wrote the byte 0x12 for each quote of the items of the arguments,
+  # and the server turned every such byte into a quote. A name or a value
+  # that held the byte itself therefore ended its string, and so did a
+  # column name that held it, which R had quoted for Vim already. Vim then
+  # refused the whole menu.
+  r_args_msg = cmds[15]
+  var args_head = '+A8;;qf;'
+  try
+    items = eval('[' .. strpart(cmds[15], len(args_head)) .. ']')
+  catch
+    items = v:exception
+  endtry
+  g:AssertEqual([strpart(cmds[15], 0, len(args_head)), items], [args_head, args_items],
+    'vimcom: names and values with a quote or the byte 0x12 reach Vim as the items of a list')
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer
@@ -307,6 +326,19 @@ if executable('gcc')
     sleep 50m
   endfor
   var asked = matchstr(join(from_server, ''), 'vimcom:::.*)')
+  # The server turned every byte 0x12 of the items of the arguments into a
+  # quote, so a name or a value that held the byte ended its string, and Vim
+  # refused the whole menu. The items are sent as Vim writes them, and as R
+  # wrote them in the block above.
+  SendAsVimcom(rch, secret, '+A9;;qf;' .. string(args_items)[1 : -2])
+  var args_ids = [9]
+  if r_args_msg != ''
+    SendAsVimcom(rch, secret, r_args_msg)
+    add(args_ids, 8)
+  endif
+  g:AssertEqual(args_ids->mapnew((_, id) => ServerReplies('SetComplMenu(' .. id .. ',')
+    ->mapnew((_, r) => ServerPassed(r))), args_ids->mapnew((_, id) => [[id, args_items]]),
+    'vimrserver: the items of the arguments reach Vim as vimcom wrote them, with the byte 0x12')
   ch_close(rch)
   ServerReplies('OnVimcomDisconnect')
   ch_sendraw(sjob, "6gf\x02.GlobalEnv\n")

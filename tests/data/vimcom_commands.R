@@ -38,6 +38,11 @@ assign("it's", data.frame(a = 1), envir = .GlobalEnv)
 assign("it's \"f\"\\", function(x, y = 1) NULL, envir = .GlobalEnv)
 assign("plainf", function(a, b = 2) NULL, envir = .GlobalEnv)
 assign("d'f", structure(data.frame(1, 2), names = c("it's", "b")), envir = .GlobalEnv)
+# Names and a value that hold a quote or the byte 0x12
+qf <- function() NULL
+formals(qf) <- setNames(alist(x = , y = "x\x12y"), c("it's", "a\x12b"))
+assign("qf", qf, envir = .GlobalEnv)
+assign("dq", structure(data.frame(1), names = "c\x12l"), envir = .GlobalEnv)
 writeLines("1 + 1", file.path(work, "code.R"))
 
 cmds <- c(
@@ -58,6 +63,8 @@ cmds <- c(
     # A message for the server, which puts the items into a command for Vim
     command(env[["vim_complete_args"]]("7", "plainf", "", firstobj = "d'f", ldf = TRUE)),
     # The summary of an object, with the word that Vim asked it for
-    command(env[["vim.get.summary"]](c(1.5, 2.5), 59, "d'f$it's"))
+    command(env[["vim.get.summary"]](c(1.5, 2.5), 59, "d'f$it's")),
+    # The items of the arguments and of the columns, with the byte 0x12
+    command(env[["vim_complete_args"]]("8", "qf", "", firstobj = "dq", ldf = TRUE))
 )
 writeLines(cmds, out, useBytes = TRUE)

@@ -2782,19 +2782,15 @@ void complete(const char *id, char *base, char *funcnm, char *args) {
         } else {
             // Normal completion of arguments. A request of Vim brings no
             // arguments, and they are then taken from the loaded libraries.
+            // The items that vimcom:::vim_complete_args() sends are quoted
+            // for Vim already, and a byte 0x12 in them is part of a name or
+            // of a value, so they are passed on as they are.
             if (r_conn == 0 || !args) {
                 p = complete_args(p, funcnm);
             } else {
                 if ((strlen(args) + 1024) > compl_buffer_size)
                     p = grow_buffer(&compl_buffer, &compl_buffer_size,
                                     strlen(args) + 1024 - compl_buffer_size);
-
-                char *s = args;
-                while (*s) {
-                    if (*s == '\x12')
-                        *s = '\'';
-                    s++;
-                }
                 p = str_cat(p, args);
             }
         }
