@@ -63,6 +63,11 @@ var r_args_msg = ''
 # The items of that message, in Vim
 var args_items = [{word: "it's", menu: ' '}, {word: "a\x12b = ", menu: "\"x\x12y\""},
   {word: "c\x12l", menu: '[dq]', user_data: {word: "dq$c\x12l", env: '.GlobalEnv', cls: 'v', descr: ''}}]
+# The messages of R for a function without arguments, and the items of the
+# columns of the data frame that the second one adds
+var r_noargs_msgs: list<string> = []
+var noargs_columns = ["it's", 'b']->mapnew((_, n) => ({word: n, menu: "[d'f]",
+  user_data: {word: "d'f$" .. n, env: '.GlobalEnv', cls: 'v', descr: ''}}))
 
 if executable('Rscript')
   var rtmp = work .. "/it's tmp"
@@ -79,8 +84,8 @@ if executable('Rscript')
   endfor
   var cmds = filereadable(cmdfile) ? readfile(cmdfile) : []
   var r_errors = filereadable(work .. '/commands.err') ? readfile(work .. '/commands.err')->join(' ') : ''
-  g:AssertEqual(len(cmds), 16, 'vimcom: every command is one line (' .. r_errors .. ')')
-  cmds += repeat(['missing'], 16 - len(cmds))
+  g:AssertEqual(len(cmds), 18, 'vimcom: every command is one line (' .. r_errors .. ')')
+  cmds += repeat(['missing'], 18 - len(cmds))
   var saved_df_viewer = get(g:, 'R_df_viewer', v:none)
   g:R_df_viewer = 'View(%s)'
 
@@ -155,6 +160,21 @@ if executable('Rscript')
   endtry
   g:AssertEqual([strpart(cmds[15], 0, len(args_head)), items], [args_head, args_items],
     'vimcom: names and values with a quote or the byte 0x12 reach Vim as the items of a list')
+  # A function without arguments gave the item "[]", which the server put
+  # into the list of the menu as it was. Vim then got a list in the place of
+  # the first item (E1030), and with the columns of a data frame no list at
+  # all (E696). The test of the server below sends these messages as well.
+  r_noargs_msgs = cmds[16 : 17]
+  var noargs_items: list<any> = []
+  for [cmd, head] in [[cmds[16], '+A11;;nf;'], [cmds[17], '+A12;;nf;']]
+    try
+      add(noargs_items, [strpart(cmd, 0, len(head)), eval('[' .. strpart(cmd, len(head)) .. ']')])
+    catch
+      add(noargs_items, [strpart(cmd, 0, len(head)), v:exception])
+    endtry
+  endfor
+  g:AssertEqual(noargs_items, [['+A11;;nf;', []], ['+A12;;nf;', noargs_columns]],
+    'vimcom: a function without arguments gives no item, and the columns of a data frame stay a list')
 
   if type(saved_df_viewer) == v:t_none
     unlet g:R_df_viewer
@@ -339,6 +359,16 @@ if executable('gcc')
   g:AssertEqual(args_ids->mapnew((_, id) => ServerReplies('SetComplMenu(' .. id .. ',')
     ->mapnew((_, r) => ServerPassed(r))), args_ids->mapnew((_, id) => [[id, args_items]]),
     'vimrserver: the items of the arguments reach Vim as vimcom wrote them, with the byte 0x12')
+  # The menu of a function without arguments, as R wrote it in the block
+  # above, is empty or holds the columns alone
+  if len(r_noargs_msgs) == 2
+    for msg in r_noargs_msgs
+      SendAsVimcom(rch, secret, msg)
+    endfor
+    g:AssertEqual([11, 12]->mapnew((_, id) => ServerReplies('SetComplMenu(' .. id .. ',')
+      ->mapnew((_, r) => ServerPassed(r))), [[[11, []]], [[12, noargs_columns]]],
+      'vimrserver: the menu of a function without arguments is a list that Vim reads')
+  endif
   ch_close(rch)
   ServerReplies('OnVimcomDisconnect')
   ch_sendraw(sjob, "6gf\x02.GlobalEnv\n")

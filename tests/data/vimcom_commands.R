@@ -43,6 +43,7 @@ qf <- function() NULL
 formals(qf) <- setNames(alist(x = , y = "x\x12y"), c("it's", "a\x12b"))
 assign("qf", qf, envir = .GlobalEnv)
 assign("dq", structure(data.frame(1), names = "c\x12l"), envir = .GlobalEnv)
+assign("nf", function() NULL, envir = .GlobalEnv)
 writeLines("1 + 1", file.path(work, "code.R"))
 
 cmds <- c(
@@ -65,6 +66,9 @@ cmds <- c(
     # The summary of an object, with the word that Vim asked it for
     command(env[["vim.get.summary"]](c(1.5, 2.5), 59, "d'f$it's")),
     # The items of the arguments and of the columns, with the byte 0x12
-    command(env[["vim_complete_args"]]("8", "qf", "", firstobj = "dq", ldf = TRUE))
+    command(env[["vim_complete_args"]]("8", "qf", "", firstobj = "dq", ldf = TRUE)),
+    # The items of a function without arguments, alone and with the columns
+    command(env[["vim_complete_args"]]("11", "nf", "")),
+    command(env[["vim_complete_args"]]("12", "nf", "", firstobj = "d'f", ldf = TRUE))
 )
 writeLines(cmds, out, useBytes = TRUE)

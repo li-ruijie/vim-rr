@@ -291,7 +291,10 @@ vim.args <- function(funcname, txt = "", pkg = NULL, objclass, extrainfo = FALSE
 
 
     if (length(res) == 0 || (length(res) == 1 && res == "")) {
-        res <- "[]"
+        # The items of the menu of arguments go into a list together with
+        # the columns of a data frame, so a function without arguments gives
+        # no item. In the other form an empty list stands for the arguments.
+        res <- if (extrainfo) "" else "[]"
     } else {
         if (is.null(pkg)) {
             info <- pkgname
