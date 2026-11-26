@@ -1734,7 +1734,7 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
     }
 #endif
 
-    static int failure = 0;
+    int failure = 0;
 
     if (atoi(nrs_port) > 0) {
         struct sockaddr_in servaddr;
@@ -1817,6 +1817,12 @@ SEXP vimcom_Start(SEXP vrb, SEXP anm, SEXP swd, SEXP age, SEXP dbg, SEXP imd,
         vimcom_checklibs();
         needs_lib_msg = 0;
         send_libnames();
+    } else {
+        // vimcom_Stop() frees the buffers only after a successful start.
+        free(glbnvbuf1);
+        free(glbnvbuf2);
+        free(send_ge_buf);
+        glbnvbuf1 = glbnvbuf2 = send_ge_buf = NULL;
     }
 
     SEXP ans;
