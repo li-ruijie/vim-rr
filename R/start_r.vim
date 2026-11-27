@@ -710,13 +710,13 @@ def g:StartObjBrowser()
         var edbuf = bufnr()
 
         if g:R_objbr_place =~# 'RIGHT'
-            sil exe 'botright vsplit Object_Browser'
+            sil exe 'botright vnew'
         elseif g:R_objbr_place =~# 'LEFT'
-            sil exe 'topleft vsplit Object_Browser'
+            sil exe 'topleft vnew'
         elseif g:R_objbr_place =~# 'TOP'
-            sil exe 'topleft split Object_Browser'
+            sil exe 'topleft new'
         elseif g:R_objbr_place =~# 'BOTTOM'
-            sil exe 'botright split Object_Browser'
+            sil exe 'botright new'
         else
             if g:R_objbr_place =~? 'console' && has_key(g:rplugin, 'R_bufnr')
                 sil exe 'sb ' .. g:rplugin.R_bufnr
@@ -724,19 +724,27 @@ def g:StartObjBrowser()
                 sil exe 'sb ' .. g:RBufNr(g:rplugin.rscript_name)
             endif
             if g:R_objbr_place =~# 'right'
-                sil exe 'rightbelow vsplit Object_Browser'
+                sil exe 'rightbelow vnew'
             elseif g:R_objbr_place =~# 'left'
-                sil exe 'leftabove vsplit Object_Browser'
+                sil exe 'leftabove vnew'
             elseif g:R_objbr_place =~# 'above'
-                sil exe 'aboveleft split Object_Browser'
+                sil exe 'aboveleft new'
             elseif g:R_objbr_place =~# 'below'
-                sil exe 'belowright split Object_Browser'
+                sil exe 'belowright new'
             else
                 g:RWarningMsg('Invalid value for R_objbr_place: "' .. g:R_objbr_place .. '"')
                 exe "set switchbuf=" .. savesb
                 return
             endif
         endif
+        # The window holds an empty buffer, which is named here. Opened under
+        # its name, the browser read a file of that name in the current
+        # directory and took over a buffer of the user with that name.
+        var obname = 'Object_Browser'
+        while bufexists(obname)
+            obname ..= '_'
+        endwhile
+        sil exe 'file ' .. fnameescape(obname)
         if g:R_objbr_place =~? 'left' || g:R_objbr_place =~? 'right'
             sil exe 'vertical resize ' .. g:R_objbr_w
         else

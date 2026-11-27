@@ -886,6 +886,42 @@ g:AssertEqual([err, ob_found, ob_update_err, ob_said, ob_quit_err, g:rplugin.sta
   'Object Browser: no browser gives -1 and no error')
 
 execute 'bwipeout! ' .. ob_ed
+
+# The browser used to be opened with ":vsplit Object_Browser", which read a
+# file of that name in the current directory into the browser and took over
+# a buffer of the user with that name. It is now an empty buffer that is
+# named afterwards, with a name that no buffer has yet.
+execute 'cd ' .. fnameescape(ob_dir_a)
+writefile(['file of the user'], ob_dir_a .. '/Object_Browser')
+silent new script.txt
+var ob_clash_ed = win_getid()
+err = Caught(() => {
+  g:StartObjBrowser()
+})
+var ob_from_file = OBBuffers()->max()
+g:AssertEqual([err, getbufline(ob_from_file, 1, '$') != ['file of the user'], bufname(ob_from_file),
+    readfile(ob_dir_a .. '/Object_Browser')],
+  ['', true, 'Object_Browser', ['file of the user']],
+  'Object Browser: a file named Object_Browser stays as it was and is not shown')
+execute 'bwipeout ' .. ob_from_file
+win_gotoid(ob_clash_ed)
+silent new Object_Browser
+var ob_clash_user = bufnr()
+setline(1, ['notes of the user'])
+win_gotoid(ob_clash_ed)
+err = Caught(() => {
+  g:StartObjBrowser()
+})
+var ob_beside = OBBuffers()->max()
+g:AssertEqual([err, ob_beside != ob_clash_user, bufname(ob_beside), getbufline(ob_clash_user, 1, '$'),
+    getbufvar(ob_clash_user, '&filetype'), getbufvar(ob_clash_user, '&buftype')],
+  ['', true, 'Object_Browser_', ['notes of the user'], '', ''],
+  'Object Browser: a buffer of the user named Object_Browser is left alone')
+execute 'bwipeout ' .. ob_beside
+execute 'bwipeout! ' .. ob_clash_user
+execute 'bwipeout! ' .. bufnr('script.txt')
+delete(ob_dir_a .. '/Object_Browser')
+
 # A toggle that failed leaves a browser and the value of 'switchbuf' behind
 for ob_left in OBBuffers()
   execute 'bwipeout ' .. ob_left
